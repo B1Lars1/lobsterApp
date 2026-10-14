@@ -4,6 +4,7 @@ Leser Kartverkets «Sjøkart – Dybdedata» (FGDB) fra data/raw/dybdedata/, kli
 kartutsnittet, forenkler, reprojiserer til EPSG:4326 og skriver til app/data/:
 
   dybdekurver.geojson  dybdekurver med egenskapen «dybde» (m)
+  kurveetiketter.geojson  punkter for dybdetall langs kurvene («dybde», «vinkel», «niva»)
   dybdeareal.geojson   dybdeområder med «min» og «maks» (m), for farger og dybdeoppslag
   land.geojson         land og tørrfall («kategori»), brukes som grunnkart offline
   dybdetall.geojson    dybdepunkter, grunner og skjær («kategori», «dybde»)
@@ -21,6 +22,7 @@ import sys
 import warnings
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pyogrio
 import shapely
@@ -38,6 +40,40 @@ LAG = ["dybdekurve", "dybdeareal", "dybdepunkt", "grunne", "skjer", "landareal",
 TOL_KURVE = 3    # Douglas-Peucker for dybdekurver
 TOL_AREAL = 15   # «coverage»-forenkling: naboflater forenkles likt, så det ikke blir sprekker
 PRESISJON = 5    # desimaler i lon/lat (ca. 1 m)
+
+ETIKETT_AVSTAND = 300  # meter mellom etiketter langs en dybdekurve
+
+
+def lag_kurveetiketter(kurver: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Finn punkter og vinkler for dybdetall langs kurvene.
+
+    «niva» styrer hvor tett etikettene vises: appen viser nivå 0 fra zoom 13,
+    nivå 1 fra zoom 14 osv. Lange kurver og annenhver etikett får lavt nivå,
+    så kartet ikke blir overfylt når du zoomer ut.
+    """
+    rader = []
+    for dybde, linje in zip(kurver["dybde"], kurver.geometry):
+        lengde = linje.length
+        if lengde < 80:
+            continue
+        if lengde < ETIKETT_AVSTAND:
+            avstander = np.array([lengde / 2])
+        else:
+            avstander = np.arange(ETIKETT_AVSTAND / 2, lengde, ETIKETT_AVSTAND)
+        lengde_niva = 0 if lengde > 4000 else 1 if lengde > 2000 else 2 if lengde > 600 else 3
+
+        punkter = shapely.line_interpolate_point(linje, avstander)
+        foran = shapely.line_interpolate_point(linje, np.maximum(avstander - 15, 0))
+        bak = shapely.line_interpolate_point(linje, np.minimum(avstander + 15, lengde))
+        vinkler = np.degrees(np.arctan2(shapely.get_y(bak) - shapely.get_y(foran),
+                                        shapely.get_x(bak) - shapely.get_x(foran)))
+        vinkler = (vinkler + 90) % 180 - 90  # hold teksten rett vei (ikke opp ned)
+
+        for i, (p, v) in enumerate(zip(punkter, vinkler)):
+            pos_niva = 0 if i % 8 == 0 else 1 if i % 4 == 0 else 2 if i % 2 == 0 else 3
+            rader.append({"dybde": int(dybde), "vinkel": int(round(v)),
+                          "niva": max(pos_niva, lengde_niva), "geometry": p})
+    return gpd.GeoDataFrame(rader, crs=kurver.crs)
 
 
 def les_lag(gdbs, lag: str, utsnitt) -> gpd.GeoDataFrame:
@@ -126,6 +162,7 @@ def main() -> int:
 
     print("Skriver til app/data/:")
     skriv_geojson(kurver, "dybdekurver.geojson")
+    skriv_geojson(lag_kurveetiketter(kurver), "kurveetiketter.geojson")
     skriv_geojson(dybdeareal, "dybdeareal.geojson")
     skriv_geojson(land, "land.geojson")
     skriv_geojson(dybdetall, "dybdetall.geojson")
