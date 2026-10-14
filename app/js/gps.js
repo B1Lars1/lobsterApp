@@ -37,7 +37,7 @@ export class Gps {
       }),
       interactive: false,
       keyboard: false,
-      zIndexOffset: 1000,
+      zIndexOffset: 400, // under teinene, så nummeret synes når du står ved en teine
     });
 
     // Drar du i kartet selv, slutter kartet å følge deg.
