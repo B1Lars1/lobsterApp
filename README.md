@@ -169,6 +169,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
+| `js/hjemskjerm.js` | Veiledning for å legge appen til på hjemskjermen (iPhone og Android) |
 | `js/synk.js` | Synkronisering med et privat GitHub-repo |
 | `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
@@ -471,11 +472,21 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 Første gang må telefonen ha nett. Vent til meldingen «Appen er lagret og virker
 nå uten nett» kommer (lagrer ca. 22 MB).
 
+**Appen viser selv hvordan:** åpnes lenken i nettleseren på en telefon, kommer det
+opp et ark med fremgangsmåten for telefonen som brukes. På Android (Chrome) er det
+oftest en knapp, **Installer appen**, som installerer den direkte. På iPhone viser
+arket veien via Del-knappen i Safari, og minner om at markeringer gjort i nettleseren
+ikke blir med over til appen. Trykker man **Ikke nå**, kommer arket ikke av seg selv
+igjen før det har gått en uke. Det kan også åpnes fra innstillingsarket med
+**Legg appen til på hjemskjermen**. Fra hjemskjermen og på PC vises ingen av delene.
+Fremgangsmåten for hånd står under.
+
 **iPhone (Safari):**
 
 1. Åpne <https://b1lars1.github.io/lobsterApp/> i **Safari**.
-2. Trykk **Del**-knappen (firkant med pil opp).
-3. Velg **Legg til på Hjem-skjerm** og trykk **Legg til**.
+2. Trykk **Del**-knappen (firkant med pil opp). Ser du den ikke, trykk først **•••**.
+3. Velg **Legg til på Hjem-skjerm**, la **Åpne som nettapp** være på hvis du ser det
+   valget, og trykk **Legg til**.
 4. Åpne appen fra ikonet. Tillat posisjon når du blir spurt.
 5. Hvis GPS ikke virker: **Innstillinger → Personvern og sikkerhet →
    Stedstjenester → Safari-nettsteder**, velg **Når appen er i bruk** og slå på

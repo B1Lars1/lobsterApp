@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '703f8fccb7de';
+const VERSJON = '8581cf9ef9c6';
 const FILER = [
   './',
   'css/app.css',
@@ -42,6 +42,7 @@ const FILER = [
   'js/dybdeoppslag.js',
   'js/fredning.js',
   'js/gps.js',
+  'js/hjemskjerm.js',
   'js/innstillinger.js',
   'js/kartmarkeringer.js',
   'js/lager.js',

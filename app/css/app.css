@@ -707,6 +707,15 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 }
 .teller output { text-align: center; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
+/* ---------- Veiledning: legg appen til på hjemskjermen ---------- */
+
+.app-ikon { width: 56px; height: 56px; flex: none; border-radius: 13px; }
+.steg { margin: 4px 0 12px; padding-left: 26px; font-size: 17px; line-height: 1.45; }
+.steg li { margin-bottom: 10px; padding-left: 4px; }
+.del-ikon { width: 1.2em; height: 1.2em; vertical-align: -0.2em; color: var(--aksent); }
+#ark-hjemskjerm [data-handling="installer"],
+#knapp-hjemskjerm { width: 100%; margin-bottom: 12px; }
+
 /* ---------- Velg type etter langt trykk ---------- */
 
 .velg-knapper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

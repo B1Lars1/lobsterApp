@@ -114,6 +114,13 @@ bakgrunn, med nummeret som HTML oppå.
   selv. Langt trykk er Leaflets `contextmenu` (marker et valgfritt sted). Kartet og
   knappene har `user-select: none`, ellers merker iPhone nærmeste tekst ved langt trykk.
   Appen fra hjemskjermen har egen lagring, atskilt fra Safari.
+- `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
+  ved hver endring. Andre moduler som husker noe i `localStorage`, bruker derfor egen
+  nøkkel (`hummerkart.synk`, `hummerkart.hjemskjerm`), ellers blir verdien overskrevet.
+- Veiledningen for hjemskjermen (`hjemskjerm.js`) vises bare i nettleseren på telefon.
+  På PC skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste
+  iPhone-versjonen: overstyr `navigator.userAgent` og kall `visHjemskjermVeiledning()`.
+  Lukkes arket, lagres tidspunktet, og det vises ikke av seg selv igjen på en uke.
 - Når nettleserpanelet er skjult, bremses tidtakere. Test tidsavhengig oppførsel ved
   å simulere tid (`Date.now`) i stedet for å vente.
 

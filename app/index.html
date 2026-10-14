@@ -148,6 +148,36 @@
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
+  <!-- Veiledning: legg appen til på hjemskjermen (se hjemskjerm.js) -->
+  <dialog id="ark-hjemskjerm" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <div class="ark-topp">
+      <img class="app-ikon" src="ikoner/ikon-192.png" alt="" width="56" height="56">
+      <div class="ark-tittel"><h3>Legg Hummerkart på hjemskjermen</h3>
+        <p>Da åpnes den som en app, i fullskjerm, og virker uten nett.</p></div>
+    </div>
+    <div data-for="iphone" hidden>
+      <ol class="steg">
+        <li>Trykk <b>Del</b>-knappen <svg class="del-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="(firkant med pil opp)"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 10H5v11h14V10h-2"/></svg>
+          i Safari. Ser du den ikke, trykk først <b>•••</b> nederst.</li>
+        <li>Velg <b>Legg til på Hjem-skjerm</b>. Bla ned i listen hvis du ikke ser det.</li>
+        <li>Er <b>Åpne som nettapp</b> et valg, la det være på. Trykk <b>Legg til</b>.</li>
+        <li>Åpne Hummerkart fra ikonet på hjemskjermen.</li>
+      </ol>
+      <p class="hjelp">Bruk alltid appen fra hjemskjermen. Den har egen lagring, så teiner
+        og fangst du markerer her i nettleseren, blir ikke med over til appen.</p>
+    </div>
+    <div data-for="android" hidden>
+      <button type="button" class="stor teine-farge" data-handling="installer" hidden>Installer appen</button>
+      <ol class="steg" data-steg="android">
+        <li>Trykk menyen <b>⋮</b> øverst til høyre i Chrome.</li>
+        <li>Velg <b>Installer app</b> eller <b>Legg til på startsiden</b>, og bekreft.</li>
+        <li>Åpne Hummerkart fra ikonet på startsiden.</li>
+      </ol>
+    </div>
+    <button type="button" class="ferdig" data-handling="lukk">Ikke nå</button>
+  </dialog>
+
   <!-- Skravering for fredningsområdene (brukes av CSS-klassen .fredning) -->
   <svg width="0" height="0" style="position: absolute" aria-hidden="true">
     <defs>
@@ -164,6 +194,9 @@
   <dialog id="lagvelger" class="ark">
     <form method="dialog">
       <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+
+      <!-- Bare når siden er åpnet i nettleseren på en telefon (se hjemskjerm.js) -->
+      <button type="button" id="knapp-hjemskjerm" class="sekundar" hidden>Legg appen til på hjemskjermen</button>
 
       <h2>Kart</h2>
       <fieldset class="valg">

@@ -8,6 +8,7 @@
  *   markeringsark.js   knappene og arkene for markeringer
  *   fredning.js        fredningsområder for hummer
  *   synk.js            synkronisering med et privat GitHub-repo
+ *   hjemskjerm.js      veiledning for å legge appen til på hjemskjermen
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -18,6 +19,7 @@ import { draNedForALukke } from './dra-ned.js';
 import { lagBunnoppslag, lagDybdeoppslag } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
+import { kanLeggesTil, settOppHjemskjerm, visHjemskjermVeiledning } from './hjemskjerm.js';
 import { faktiskTema, hentInnstillinger, lagreInnstillinger } from './innstillinger.js';
 import { Kartmarkeringer } from './kartmarkeringer.js';
 import { beOmVarigLagring } from './lager.js';
@@ -276,7 +278,13 @@ $('knapp-lag').addEventListener('click', () => {
   skjema.elements.synkToken.value = synkOppsett.token || '';
   visSynkStatus(synk.statusTekst());
   oppdaterDatainfo();
+  $('knapp-hjemskjerm').hidden = !kanLeggesTil();
   innstillingsark.showModal();
+});
+
+$('knapp-hjemskjerm').addEventListener('click', () => {
+  innstillingsark.close();
+  visHjemskjermVeiledning();
 });
 
 skjema.addEventListener('change', (e) => {
@@ -384,6 +392,9 @@ if ('serviceWorker' in navigator) {
 
 // Alle arkene kan lukkes ved å dra dem ned
 document.querySelectorAll('dialog.ark').forEach(draNedForALukke);
+
+// Åpnet i nettleseren på telefonen: vis hvordan appen legges til på hjemskjermen
+settOppHjemskjerm();
 
 brukTema();
 visKilder();
