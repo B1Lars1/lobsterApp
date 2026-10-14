@@ -25,7 +25,7 @@ analyseres i GeoPandas.
 | 5 | Fredningsområder og dybdeoppslag | ✅ |
 | 6 | PWA og offline | ✅ |
 | 7 | Publisering på GitHub Pages | ✅ |
-| 8 | Analyse av fangst | |
+| 8 | Analyse av fangst | ✅ |
 
 ## Mappestruktur
 
@@ -342,6 +342,37 @@ De får en invitasjon og må ha GitHub-konto. Merk:
 - Kobler de egen app til samme repo, blir det en **felles logg**: de ser dine
   teiner og fangst, og deres markeringer havner i samme fil.
 - Tilgangen trekkes tilbake samme sted.
+
+## Analyse av fangst
+
+```powershell
+git -C data/private/hummerkart-data pull                 # hent siste synkronisering
+.\.venv\Scripts\python.exe scripts\analyser_fangst.py
+```
+
+Skriptet leser markeringene fra det klonede synk-repoet
+(`data/private/hummerkart-data/markeringer.geojson`), eller fra nyeste eksport
+(`data/private/markeringer-*.geojson`) hvis repoet ikke er klonet. Du kan også
+oppgi en fil: `python scripts/analyser_fangst.py sti/til/fil.geojson`.
+
+Fangst måles som **hummer per teinedøgn**: antall hummer (beholdt + satt ut) delt
+på antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en
+teine som har stått i tre døgn, veier mer enn en som ble tatt opp etter en time.
+Teiner som fortsatt står i sjøen, regnes frem til nå. Fangst må være knyttet til en
+teine for å telle med. Det skjer automatisk når du trykker «Hummer her» ved teinen
+eller «Registrer fangst» i teinearket.
+
+Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
+
+| Fil | Innhold |
+|---|---|
+| `fangst.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint og fangst per dag (beholdt og satt ut) |
+| `teinesettinger.csv` | Én rad per teinesetting: tid, døgn i sjøen, dybde, bunnhint, antall hummer og posisjon |
+
+Dybden er anslått fra Kartverkets dybdedata (se «Fredningsområder og dybde»), og
+bunnhint kommer fra Miljødirektoratet. Med få teinedøgn (under 30) sier skriptet
+fra om at forskjellene er usikre. Se på antall døgn under hver stolpe før du trekker
+konklusjoner.
 
 ## Bruk uten nett (PWA)
 
