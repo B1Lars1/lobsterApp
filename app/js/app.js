@@ -12,7 +12,7 @@
  */
 
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
-import { lagDybdeoppslag } from './dybdeoppslag.js';
+import { lagBunnoppslag, lagDybdeoppslag } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
 import { faktiskTema, hentInnstillinger, lagreInnstillinger } from './innstillinger.js';
@@ -62,11 +62,11 @@ function kartverketLag(lag, maxNativeZoom) {
 }
 const bakgrunnskart = {
   topo: kartverketLag('topograatone', 18),
-  sjokart: kartverketLag('sjokartraster', 17),
 };
 
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
+let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint og bratt bunn
 
 // Fredningsområder for hummer. Trykk på et område viser regler (arkene lages lenger ned).
 const fredning = new Fredning(kart, (omrade) => ark.visFredning(omrade));
@@ -81,14 +81,12 @@ function oppdaterKartlag() {
     else lag.remove();
   }
   if (!dybdelag) return;
-  if (bakgrunn === 'sjokart') {
-    dybdelag.remove(); // sjøkartet har egne dybder
-    return;
-  }
   dybdelag.settValg({
     tema: faktiskTema(innstillinger.tema),
     visLand: bakgrunn === 'dybde',
     visDybdetall: innstillinger.dybdetall,
+    visBunnhint: innstillinger.visBunnhint,
+    visBratt: innstillinger.visBratt,
   });
   dybdelag.addTo(kart);
 }
@@ -176,6 +174,21 @@ $('knapp-teine').addEventListener('click', () => ark.settTeine());
 $('knapp-hummer').addEventListener('click', () => ark.registrerFangst());
 $('knapp-teiner').addEventListener('click', () => ark.visTeineliste());
 
+// Trykk i kartet når du er zoomet langt inn: forklar bunnhint og bratt bunn der.
+kart.on('click', (e) => {
+  if (!bunnI || kart.getZoom() < 15) return;
+  const { hint, bratt } = bunnI(e.latlng.lat, e.latlng.lng);
+  const deler = [];
+  if (hint && innstillinger.visBunnhint) {
+    const hvordan = hint.modellert ? 'modellert' : `kartlagt${hint.aar ? ` ${hint.aar}` : ''}`;
+    deler.push(`${hint.navn} (${hvordan}): trolig ${hint.hard ? 'fjell og stein' : 'sand eller mudder'}`);
+  }
+  if (bratt && innstillinger.visBratt) {
+    deler.push(`${bratt === 'svaertbratt' ? 'Svært bratt' : 'Bratt'} bunn (beregnet): ofte fjell`);
+  }
+  if (deler.length) visMelding(deler.join(' · '), { ms: 5000 });
+});
+
 // Langt trykk (eller høyreklikk på PC) i kartet: marker et valgfritt sted.
 kart.on('contextmenu', (e) => {
   if (!kartmarkeringer.flytter) ark.visVelgType(e.latlng);
@@ -257,6 +270,8 @@ $('knapp-lag').addEventListener('click', () => {
   skjema.elements.visFangst.checked = innstillinger.visFangst;
   skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
   skjema.elements.visFredning.checked = innstillinger.visFredning;
+  skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
+  skjema.elements.visBratt.checked = innstillinger.visBratt;
   oppdaterDatainfo();
   innstillingsark.showModal();
 });
@@ -268,6 +283,8 @@ skjema.addEventListener('change', () => {
   innstillinger.visFangst = skjema.elements.visFangst.checked;
   innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
   innstillinger.visFredning = skjema.elements.visFredning.checked;
+  innstillinger.visBunnhint = skjema.elements.visBunnhint.checked;
+  innstillinger.visBratt = skjema.elements.visBratt.checked;
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
@@ -297,7 +314,9 @@ async function visKilder() {
     const f = kilder.fredningsomrader;
     $('kildeinfo').innerHTML =
       `Dybdedata: ${d.kreditering}, <a href="${d.lisens_url}">${d.lisens}</a>, lastet ned ${dato(d.lastet_ned)}. ` +
-      `${d.merknad}<br>Fredningsområder: ${f.kreditering}. Hentet ${dato(f.lastet_ned)}. ${f.merknad}`;
+      `${d.merknad}<br>Fredningsområder: ${f.kreditering}. Hentet ${dato(f.lastet_ned)}. ${f.merknad}` +
+      (kilder.bunnhint ? `<br>Bunnhint: ${kilder.bunnhint.kreditering}. Bratt bunn er beregnet fra ` +
+        'Kartverkets dybdedata.' : '');
   } catch {
     // Kildeteksten i index.html står igjen.
   }
@@ -355,6 +374,7 @@ lastDybdedata()
     });
     oppdaterKartlag();
     dybdeI = lagDybdeoppslag(data);
+    bunnI = lagBunnoppslag(data);
     markeringer.settDybdeoppslag(dybdeI);
     visDybdeHer();
   })

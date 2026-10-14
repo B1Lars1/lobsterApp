@@ -8,17 +8,21 @@ const NOKKEL = 'hummerkart.innstillinger';
 
 const STANDARD = {
   tema: 'auto',       // 'auto' | 'lys' | 'mork'
-  bakgrunn: 'dybde',  // 'dybde' | 'topo' | 'sjokart'
+  bakgrunn: 'dybde',  // 'dybde' | 'topo'
   dybdetall: true,
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
   visFredning: true,    // vis fredningsområder for hummer
+  visBunnhint: true,    // tareskog, ålegras og skjellsand
+  visBratt: true,       // bratt bunn (beregnet)
   sistEksportert: null, // tidspunkt (ISO) for siste GeoJSON-eksport
 };
 
 export function hentInnstillinger() {
   try {
-    return { ...STANDARD, ...JSON.parse(localStorage.getItem(NOKKEL) || '{}') };
+    const lagret = { ...STANDARD, ...JSON.parse(localStorage.getItem(NOKKEL) || '{}') };
+    if (!['dybde', 'topo'].includes(lagret.bakgrunn)) lagret.bakgrunn = 'dybde'; // sjøkart er fjernet
+    return lagret;
   } catch {
     return { ...STANDARD };
   }
