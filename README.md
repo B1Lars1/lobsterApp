@@ -24,7 +24,7 @@ analyseres i GeoPandas.
 | 4 | Markeringer, lagring, eksport/import | ✅ |
 | 5 | Fredningsområder og dybdeoppslag | ✅ |
 | 6 | PWA og offline | ✅ |
-| 7 | Publisering på GitHub Pages | |
+| 7 | Publisering på GitHub Pages | ✅ |
 | 8 | Analyse av fangst | |
 
 ## Mappestruktur
@@ -295,8 +295,53 @@ siden på nytt.
 
 ## Publisering
 
-Appen publiseres fra mappen `app/` til GitHub Pages med en GitHub Actions-workflow
-ved hver push til `main`. Oppsettet beskrives i fase 7.
+Appen ligger på **<https://b1lars1.github.io/lobsterApp/>**.
+
+Workflowen `.github/workflows/publiser.yml` publiserer mappen `app/` til GitHub
+Pages ved hver push til `main` som endrer appen. Den kjører først
+`scripts/lag_service_worker.py`, så telefonene får den nye versjonen. Du kan følge
+publiseringen under fanen **Actions** i repoet. Den tar et par minutter.
+Publisering kan også startes for hånd: **Actions → Publiser appen → Run workflow**.
+
+### Engangsoppsett i GitHub
+
+1. Åpne repoet på GitHub og gå til **Settings** (tannhjulet øverst).
+2. Velg **Pages** i menyen til venstre.
+3. Under **Build and deployment → Source**, velg **GitHub Actions**.
+4. Gå til **Actions**, velg **Publiser appen** og trykk **Run workflow** (eller
+   push en endring i `app/`).
+5. Når kjøringen er grønn, vises adressen under **Settings → Pages**.
+
+### Legg appen til på hjemskjermen
+
+Første gang må telefonen ha nett. Vent til meldingen «Appen er lagret og virker
+nå uten nett» kommer (lagrer ca. 22 MB).
+
+**iPhone (Safari):**
+
+1. Åpne <https://b1lars1.github.io/lobsterApp/> i **Safari**.
+2. Trykk **Del**-knappen (firkant med pil opp).
+3. Velg **Legg til på Hjem-skjerm** og trykk **Legg til**.
+4. Åpne appen fra ikonet. Tillat posisjon når du blir spurt.
+5. Hvis GPS ikke virker: **Innstillinger → Personvern og sikkerhet →
+   Stedstjenester → Safari-nettsteder**, velg **Når appen er i bruk** og slå på
+   **Nøyaktig posisjon**.
+
+Bruk alltid appen fra hjemskjermen på iPhone. Den har egen lagring, atskilt fra
+Safari, så markeringer gjort i Safari vises ikke i appen (og omvendt).
+
+**Android (Chrome):**
+
+1. Åpne <https://b1lars1.github.io/lobsterApp/> i **Chrome**.
+2. Trykk menyen **⋮** og velg **Installer app** (eller **Legg til på
+   startsiden**), og bekreft.
+3. Åpne appen fra ikonet. Tillat posisjon når du blir spurt, gjerne **Nøyaktig**.
+4. Hvis GPS ikke virker: trykk lenge på app-ikonet → **App-info → Tillatelser →
+   Posisjon**.
+
+**Oppdateringer** kommer av seg selv: når du åpner appen med nett etter en ny
+publisering, lastes den nye versjonen ned i bakgrunnen, og appen viser «Ny
+versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
 
 ## Kilder og kreditering
 
