@@ -21,7 +21,7 @@ analyseres i GeoPandas.
 | 1 | Oppsett: repo, mappestruktur, Python-miljø | ✅ |
 | 2 | Dybdedata: nedlasting og behandling | ✅ |
 | 3 | Kart og GPS | ✅ |
-| 4 | Markeringer, lagring, eksport/import | |
+| 4 | Markeringer, lagring, eksport/import | ✅ |
 | 5 | Fredningsområder og dybdeoppslag | |
 | 6 | PWA og offline | |
 | 7 | Publisering på GitHub Pages | |
@@ -134,6 +134,11 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/dybdelag.js` | Tegner dybdekartet som kartfliser, med farger og tekst |
 | `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
 | `js/innstillinger.js` | Husker tema og kartvalg i nettleseren |
+| `js/markeringer.js` | Teiner og fangst: data, lagring og GeoJSON-eksport/-import |
+| `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
+| `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
+| `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
+| `js/melding.js` | Korte meldinger med «Angre» |
 
 **Kartvalg** (knappen øverst til høyre):
 
@@ -150,6 +155,53 @@ zoomer inn.
 
 **Batteri:** GPS-en er bare på mens appen er synlig. Den stoppes når skjermen
 slås av eller du bytter app.
+
+## Markeringer
+
+- **Sett teine:** ett trykk markerer en teine der du er (GPS). Den får laveste
+  ledige nummer, som kan endres.
+- **Hummer her:** ett trykk registrerer fangst der du er. Fangsten knyttes til
+  nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −.
+- **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
+- **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
+  registrere fangst, flytte eller slette.
+- **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
+  Tallet på knappen er antall teiner i sjøen.
+- **Tatt opp** fjerner teinen fra kartet, men tar vare på den i historikken for
+  analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
+
+Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
+der når appen åpnes igjen, også uten nett. De forsvinner hvis nettleserdataene
+for siden slettes. På iPhone kan Safari dessuten slette data for nettsider som
+ikke er brukt på 7 dager, men det gjelder ikke apper lagt til på hjemskjermen.
+Eksporter derfor jevnlig. Tidspunktet for siste eksport står i innstillingsarket.
+
+### Eksport til GeoPandas
+
+Innstillingsarket → **Eksporter GeoJSON** gir filen `markeringer-ÅÅÅÅ-MM-DD.geojson`.
+På telefonen åpnes delingsmenyen (lagre i Filer, send på e-post), og på PC lastes
+filen ned. Legg filen i `data/private/`, som aldri kommer med i git:
+
+```python
+import geopandas as gpd
+m = gpd.read_file("data/private/markeringer-2026-10-14.geojson")
+fangst = m[m["kategori"] == "hummer"]
+```
+
+| Felt | Innhold |
+|---|---|
+| `id` | Unik id |
+| `kategori` | `teine` eller `hummer` |
+| `tid`, `endret` | Satt/registrert og sist endret (ISO 8601, UTC) |
+| `notat` | Fritekst |
+| `dybde` | Dybde fra dybdedataene (fra fase 5) |
+| `noyaktighet` | GPS-nøyaktighet i meter, tom hvis plassert i kartet |
+| `kilde` | `gps` eller `kart` |
+| `nummer`, `status`, `tatt_opp` | Teinenummer, `i_sjoen`/`tatt_opp`, tidspunkt tatt opp (teiner) |
+| `beholdt`, `satt_ut`, `teine_id` | Antall hummer og hvilken teine fangsten kom fra (fangst) |
+
+**Importer** leser en slik fil tilbake. Markeringer med samme id oppdateres bare
+hvis filen har en nyere versjon, så det er trygt å importere samme fil flere ganger.
 
 ## Publisering
 
