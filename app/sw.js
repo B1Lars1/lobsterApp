@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '1022b87d7c79';
+const VERSJON = '703f8fccb7de';
 const FILER = [
   './',
   'css/app.css',
@@ -36,6 +36,7 @@ const FILER = [
   'ikoner/teine.svg',
   'index.html',
   'js/app.js',
+  'js/dobbelttrykk.js',
   'js/dra-ned.js',
   'js/dybdelag.js',
   'js/dybdeoppslag.js',

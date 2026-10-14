@@ -150,6 +150,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
+| `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
 | `js/synk.js` | Synkronisering med et privat GitHub-repo |
 | `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |

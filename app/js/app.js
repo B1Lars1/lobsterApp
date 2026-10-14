@@ -13,6 +13,7 @@
  */
 
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
+import { dobbelttrykkForZoom } from './dobbelttrykk.js';
 import { draNedForALukke } from './dra-ned.js';
 import { lagBunnoppslag, lagDybdeoppslag } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
@@ -47,6 +48,7 @@ const kart = L.map('kart', {
   bounceAtZoomLimits: false,
 });
 kart.setView(START.senter, START.zoom);
+dobbelttrykkForZoom(kart); // Leaflet zoomer selv ved dobbeltklikk med mus, men ikke ved dobbelttrykk på iPhone
 L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(kart);
 // Kreditering helt nederst, under knappene (se app.css). Leaflet er kreditert i README.
 L.control.attribution({ position: 'bottomright', prefix: false }).addTo(kart);
