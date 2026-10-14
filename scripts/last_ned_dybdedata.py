@@ -23,7 +23,7 @@ FORMAT = "FGDB"        # Esri File Geodatabase, leses direkte av GeoPandas
 PROJEKSJON = "25832"   # EUREF89 UTM sone 32
 
 # Kommuner med sjø innenfor kartutsnittet (sjekket mot Kartverkets kommuneinfo).
-KOMMUNER = {"4215": "Lillesand", "4202": "Grimstad"}
+KOMMUNER = {"4215": "Lillesand", "4202": "Grimstad", "4204": "Kristiansand"}
 
 UT_DIR = RAW_DIR / "dybdedata"
 

@@ -1,7 +1,8 @@
 """Lag små GeoJSON-filer med dybdedata for appen.
 
 Leser Kartverkets «Sjøkart – Dybdedata» (FGDB) fra data/raw/dybdedata/, klipper til
-kartutsnittet, forenkler, reprojiserer til EPSG:4326 og skriver til app/data/:
+kartområdet (land i utsnittet og sjø inntil SJO_AVSTAND_M fra land), forenkler,
+reprojiserer til EPSG:4326 og skriver til app/data/:
 
   dybdekurver.geojson  dybdekurver med egenskapen «dybde» (m)
   kurveetiketter.geojson  punkter for dybdetall langs kurvene («dybde», «vinkel», «niva»)
@@ -28,7 +29,8 @@ import pyogrio
 import shapely
 from shapely.geometry import box
 
-from config import APP_DATA_DIR, BBOX_WGS84, CRS_UTM32, CRS_WGS84, PROCESSED_DIR, RAW_DIR, ROOT, ensure_dirs
+from config import (APP_DATA_DIR, BBOX_WGS84, CRS_UTM32, CRS_WGS84, PROCESSED_DIR, RAW_DIR, ROOT,
+                    SJO_AVSTAND_M, ensure_dirs)
 
 KILDE_DIR = RAW_DIR / "dybdedata"
 GPKG = PROCESSED_DIR / "dybdedata_lillesand.gpkg"
@@ -94,6 +96,19 @@ def les_lag(gdbs, lag: str, utsnitt) -> gpd.GeoDataFrame:
     return gdf[dim == dim.max()]
 
 
+def lag_kartomrade(gdbs, boks):
+    """Kartområdet: alt land i utsnittet og sjø inntil SJO_AVSTAND_M fra nærmeste land.
+
+    Slik følger kartet kysten uten å ta med åpent hav langt ute.
+    """
+    land = les_lag(gdbs, "landareal", boks)
+    # Forenkle før buffring, ellers tar det lang tid med tusenvis av holmer
+    kyst = shapely.union_all(land.geometry.simplify(25).values)
+    omrade = kyst.buffer(SJO_AVSTAND_M, quad_segs=4).intersection(boks).simplify(50)
+    print(f"Kartområde: {omrade.area / 1e6:.0f} km² (utsnittet er {boks.area / 1e6:.0f} km²)")
+    return omrade
+
+
 def skriv_geojson(gdf: gpd.GeoDataFrame, navn: str) -> None:
     sti = APP_DATA_DIR / navn
     sti.unlink(missing_ok=True)
@@ -121,13 +136,16 @@ def main() -> int:
         return 1
     print("Leser", ", ".join(g.stem for g in gdbs))
 
-    utsnitt = gpd.GeoSeries([box(*BBOX_WGS84)], crs=CRS_WGS84).to_crs(CRS_UTM32).iloc[0]
-    data = {lag: les_lag(gdbs, lag, utsnitt) for lag in LAG}
+    boks = gpd.GeoSeries([box(*BBOX_WGS84)], crs=CRS_WGS84).to_crs(CRS_UTM32).iloc[0]
+    omrade = lag_kartomrade(gdbs, boks)
+    data = {lag: les_lag(gdbs, lag, omrade) for lag in LAG}
 
     # 1) Full oppløsning for analyse
     GPKG.unlink(missing_ok=True)
     for lag, gdf in data.items():
         gdf.to_file(GPKG, layer=lag, driver="GPKG", engine="pyogrio")
+    # Kartområdet brukes også av lag_stedsnavn.py
+    gpd.GeoDataFrame(geometry=[omrade], crs=CRS_UTM32).to_file(GPKG, layer="kartomrade", driver="GPKG")
     print(f"Full oppløsning lagret i {GPKG.relative_to(ROOT).as_posix()}")
 
     # 2) Flater: dybdeareal, land og tørrfall forenkles samlet, så kantene passer sammen

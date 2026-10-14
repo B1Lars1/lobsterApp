@@ -23,7 +23,8 @@ import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { visMelding } from './melding.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
-const DATAOMRADE = L.latLngBounds([58.17, 8.28], [58.29, 8.52]);
+const DATAOMRADE = L.latLngBounds([58.08, 8.08], [58.37, 8.70]);
+const START = { senter: [58.235, 8.39], zoom: 12 }; // Lillesand, før GPS-en har funnet deg
 
 // Samme tekst på alle lag, så Leaflet viser krediteringen bare én gang.
 const KREDITERING = '© <a href="https://www.kartverket.no/">Kartverket</a> · <strong>Ikke for navigasjon</strong>';
@@ -36,13 +37,13 @@ const $ = (id) => document.getElementById(id);
 const kart = L.map('kart', {
   zoomControl: false,        // egne, store knapper i stedet
   attributionControl: false, // legges nede til venstre under
-  minZoom: 12,
+  minZoom: 11,
   maxZoom: 19,
-  maxBounds: DATAOMRADE.pad(0.3),
+  maxBounds: DATAOMRADE.pad(0.1),
   maxBoundsViscosity: 0.8,
   bounceAtZoomLimits: false,
 });
-kart.fitBounds(DATAOMRADE);
+kart.setView(START.senter, START.zoom);
 L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(kart);
 L.control.attribution({ position: 'bottomleft', prefix: '<a href="https://leafletjs.com">Leaflet</a>' }).addTo(kart);
 
