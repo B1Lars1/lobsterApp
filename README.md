@@ -108,8 +108,11 @@ det beste grunnlaget som finnes.
 ## Teste appen lokalt
 
 ```powershell
-.\.venv\Scripts\python.exe -m http.server 8000 --directory app
+.\.venv\Scripts\python.exe scripts	estserver.py
 ```
+
+Testserveren ber nettleseren om ikke å mellomlagre filene, så endringer i koden
+vises med en gang du laster siden på nytt.
 
 Åpne <http://localhost:8000> i nettleseren. GPS-posisjon fungerer på
 `localhost`, men på telefonen krever nettleseren HTTPS. Telefonen testes derfor
