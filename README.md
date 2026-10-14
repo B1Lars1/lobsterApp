@@ -22,7 +22,7 @@ analyseres i GeoPandas.
 | 2 | Dybdedata: nedlasting og behandling | ✅ |
 | 3 | Kart og GPS | ✅ |
 | 4 | Markeringer, lagring, eksport/import | ✅ |
-| 5 | Fredningsområder og dybdeoppslag | |
+| 5 | Fredningsområder og dybdeoppslag | ✅ |
 | 6 | PWA og offline | |
 | 7 | Publisering på GitHub Pages | |
 | 8 | Analyse av fangst | |
@@ -142,6 +142,8 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
 | `js/melding.js` | Korte meldinger med «Angre» |
+| `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
+| `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
 
 **Kartvalg** (knappen øverst til høyre):
 
@@ -158,6 +160,32 @@ zoomer inn.
 
 **Batteri:** GPS-en er bare på mens appen er synlig. Den stoppes når skjermen
 slås av eller du bytter app.
+
+## Fredningsområder og dybde
+
+```powershell
+.\.venv\Scripts\python.exe scripts\lag_fredningsomrader.py
+```
+
+Skriptet henter Fiskeridirektoratets fredningsområder for hummer (WFS-laget
+`FiskeridirWFS_fiskeri:hummer_fredningsomraader`) og skriver områdene i Agder til
+`app/data/fredningsomrader.geojson`. Kjør det på nytt før hver sesong, siden
+forskriften endres.
+
+I appen:
+
+- Fredningsområdene vises rødt skravert. Trykk på et område for regler og lenke
+  til forskriften.
+- Er du inne i et fredningsområde, vises en rød brikke under GPS-statusen.
+- Settes eller flyttes en teine inn i et fredningsområde, kommer en rød advarsel,
+  og teinen får et rødt «!» på kartet og et varsel i arket.
+- Under GPS-statusen vises anslått dybde der du er. Nye og flyttede markeringer
+  får dybde automatisk. Anslaget finner dybdesonen og vekter dybdemålingene
+  innenfor 150 m etter avstand. Med ca. 50 m mellom målingene må du regne med
+  noen meters usikkerhet.
+
+Grensene er fra Fiskeridirektoratets kartdata og kan henge etter forskriften.
+Sjekk alltid gjeldende forskrift.
 
 ## Markeringer
 
@@ -225,5 +253,8 @@ ved hver push til `main`. Oppsettet beskrives i fase 7.
   Ifølge [Kartverkets vilkår](https://www.kartverket.no/api-og-data/vilkar-for-bruk)
   inneholder kartene Geovekst-data på zoomnivå 12–20, og kopiering krever særskilt
   tillatelse. Uten nett brukes derfor bare dybdedataene over.
-- **Hummerfredningsområder:** Fiskeridirektoratet. Kilden bekreftes i fase 5.
+- **Hummerfredningsområder:** «Hummer – fredningsområder», Fiskeridirektoratet.
+  Inneholder data under Norsk lisens for offentlige data
+  ([NLOD](https://data.norge.no/nlod/no/1.0)) tilgjengeliggjort av
+  Fiskeridirektoratet. [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/8901e1f8-b947-4f7d-819c-bf11e3e16a68).
 - **Kartbibliotek:** [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
