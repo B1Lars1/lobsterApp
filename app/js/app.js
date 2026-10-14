@@ -48,7 +48,8 @@ const kart = L.map('kart', {
 });
 kart.setView(START.senter, START.zoom);
 L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(kart);
-L.control.attribution({ position: 'bottomleft', prefix: '<a href="https://leafletjs.com">Leaflet</a>' }).addTo(kart);
+// Kreditering helt nederst, under knappene (se app.css). Leaflet er kreditert i README.
+L.control.attribution({ position: 'bottomright', prefix: false }).addTo(kart);
 
 // Bakgrunnskart fra Kartverket (krever nett). Lagnavnene er hentet fra
 // https://cache.kartverket.no/v1/wmts/1.0.0/WMTSCapabilities.xml

@@ -160,7 +160,7 @@ button {
 .kartknapper {
   position: fixed;
   right: 10px;
-  bottom: calc(env(safe-area-inset-bottom) + 108px);
+  bottom: calc(env(safe-area-inset-bottom) + 130px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -179,7 +179,7 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  padding: 10px 10px calc(env(safe-area-inset-bottom) + 10px);
+  padding: 10px 10px calc(env(safe-area-inset-bottom) + 28px); /* plass til krediteringen under */
   pointer-events: none;
 }
 
@@ -241,15 +241,29 @@ button {
 
 .leaflet-container { font: inherit; }
 
-/* Målestokk og kreditering nede til venstre, over handlingsknappene */
+/* Målestokk nede til venstre, over handlingsknappene */
 .leaflet-bottom.leaflet-left {
-  bottom: calc(env(safe-area-inset-bottom) + 96px);
+  bottom: calc(env(safe-area-inset-bottom) + 118px);
   max-width: calc(100% - 96px);
+}
+/* Kreditering helt nederst, sentrert under handlingsknappene */
+.leaflet-bottom.leaflet-right {
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom);
+  display: flex;
+  justify-content: center;
+}
+.leaflet-bottom.leaflet-right .leaflet-control-attribution {
+  margin: 0 8px;
+  padding: 2px 8px;
+  text-align: center;
+  line-height: 1.3;
 }
 .leaflet-control-attribution {
   background: color-mix(in srgb, var(--flate) 85%, transparent) !important;
   color: var(--flate-tekst);
-  font-size: 11px;
+  font-size: 10.5px;
   border-radius: 6px 6px 0 0;
 }
 .leaflet-control-attribution a { color: var(--aksent); }
