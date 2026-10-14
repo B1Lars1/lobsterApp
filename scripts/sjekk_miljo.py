@@ -9,7 +9,7 @@ from importlib.metadata import version
 
 from config import PRIVATE_DIR, RAW_DIR, ROOT, ensure_dirs
 
-PAKKER = ["geopandas", "pyogrio", "shapely", "pyproj", "rasterio", "requests", "owslib"]
+PAKKER = ["geopandas", "pyogrio", "shapely", "pyproj", "rasterio", "requests", "owslib", "matplotlib"]
 
 
 def main() -> int:

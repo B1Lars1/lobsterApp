@@ -19,7 +19,7 @@ analyseres i GeoPandas.
 | Fase | Innhold | Status |
 |---|---|---|
 | 1 | Oppsett: repo, mappestruktur, Python-miljø | ✅ |
-| 2 | Dybdedata: nedlasting og behandling | |
+| 2 | Dybdedata: nedlasting og behandling | ✅ |
 | 3 | Kart og GPS | |
 | 4 | Markeringer, lagring, eksport/import | |
 | 5 | Fredningsområder og dybdeoppslag | |
@@ -63,7 +63,46 @@ py -3.14 -m venv .venv
 Du kan også aktivere miljøet med `.\.venv\Scripts\Activate.ps1` og deretter
 bruke `python` og `pip` direkte.
 
-Skriptene for dybdedata og fredningsområder kommer i fase 2 og 5.
+## Dybdedata
+
+```powershell
+.\.venv\Scripts\python.exe scripts\last_ned_dybdedata.py   # ca. 30 MB til data/raw/
+.\.venv\Scripts\python.exe scripts\lag_dybdekart.py        # skriver til app/data/
+```
+
+`last_ned_dybdedata.py` bestiller Kartverkets «Sjøkart – Dybdedata» (File
+Geodatabase, UTM32) for Lillesand og Grimstad via Geonorges nedlastings-API.
+Bruk `--force` for å hente nyeste versjon (Kartverket oppdaterer ukentlig).
+
+`lag_dybdekart.py` klipper til kartutsnittet (lon 8,28–8,52, lat 58,17–58,29),
+forenkler, reprojiserer til EPSG:4326 og skriver:
+
+| Fil i `app/data/` | Innhold | Egenskaper |
+|---|---|---|
+| `dybdekurver.geojson` | Dybdekurver 2, 3, 5, 10, 15, 20, 30, 40, 50, 100 og 150 m | `dybde` |
+| `dybdeareal.geojson` | Dybdeområder mellom kurvene | `min`, `maks` |
+| `land.geojson` | Land og tørrfall, grunnkart når appen er offline | `kategori` |
+| `dybdetall.geojson` | Dybdepunkter, grunner og skjær | `kategori`, `dybde` |
+| `kilder.json` | Kilde, lisens og nedlastingsdato | |
+
+Filene er til sammen ca. 7 MB, eller ca. 1 MB komprimert slik de sendes over
+nettet. Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
+så naboflatene fortsatt passer sammen uten sprekker.
+
+Samme data i full oppløsning (UTM32) lagres i
+`data/processed/dybdedata_lillesand.gpkg` for analyse:
+
+```python
+import geopandas as gpd
+punkter = gpd.read_file("data/processed/dybdedata_lillesand.gpkg", layer="dybdepunkt")
+```
+
+**Hvorfor ikke tettere dybdekurver?** Kartverkets terrengmodeller med 5 og
+25 m oppløsning dekker ikke Lillesand. Dybdedata tettere enn 50 m innenfor
+territorialgrensen er gradert, og terrengmodellene finnes i hovedsak bare
+utenfor grensen. 50 m-modellen dekker bare enkelte felt i utsnittet. De åpne
+vektordataene (dybdepunkter med ca. 50 m avstand og kurvene over) er derfor
+det beste grunnlaget som finnes.
 
 ## Teste appen lokalt
 
@@ -82,7 +121,11 @@ ved hver push til `main`. Oppsettet beskrives i fase 7.
 
 ## Kilder og kreditering
 
-- **Dybdedata og bakgrunnskart:** © Kartverket. Datasett og lisens skrives inn
-  her når dataene tas i bruk (fase 2 og 3).
+- **Dybdedata:** «Sjøkart – Dybdedata», © Kartverket, lisens
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a).
+  Dataene er forenklet og klippet. De er ikke godkjent for navigasjon, og
+  dybdene er referert til sjøkartnull.
+- **Bakgrunnskart:** © Kartverket. Tjeneste og vilkår skrives inn i fase 3.
 - **Hummerfredningsområder:** Fiskeridirektoratet. Kilden bekreftes i fase 5.
 - **Kartbibliotek:** [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
