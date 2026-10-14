@@ -148,9 +148,18 @@ export class Markeringer {
       .sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0));
   }
 
-  /** Laveste ledige nummer blant teinene i sjøen (en teine som er tatt opp, kan få nummeret igjen). */
+  /**
+   * Nummeret en ny teine får. Er en teine tatt opp de siste 12 timene og nummeret dens er
+   * ledig, får den nye teinen det (sist tatt opp først): tas en teine opp og settes ut igjen,
+   * beholder den nummeret. Ellers laveste ledige nummer blant teinene i sjøen.
+   */
   nesteTeinenummer() {
     const brukt = new Set(this.teinerISjoen().map((t) => t.nummer));
+    const siden = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const sistTattOpp = this.alle()
+      .filter((t) => t.kategori === 'teine' && t.tatt_opp >= siden && t.nummer >= 1 && !brukt.has(t.nummer))
+      .sort((a, b) => b.tatt_opp.localeCompare(a.tatt_opp))[0];
+    if (sistTattOpp) return sistTattOpp.nummer;
     let n = 1;
     while (brukt.has(n)) n++;
     return n;

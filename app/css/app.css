@@ -545,7 +545,7 @@ button {
 }
 .symbol.hummer .emoji { font-size: 19px; line-height: 1; }
 .symbol.hummer.bare-satt-ut { border-style: dashed; opacity: 0.8; }
-/* Sjekket, ingen hummer: grå kant og hake */
+/* Fangst uten hummer: grå kant og hake */
 .symbol.hummer.sjekk { border-color: #6b7580; }
 .symbol.hummer.sjekk .emoji { color: #4b5560; font-weight: 900; }
 .symbol .antall {
@@ -627,8 +627,7 @@ button {
 }
 .knapper .stor,
 .knapper .ferdig,
-.knapper [data-handling="fangst"],
-.knapper [data-handling="sjekket"] { grid-column: 1 / -1; }
+.knapper [data-handling="fangst"] { grid-column: 1 / -1; }
 .knapperad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* ---------- Detaljark ---------- */

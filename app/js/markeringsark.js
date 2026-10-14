@@ -61,8 +61,7 @@ function fraMal(html) {
 
 const navnPa = (m) => (m.kategori === 'teine' ? `Teine ${m.nummer}` : 'Fangst');
 
-// «Sjekket, ingen hummer» lagres som fangst med 0 beholdt og 0 satt ut. Da trengs ingen
-// ny type markering, og synkroniseringen med eldre versjoner av appen virker som før.
+// Fangst med 0 beholdt og 0 satt ut: teinen var tom da den ble tatt opp (eller sjekket).
 const erSjekk = (f) => f.beholdt + f.satt_ut === 0;
 
 export class Markeringsark {
@@ -208,6 +207,7 @@ export class Markeringsark {
     };
     this.aapenId = null;
     this.arkMarkering.querySelector('.innhold').replaceChildren(this._fangstInnhold(this._utkast));
+    this._visTaOppHint();
     if (!this.arkMarkering.open) this.arkMarkering.showModal();
   }
 
@@ -218,10 +218,33 @@ export class Markeringsark {
     this.arkMarkering.close();
     const f = await this.markeringer.nyFangst(utkast);
     this._sjekkLagring();
-    visMelding(`Fangst registrert: ${f.beholdt} beholdt, ${f.satt_ut} satt ut`, {
+    // Fangst fra en teine i sjøen betyr at teinen er tatt opp i båten (også med 0 hummer).
+    // Settes den ut igjen, er det en ny setting med «Sett teine».
+    const teine = this._teineSomTasOpp(f.teine_id);
+    if (teine) await this.markeringer.oppdater(teine.id, { status: 'tatt_opp', tatt_opp: f.tid });
+    const hva = erSjekk(f) ? 'Registrert: ingen hummer' : `Fangst registrert: ${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
+    visMelding(`${hva}${teine ? `. Teine ${teine.nummer} er tatt opp` : ''}`, {
       knapp: 'Angre',
-      handling: () => this.markeringer.slett(f.id, { husk: false }),
+      handling: async () => {
+        await this.markeringer.slett(f.id, { husk: false });
+        if (teine) await this.markeringer.oppdater(teine.id, { status: 'i_sjoen', tatt_opp: null });
+      },
     });
+  }
+
+  // Teinen en ny fangst kommer fra, hvis den står i sjøen og derfor skal tas opp. Ellers null.
+  _teineSomTasOpp(teineId) {
+    const t = this.markeringer.hent(teineId);
+    return t?.status === 'i_sjoen' ? t : null;
+  }
+
+  // I arket for ny fangst: si fra hvilken teine som tas opp når man trykker «Ferdig».
+  _visTaOppHint() {
+    const hint = this.arkMarkering.querySelector('[data-tekst="taOppHint"]');
+    if (!hint || !this._utkast) return;
+    const t = this._teineSomTasOpp(this._utkast.teine_id);
+    hint.textContent = t ? `Teine ${t.nummer} markeres som tatt opp når du trykker Ferdig.` : '';
+    hint.hidden = !t;
   }
 
   // ---------- Langt trykk i kartet ----------
@@ -287,8 +310,7 @@ export class Markeringsark {
         ${iSjoen
           ? '<button type="button" class="stor teine-farge" data-handling="taOpp">Tatt opp</button>'
           : '<button type="button" class="stor teine-farge" data-handling="settUtIgjen">Sett ut igjen her</button>'}
-        ${iSjoen ? `<button type="button" class="sekundar" data-handling="fangst">🦞 Registrer fangst</button>
-          <button type="button" class="sekundar" data-handling="sjekket">Sjekket, ingen hummer</button>` : ''}
+        ${iSjoen ? '<button type="button" class="sekundar" data-handling="fangst">🦞 Registrer fangst</button>' : ''}
         <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
         <button type="button" class="fare" data-handling="slett">Slett</button>
         <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
@@ -334,7 +356,7 @@ export class Markeringsark {
       </li>`);
     const teine = this.markeringer.hent(f.teine_id);
     li.querySelector('[data-tekst="tittel"]').textContent =
-      sjekk ? 'Sjekket, ingen hummer' : `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
+      sjekk ? 'Ingen hummer' : `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
     li.querySelector('[data-tekst="info"]').textContent =
       `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}` : 'ingen teine'}`;
     return li;
@@ -344,7 +366,7 @@ export class Markeringsark {
   _fangstInnhold(m) {
     const ny = !m.id;
     const sjekk = !ny && erSjekk(m);
-    const tittel = ny ? 'Ny hummerfangst' : sjekk ? 'Sjekket, ingen hummer' : 'Hummerfangst';
+    const tittel = ny ? 'Ny hummerfangst' : sjekk ? 'Ingen hummer' : 'Hummerfangst';
     const el = fraMal(`
       <div class="ark-topp">
         <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></div>
@@ -365,6 +387,7 @@ export class Markeringsark {
       <div class="felter">
         <label class="felt">Tidspunkt<input type="datetime-local" data-felt="tid"></label>
         <label class="felt">Fra teine<select data-felt="teine_id"></select></label>
+        ${ny ? '<p class="hjelp" data-tekst="taOppHint" hidden></p>' : ''}
         <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
       </div>
       ${ny
@@ -437,20 +460,6 @@ export class Markeringsark {
       case 'fangst':
         this.registrerFangst({ lat: m.lat, lon: m.lon, noyaktighet: m.noyaktighet, kilde: m.kilde }, m);
         break;
-      case 'sjekket': {
-        // Teinen er sjekket og står fortsatt i sjøen. Lagres som fangst uten hummer (se erSjekk),
-        // så sjekken synes i tidslinjen i analysen.
-        this.arkMarkering.close();
-        const f = await this.markeringer.nyFangst({
-          lat: m.lat, lon: m.lon, noyaktighet: m.noyaktighet, kilde: m.kilde, teine_id: m.id, beholdt: 0, satt_ut: 0,
-        });
-        this._sjekkLagring();
-        visMelding(`Teine ${m.nummer} sjekket: ingen hummer`, {
-          knapp: 'Angre',
-          handling: () => this.markeringer.slett(f.id, { husk: false }),
-        });
-        break;
-      }
       case 'flytt':
         this.arkMarkering.close();
         this.startFlytt(id);
@@ -499,6 +508,7 @@ export class Markeringsark {
       this._endre(m, { notat: el.value });
     } else if (felt === 'teine_id' && (el.value || null) !== m.teine_id) {
       this._endre(m, { teine_id: el.value || null });
+      this._visTaOppHint();
     } else if (felt === 'tid' && el.value && el.value !== tilLokalTid(m.tid)) {
       const tid = new Date(el.value).toISOString(); // feltets verdi tolkes som lokal tid
       this._endre(m, { tid });

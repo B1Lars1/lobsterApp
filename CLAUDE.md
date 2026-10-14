@@ -79,10 +79,13 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   `onupgradeneeded`.
 - En teinesetting går fra `tid` til `tatt_opp` (eller er i sjøen). «Sett ut igjen her»
   lager en ny teine med samme nummer. Fangst er egne markeringer med `teine_id`.
-  «Sjekket, ingen hummer» lagres som fangst med 0 beholdt og 0 satt ut (`erSjekk` i
-  `markeringsark.js`), med vilje: en ny `kategori` ville eldre versjoner av appen
-  forkastet og så slettet fra GitHub ved neste synkronisering. Tidslinjen i
-  `analyser_fangst.py` bygger på dette og viser sjekkene som hule ringer.
+  Brukerens arbeidsflyt: å registrere fangst fra en teine i sjøen betyr at teinen er
+  tatt opp i båten, så `_lagreUtkast` setter teinen til `tatt_opp` (på fangstens tid),
+  også ved 0 hummer. Den settes ut igjen med «Sett teine», og `nesteTeinenummer()`
+  gir da nummeret til teinen som sist ble tatt opp (siste 12 timer) hvis det er ledig.
+  Tom teine er fangst med 0 beholdt og 0 satt ut (`erSjekk`), ikke en egen `kategori`:
+  en ny kategori ville eldre versjoner av appen forkastet og så slettet fra GitHub ved
+  neste synkronisering. Tidslinjen i `analyser_fangst.py` viser dem som hule ringer.
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
 

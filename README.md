@@ -269,13 +269,19 @@ Sjekk alltid gjeldende forskrift.
 
 ## Markeringer
 
-- **Sett teine:** ett trykk markerer en teine der du er (GPS). Den får laveste
-  ledige nummer, som kan endres.
+- **Sett teine:** ett trykk markerer en teine der du er (GPS). Den får nummeret til
+  teinen som sist ble tatt opp (de siste 12 timene) hvis det er ledig, ellers laveste
+  ledige nummer. Nummeret kan endres.
 - **Hummer her:** ett trykk åpner et ark for ny fangst der du er. Fangsten knyttes
   til nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −, og
   trykk **Ferdig** for å registrere den. Trykker du **Avbryt**, drar arket ned eller
   trykker utenfor, registreres ingenting. Det samme gjelder **Registrer fangst** i
   teinearket og «Hummer her» etter langt trykk i kartet.
+- **Fangst betyr at teinen er tatt opp:** registrerer du fangst fra en teine i sjøen,
+  også 0 hummer når den var tom, markeres teinen som tatt opp og forsvinner fra
+  kartet. Arket sier fra om det før du trykker Ferdig, og «Angre» angrer begge deler.
+  Når du setter teinen ut igjen, trykker du **Sett teine**, og den får samme nummer.
+  Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
   registrere fangst, flytte eller slette.
@@ -286,12 +292,10 @@ Sjekk alltid gjeldende forskrift.
   faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert
   først. Trykk på en fangst for å endre antall beholdt og satt ut, tidspunkt, teine
   eller notat, flytte den eller slette den.
-- **Sjekket, ingen hummer** i teinearket registrerer at du har sjekket teinen uten å
-  få hummer, og lar den stå i sjøen. Sjekken vises med en grå hake i teinearket og
-  under Fangstregistreringer, og som en hul ring i tidslinjen i analysen. Den lagres
-  som fangst med 0 beholdt og 0 satt ut, og kan angres, endres eller slettes som annen
-  fangst.
-- **Tatt opp** fjerner teinen fra kartet, men tar vare på den i historikken for
+- **0 hummer** vises med en grå hake og «Ingen hummer» i teinearket og under
+  Fangstregistreringer, og som en hul ring i tidslinjen i analysen.
+- **Tatt opp** i teinearket tar opp teinen uten å registrere fangst, for eksempel når
+  du tar den med hjem. Den forsvinner fra kartet, men tas vare på i historikken for
   analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
 - **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet
   først. Trykk **Gjenopprett** for å få en markering tilbake, også lenge etter at
@@ -430,20 +434,18 @@ Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
 fra den ble satt til den ble tatt opp, eller frem til nå hvis den står i sjøen (lysere
 farge og en pil). Blå stolpe betyr at settingen ga hummer, grå at den ikke gjorde det.
 Hver fangstregistrering er en oransje prikk med antall hummer, der den ble registrert.
-En hul grå ring er en sjekk uten hummer («Sjekket, ingen hummer» i appen). En svart
-firkant er der teinen ble tatt opp uten fangst akkurat da. Fangst som ikke er knyttet
+En hul grå ring er registrert 0 hummer (teinen var tom). En svart firkant er der
+teinen ble tatt opp. Fangst som ikke er knyttet
 til en teine, står på en egen rad nederst. Tidene er norsk tid.
 
 **Statistikken** summerer perioden, antall teinesettinger (og hvor mange som står i
 sjøen), hvor mange som ga hummer og hvor mange som ikke gjorde det (tatt opp tomme og
-i sjøen uten fangst ennå), hvor mange ganger teiner er sjekket uten hummer, antall
-hummer beholdt og satt ut, teinedøgn, hummer per
+i sjøen uten fangst ennå), antall hummer beholdt og satt ut, teinedøgn, hummer per
 teinedøgn, snitt døgn per setting og den beste settingen. Den samme statistikken og
 tidslinjen skrives også i terminalen.
 
-Tidslinjen viser bare det som er registrert i appen: at en teine er satt, fangst,
-sjekker uten hummer og at den er tatt opp. Sjekker du en teine uten hummer og setter
-den rett ut igjen, trykk **Sjekket, ingen hummer** i teinearket, så synes sjekken.
+Siden fangst fra en teine betyr at den er tatt opp, slutter settingen der fangsten er
+registrert. Settes teinen ut igjen, starter en ny setting på samme rad.
 
 Dybden er anslått fra Kartverkets dybdedata (se «Fredningsområder og dybde»), og
 bunnhint kommer fra Miljødirektoratet. Med få teinedøgn (under 30) sier skriptet
