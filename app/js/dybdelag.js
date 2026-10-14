@@ -26,7 +26,6 @@ export const PALETTER = {
     tekst: '#0c2c4a', halo: 'rgba(255, 255, 255, 0.9)',
     dybdetall: '#2a4c6b', skjaer: '#141414',
     navnLand: '#3a2e1c', navnSjo: '#174a78',
-    bratt: 'rgba(110, 72, 28, 0.6)',
     hardFyll: 'rgba(74, 112, 30, 0.16)', hardPrikk: 'rgba(60, 92, 20, 0.8)',
     blotFyll: 'rgba(240, 196, 40, 0.28)', blotKant: 'rgba(170, 125, 0, 0.9)',
   },
@@ -38,7 +37,6 @@ export const PALETTER = {
     tekst: '#d3ebfb', halo: 'rgba(7, 17, 26, 0.9)',
     dybdetall: '#a3c9e4', skjaer: '#eef2f5',
     navnLand: '#ece4cf', navnSjo: '#9fd2f7',
-    bratt: 'rgba(232, 196, 150, 0.5)',
     hardFyll: 'rgba(130, 180, 80, 0.14)', hardPrikk: 'rgba(160, 205, 110, 0.75)',
     blotFyll: 'rgba(240, 200, 60, 0.18)', blotKant: 'rgba(240, 200, 80, 0.85)',
   },
@@ -169,7 +167,7 @@ export async function lastDybdedata(mappe = 'data/') {
     return svar.json();
   };
   const tom = { features: [] }; // valgfrie lag: kartet virker også uten dem
-  const [areal, land, kurver, etiketter, dybdetall, stedsnavn, bunnhint, bratt] = await Promise.all([
+  const [areal, land, kurver, etiketter, dybdetall, stedsnavn, bunnhint] = await Promise.all([
     hent('dybdeareal.geojson'),
     hent('land.geojson'),
     hent('dybdekurver.geojson'),
@@ -177,7 +175,6 @@ export async function lastDybdedata(mappe = 'data/') {
     hent('dybdetall.geojson'),
     hent('stedsnavn.geojson').catch(() => tom),
     hent('bunnhint.geojson').catch(() => tom),
-    hent('bratt.geojson').catch(() => tom),
   ]);
   return {
     soner: new Rutenett(lagObjekter(areal, (p) => ({ sone: soneIndeks(p.min), min: p.min, maks: p.maks }))),
@@ -193,7 +190,6 @@ export async function lastDybdedata(mappe = 'data/') {
     bunnhint: new Rutenett(lagObjekter(bunnhint, (p) => ({
       hard: p.kategori === 'hard', navn: p.navn, modellert: p.modellert, aar: p.aar,
     }))),
-    bratt: new Rutenett(lagObjekter(bratt, (p) => ({ svaert: p.klasse === 'svaertbratt' }))),
   };
 }
 
@@ -248,7 +244,7 @@ function tegnDybde(ctx, x, y, dybde, str, fet) {
 
 // ---------- Mønstre for bunnforhold ----------
 
-// Skravering og prikker tegnes som små mønsterbilder som gjentas. Mønsteret er 8 px,
+// Prikkene tegnes som et lite mønsterbilde som gjentas. Mønsteret er 8 px,
 // som går opp i flisstørrelsen (256 px), så det henger sammen over flisgrensene.
 const MONSTER = 8;
 const monsterBuffer = new Map();
@@ -271,23 +267,6 @@ function monster(ctx, navn, farge, dpr, tegn) {
   return m;
 }
 
-const skraa = (c) => {
-  c.beginPath();
-  for (const [x0, y0, x1, y1] of [[0, 8, 8, 0], [-1, 1, 1, -1], [7, 9, 9, 7]]) {
-    c.moveTo(x0, y0);
-    c.lineTo(x1, y1);
-  }
-  c.stroke();
-};
-const kryss = (c) => {
-  skraa(c);
-  c.beginPath();
-  for (const [x0, y0, x1, y1] of [[0, 0, 8, 8], [-1, 7, 1, 9], [7, -1, 9, 1]]) {
-    c.moveTo(x0, y0);
-    c.lineTo(x1, y1);
-  }
-  c.stroke();
-};
 const prikk = (c) => {
   c.beginPath();
   c.arc(4, 4, 1.1, 0, 2 * Math.PI);
@@ -318,7 +297,6 @@ export const Dybdelag = L.GridLayer.extend({
     visLand: true,            // false når et bakgrunnskart fra Kartverket viser land
     visDybdetall: true,
     visBunnhint: true,        // tareskog, ålegras og skjellsand (Miljødirektoratet)
-    visBratt: true,           // bratt bunn beregnet fra dybdedataene
   },
 
   initialize(data, options) {
@@ -400,7 +378,7 @@ export const Dybdelag = L.GridLayer.extend({
       ctx.stroke();
     }
 
-    // 3b. Bunnforhold når du er zoomet langt inn: bunnhint og bratt bunn
+    // 3b. Bunnhint når du er zoomet langt inn
     if (z >= 15) {
       if (this.options.visBunnhint) {
         const hint = this._data.bunnhint.sok(t.bbox);
@@ -419,16 +397,6 @@ export const Dybdelag = L.GridLayer.extend({
           ctx.lineWidth = 1.4;
           ctx.stroke();
           ctx.setLineDash([]);
-        }
-      }
-      if (this.options.visBratt) {
-        const bratt = this._data.bratt.sok(t.bbox);
-        for (const svaert of [false, true]) {
-          const utvalg = bratt.filter((o) => o.svaert === svaert);
-          if (!utvalg.length) continue;
-          tegnSti(utvalg, true);
-          ctx.fillStyle = monster(ctx, svaert ? 'kryss' : 'skraa', p.bratt, dpr, svaert ? kryss : skraa);
-          ctx.fill('evenodd');
         }
       }
     }
