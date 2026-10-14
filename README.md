@@ -108,7 +108,7 @@ det beste grunnlaget som finnes.
 ## Teste appen lokalt
 
 ```powershell
-.\.venv\Scripts\python.exe scripts	estserver.py
+.\.venv\Scripts\python.exe scripts\testserver.py
 ```
 
 Testserveren ber nettleseren om ikke å mellomlagre filene, så endringer i koden
