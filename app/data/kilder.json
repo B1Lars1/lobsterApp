@@ -27,5 +27,14 @@
     "lisens_url": "https://creativecommons.org/licenses/by/4.0/",
     "kilde_url": "https://api.kartverket.no/stedsnavn/v1/",
     "lastet_ned": "2026-10-14"
+  },
+  "bunnhint": {
+    "navn": "Marine naturtyper (HB19)",
+    "eier": "Miljødirektoratet",
+    "kreditering": "Inneholder data under Norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Miljødirektoratet",
+    "lisens": "NLOD 2.0",
+    "lisens_url": "https://data.norge.no/nlod/no/2.0",
+    "metadata_url": "https://kartkatalog.geonorge.no/metadata/e4f40b02-7a32-4163-87af-d4121de48e6d",
+    "lastet_ned": "2026-10-14"
   }
 }
