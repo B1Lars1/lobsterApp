@@ -61,6 +61,10 @@ function fraMal(html) {
 
 const navnPa = (m) => (m.kategori === 'teine' ? `Teine ${m.nummer}` : 'Fangst');
 
+// «Sjekket, ingen hummer» lagres som fangst med 0 beholdt og 0 satt ut. Da trengs ingen
+// ny type markering, og synkroniseringen med eldre versjoner av appen virker som før.
+const erSjekk = (f) => f.beholdt + f.satt_ut === 0;
+
 export class Markeringsark {
   constructor({ kart, gps, markeringer, kartmarkeringer, fredning }) {
     this.kart = kart;
@@ -283,7 +287,8 @@ export class Markeringsark {
         ${iSjoen
           ? '<button type="button" class="stor teine-farge" data-handling="taOpp">Tatt opp</button>'
           : '<button type="button" class="stor teine-farge" data-handling="settUtIgjen">Sett ut igjen her</button>'}
-        ${iSjoen ? '<button type="button" class="sekundar" data-handling="fangst">🦞 Registrer fangst</button>' : ''}
+        ${iSjoen ? `<button type="button" class="sekundar" data-handling="fangst">🦞 Registrer fangst</button>
+          <button type="button" class="sekundar" data-handling="sjekket">Sjekket, ingen hummer</button>` : ''}
         <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
         <button type="button" class="fare" data-handling="slett">Slett</button>
         <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
@@ -297,7 +302,7 @@ export class Markeringsark {
       : `Tatt opp ${formaterTid(m.tatt_opp)}`);
     sett('avstand', this._avstandTekst(m));
     sett('dybde', m.dybde != null ? formaterDybde(m.dybde) : '–');
-    sett('fangst', fangst.length ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
+    sett('fangst', beholdt + sattUt ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
     // Hver fangstregistrering fra teinen. Fangsten ligger ofte under teinen på kartet,
     // så her er veien til å rette eller slette den.
     for (const f of [...fangst].sort((a, b) => b.tid.localeCompare(a.tid))) {
@@ -318,16 +323,18 @@ export class Markeringsark {
   // Rad for én fangstregistrering: antall, tidspunkt og teine. Den som bruker raden,
   // bestemmer hva et trykk gjør (data-vis i teinelisten, data-handling i teinearket).
   _fangstRad(f) {
+    const sjekk = erSjekk(f);
     const li = fraMal(`
       <li>
         <button type="button" class="rad">
-          <span class="symbol hummer"><span class="emoji">🦞</span></span>
+          <span class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></span>
           <span class="radtekst"><b data-tekst="tittel"></b><small data-tekst="info"></small></span>
           <span class="endre">Endre</span>
         </button>
       </li>`);
     const teine = this.markeringer.hent(f.teine_id);
-    li.querySelector('[data-tekst="tittel"]').textContent = `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
+    li.querySelector('[data-tekst="tittel"]').textContent =
+      sjekk ? 'Sjekket, ingen hummer' : `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
     li.querySelector('[data-tekst="info"]').textContent =
       `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}` : 'ingen teine'}`;
     return li;
@@ -336,10 +343,12 @@ export class Markeringsark {
   // Fangstarket. Uten id er det en ny fangst (utkast) som lagres først ved «Ferdig».
   _fangstInnhold(m) {
     const ny = !m.id;
+    const sjekk = !ny && erSjekk(m);
+    const tittel = ny ? 'Ny hummerfangst' : sjekk ? 'Sjekket, ingen hummer' : 'Hummerfangst';
     const el = fraMal(`
       <div class="ark-topp">
-        <div class="symbol hummer"><span class="emoji">🦞</span></div>
-        <div class="ark-tittel"><h3>${ny ? 'Ny hummerfangst' : 'Hummerfangst'}</h3><p data-tekst="undertekst"></p></div>
+        <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></div>
+        <div class="ark-tittel"><h3>${tittel}</h3><p data-tekst="undertekst"></p></div>
       </div>
       <div class="teller">
         <span>Beholdt</span>
@@ -428,6 +437,20 @@ export class Markeringsark {
       case 'fangst':
         this.registrerFangst({ lat: m.lat, lon: m.lon, noyaktighet: m.noyaktighet, kilde: m.kilde }, m);
         break;
+      case 'sjekket': {
+        // Teinen er sjekket og står fortsatt i sjøen. Lagres som fangst uten hummer (se erSjekk),
+        // så sjekken synes i tidslinjen i analysen.
+        this.arkMarkering.close();
+        const f = await this.markeringer.nyFangst({
+          lat: m.lat, lon: m.lon, noyaktighet: m.noyaktighet, kilde: m.kilde, teine_id: m.id, beholdt: 0, satt_ut: 0,
+        });
+        this._sjekkLagring();
+        visMelding(`Teine ${m.nummer} sjekket: ingen hummer`, {
+          knapp: 'Angre',
+          handling: () => this.markeringer.slett(f.id, { husk: false }),
+        });
+        break;
+      }
       case 'flytt':
         this.arkMarkering.close();
         this.startFlytt(id);

@@ -3,6 +3,7 @@
  *   teine i sjøen   svart bøyleteine sett fra siden, med nummer
  *   teine tatt opp  grå, stiplet teine (bare når «Opptatte teiner» er slått på)
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
+ *   sjekk           hvit sirkel med grå hake: teinen ble sjekket uten hummer
  *   rødt «!»        teinen ligger i et fredningsområde
  *
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
@@ -117,6 +118,10 @@ function symbol(m, iFredning) {
     };
   }
   const antall = m.beholdt + m.satt_ut;
+  if (antall === 0) {
+    // «Sjekket, ingen hummer» (fangst med 0 beholdt og 0 satt ut): grå hake
+    return { html: '<span class="emoji">✓</span>', klasse: 'hummer sjekk', storrelse: [36, 36], z: 0 };
+  }
   return {
     html: `<span class="emoji">🦞</span>${antall > 1 ? `<b class="antall">${antall}</b>` : ''}`,
     klasse: m.beholdt > 0 ? 'hummer' : 'hummer bare-satt-ut',

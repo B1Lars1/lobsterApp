@@ -286,6 +286,11 @@ Sjekk alltid gjeldende forskrift.
   faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert
   først. Trykk på en fangst for å endre antall beholdt og satt ut, tidspunkt, teine
   eller notat, flytte den eller slette den.
+- **Sjekket, ingen hummer** i teinearket registrerer at du har sjekket teinen uten å
+  få hummer, og lar den stå i sjøen. Sjekken vises med en grå hake i teinearket og
+  under Fangstregistreringer, og som en hul ring i tidslinjen i analysen. Den lagres
+  som fangst med 0 beholdt og 0 satt ut, og kan angres, endres eller slettes som annen
+  fangst.
 - **Tatt opp** fjerner teinen fra kartet, men tar vare på den i historikken for
   analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
 - **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet
@@ -425,18 +430,20 @@ Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
 fra den ble satt til den ble tatt opp, eller frem til nå hvis den står i sjøen (lysere
 farge og en pil). Blå stolpe betyr at settingen ga hummer, grå at den ikke gjorde det.
 Hver fangstregistrering er en oransje prikk med antall hummer, der den ble registrert.
-En svart firkant er der teinen ble tatt opp uten fangst akkurat da. Fangst som ikke er
-knyttet til en teine, står på en egen rad nederst. Tidene er norsk tid.
+En hul grå ring er en sjekk uten hummer («Sjekket, ingen hummer» i appen). En svart
+firkant er der teinen ble tatt opp uten fangst akkurat da. Fangst som ikke er knyttet
+til en teine, står på en egen rad nederst. Tidene er norsk tid.
 
 **Statistikken** summerer perioden, antall teinesettinger (og hvor mange som står i
 sjøen), hvor mange som ga hummer og hvor mange som ikke gjorde det (tatt opp tomme og
-i sjøen uten fangst ennå), antall hummer beholdt og satt ut, teinedøgn, hummer per
+i sjøen uten fangst ennå), hvor mange ganger teiner er sjekket uten hummer, antall
+hummer beholdt og satt ut, teinedøgn, hummer per
 teinedøgn, snitt døgn per setting og den beste settingen. Den samme statistikken og
 tidslinjen skrives også i terminalen.
 
-Appen registrerer at en teine er satt, at den er tatt opp, og fangst. Sjekker du en
-teine og setter den rett ut igjen uten å trykke «Tatt opp», vises det derfor som én lang
-setting. Vil du at sjekken skal synes, trykk «Tatt opp» og deretter «Sett ut igjen her».
+Tidslinjen viser bare det som er registrert i appen: at en teine er satt, fangst,
+sjekker uten hummer og at den er tatt opp. Sjekker du en teine uten hummer og setter
+den rett ut igjen, trykk **Sjekket, ingen hummer** i teinearket, så synes sjekken.
 
 Dybden er anslått fra Kartverkets dybdedata (se «Fredningsområder og dybde»), og
 bunnhint kommer fra Miljødirektoratet. Med få teinedøgn (under 30) sier skriptet

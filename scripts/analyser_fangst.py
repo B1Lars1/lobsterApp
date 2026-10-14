@@ -158,6 +158,7 @@ def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: 
         ("Uten hummer", f"{int((~med).sum())} ({prosent((~med).sum(), n)})"),
         ("   tatt opp tomme", str(int((~med & ~i_sjoen).sum()))),
         ("   i sjøen, ingen ennå", str(int((~med & i_sjoen).sum()))),
+        ("Sjekket uten hummer", f"{int((fangst_alle['hummer'] == 0).sum())} ganger"),
         ("Hummer", hummertekst(fangst_alle["hummer"].sum(), fangst_alle["beholdt"].sum(),
                                fangst_alle["satt_ut"].sum())),
         ("Teinedøgn", komma(teinedoegn, 1)),
@@ -181,7 +182,8 @@ def skriv_tidslinje(teiner: pd.DataFrame, fangst_alle: pd.DataFrame) -> None:
         print(f"  Teine {t['nummer']:>2.0f}  satt {klokke(t['tid'])} → {slutt} ({komma(t['doegn'], 1)} døgn): "
               f"{hummertekst(t['hummer'], t['beholdt'], t['satt_ut'])}")
         for f in fangst_alle[fangst_alle["teine_id"] == t["id"]].sort_values("tid").itertuples():
-            print(f"              fangst {klokke(f.tid)}: {hummertekst(f.hummer, f.beholdt, f.satt_ut)}")
+            hva = "fangst " if f.hummer else "sjekket"
+            print(f"              {hva} {klokke(f.tid)}: {hummertekst(f.hummer, f.beholdt, f.satt_ut)}")
 
 
 # ---------- Figurer ----------
@@ -298,7 +300,10 @@ def tegn_tidslinje(ax, teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_tei
         y = rad_for_teine.get(f.teine_id, len(nummer))  # uten teine: nederste rad
         x = lokal(f.tid)
         tider.append(x)
-        ax.scatter(dnum(x), y, s=170 + 45 * min(f.hummer, 6), color=ORANSJE if f.hummer else GRAA,
+        if not f.hummer:  # «Sjekket, ingen hummer» (0 beholdt, 0 satt ut): hul grå ring
+            ax.scatter(dnum(x), y, s=130, color=FLATE, edgecolors=TEKST2, linewidths=2, zorder=4)
+            continue
+        ax.scatter(dnum(x), y, s=170 + 45 * min(f.hummer, 6), color=ORANSJE,
                    edgecolors=FLATE, linewidths=1.5, zorder=4)
         ax.annotate(f"{f.hummer:.0f}", (dnum(x), y), ha="center", va="center", color="white",
                     fontsize=9, fontweight="bold", zorder=5)
@@ -332,7 +337,9 @@ def tegn_tidslinje(ax, teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_tei
         Line2D([], [], color=TEKST, marker="|", markersize=12, mew=2, linestyle="", label="satt"),
         Line2D([], [], color=TEKST, marker="s", markersize=6, linestyle="", label="tatt opp"),
         Line2D([], [], color=ORANSJE, marker="o", markersize=10, linestyle="", label="fangst (antall hummer)"),
-    ], frameon=False, labelcolor=TEKST, fontsize=9, ncol=6, loc="upper left", bbox_to_anchor=(0, -0.12))
+        Line2D([], [], color=TEKST2, marker="o", markerfacecolor=FLATE, mew=2, markersize=9, linestyle="",
+               label="sjekket, ingen hummer"),
+    ], frameon=False, labelcolor=TEKST, fontsize=9, ncol=7, loc="upper left", bbox_to_anchor=(0, -0.12))
 
 
 def tegn_statistikk(ax, statistikk: list) -> None:
@@ -376,8 +383,8 @@ def lag_tidslinje(teiner, fangst_alle, uten_teine, statistikk: list, fil: Path, 
     tegn_tidslinje(fig.add_subplot(rutenett[0, :]), teiner, fangst_alle, uten_teine)
     tegn_statistikk(fig.add_subplot(rutenett[1, 0]), statistikk)
     tegn_med_og_uten(fig.add_subplot(rutenett[1, 1]), teiner)
-    tekst = (f"Kilde: {fil.name} · Tidene er norsk tid. En teine som sjekkes og settes rett ut igjen "
-             "uten å registreres som tatt opp, vises som én lang setting.")
+    tekst = (f"Kilde: {fil.name} · Tidene er norsk tid. En sjekk synes bare hvis den er registrert, med "
+             "«Sjekket, ingen hummer», fangst eller «Tatt opp».")
     if teiner["doegn"].sum() < FAA_TEINEDOGN:
         tekst += "  Få data: tolk tallene forsiktig."
     fig.text(0.01, 0.01, tekst, color=TEKST2, fontsize=9)
