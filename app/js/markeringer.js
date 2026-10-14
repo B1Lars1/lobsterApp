@@ -21,6 +21,9 @@
  *   satt_ut      antall hummer satt ut igjen                    (hummer)
  *   teine_id     id til teinen fangsten kom fra, eller null     (hummer)
  * Posisjonen lagres som lat/lon og blir geometrien i GeoJSON.
+ *
+ * Slettede markeringer huskes (id og tidspunkt), så en sletting også gjelder for
+ * kopien på GitHub og andre telefoner som synkroniserer (se synk.js).
  */
 
 import * as lager from './lager.js';
@@ -60,6 +63,7 @@ function normaliser(m) {
 export class Markeringer {
   constructor() {
     this._alle = new Map(); // id -> markering
+    this._slettinger = new Map(); // id -> tidspunkt markeringen ble slettet (ISO)
     this._lyttere = new Set();
     this._dybdeI = null; // (lat, lon) => dybde, settes når dybdedataene er lastet
     this.lagringVirker = true;
@@ -99,6 +103,7 @@ export class Markeringer {
   async last() {
     try {
       for (const m of await lager.hentAlle()) this._alle.set(m.id, m);
+      for (const s of await lager.hentSlettinger()) this._slettinger.set(s.id, s.endret);
     } catch (feil) {
       console.error(feil);
       this.lagringVirker = false;
@@ -189,18 +194,32 @@ export class Markeringer {
   /** Slett for godt. Returnerer markeringen, så den kan gjenopprettes med gjenopprett(). */
   async slett(id) {
     const m = this.hent(id);
-    this._alle.delete(id);
+    await this._slettLokalt(id, naa());
     this._varsle();
-    try {
-      await lager.slett(id);
-    } catch (feil) {
-      console.error(feil);
-    }
     return m;
   }
 
-  gjenopprett(m) {
-    return this._lagre(m);
+  // Fjern markeringen og husk når den ble slettet.
+  async _slettLokalt(id, tidspunkt) {
+    this._alle.delete(id);
+    this._slettinger.set(id, tidspunkt);
+    try {
+      await lager.slett(id);
+      await lager.lagreSletting({ id, endret: tidspunkt });
+    } catch (feil) {
+      console.error(feil);
+    }
+  }
+
+  /** Angre en sletting. Får nytt «endret», så den vinner over slettingen ved synkronisering. */
+  async gjenopprett(m) {
+    this._slettinger.delete(m.id);
+    try {
+      await lager.fjernSletting(m.id);
+    } catch (feil) {
+      console.error(feil);
+    }
+    return this._lagre({ ...m, endret: naa() });
   }
 
   // ---------- GeoJSON ----------
@@ -219,15 +238,33 @@ export class Markeringer {
     };
   }
 
+  /** GeoJSON for synkronisering: som eksporten, pluss listen over slettede markeringer. */
+  tilSynkGeoJSON() {
+    const slettet = [...this._slettinger]
+      .map(([id, endret]) => ({ id, endret }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    return { ...this.tilGeoJSON(), slettet };
+  }
+
   /**
    * Les markeringer fra en GeoJSON-fil. Markeringer som finnes fra før (samme id),
-   * oppdateres bare hvis filen har en nyere versjon.
+   * oppdateres bare hvis filen har en nyere versjon. Filen kan også ha en liste
+   * «slettet» (fra synkronisering): da slettes markeringene her hvis slettingen er nyere.
    */
   async importer(geojson) {
     if (geojson?.type !== 'FeatureCollection' || !Array.isArray(geojson.features)) {
       throw new Error('Filen er ikke en GeoJSON FeatureCollection');
     }
-    const resultat = { nye: 0, oppdaterte: 0, uendret: 0, ugyldige: 0 };
+    const resultat = { nye: 0, oppdaterte: 0, uendret: 0, ugyldige: 0, slettet: 0 };
+
+    for (const { id, endret } of Array.isArray(geojson.slettet) ? geojson.slettet : []) {
+      if (!id || !endret || (this._slettinger.get(id) ?? '') >= endret) continue;
+      const finnes = this.hent(id);
+      if (finnes && finnes.endret > endret) continue; // endret her etter slettingen: behold
+      if (finnes) resultat.slettet++;
+      await this._slettLokalt(id, endret);
+    }
+
     const tilLagring = [];
     for (const f of geojson.features) {
       const p = f?.properties || {};
@@ -241,12 +278,18 @@ export class Markeringer {
       }
       const m = normaliser({ ...p, kategori, lat, lon });
       const finnes = this.hent(m.id);
-      if (finnes && finnes.endret >= m.endret) {
+      const slettetHer = this._slettinger.get(m.id);
+      if ((finnes && finnes.endret >= m.endret) || (slettetHer && slettetHer >= m.endret)) {
         resultat.uendret++;
         continue;
       }
       resultat[finnes ? 'oppdaterte' : 'nye']++;
       tilLagring.push(m);
+      if (slettetHer) {
+        // Gjenopprettet et annet sted etter at den ble slettet her: glem slettingen
+        this._slettinger.delete(m.id);
+        await lager.fjernSletting(m.id);
+      }
     }
     for (const m of tilLagring) this._alle.set(m.id, m);
     await lager.lagreMange(tilLagring);

@@ -14,11 +14,10 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = 'cdea6a296143';
+const VERSJON = '0c22cdcd6b6e';
 const FILER = [
   './',
   'css/app.css',
-  'data/bratt.geojson',
   'data/bunnhint.geojson',
   'data/dybdeareal.geojson',
   'data/dybdekurver.geojson',
@@ -46,6 +45,7 @@ const FILER = [
   'js/markeringer.js',
   'js/markeringsark.js',
   'js/melding.js',
+  'js/synk.js',
   'manifest.webmanifest',
   'vendor/leaflet-1.9.4/images/layers-2x.png',
   'vendor/leaflet-1.9.4/images/layers.png',

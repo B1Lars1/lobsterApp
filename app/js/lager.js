@@ -2,15 +2,22 @@
  * Lagring av markeringer i nettleserens database (IndexedDB) på telefonen.
  *
  * Dataene blir liggende til neste gang appen åpnes, også uten nett. De forsvinner
- * bare hvis nettleserdataene for siden slettes. Eksporter til GeoJSON som sikkerhetskopi.
+ * bare hvis nettleserdataene for siden slettes. Synkroniser med GitHub (synk.js)
+ * eller eksporter til GeoJSON som sikkerhetskopi.
+ *
+ * To tabeller:
+ *   markeringer  teiner og fangst
+ *   slettinger   id og tidspunkt for markeringer du har slettet, så slettingen også
+ *                gjelder for kopien på GitHub og andre telefoner
  *
  * IndexedDB har et tungvint, hendelsesbasert API. Funksjonene her pakker det inn
  * i Promise, så resten av appen kan bruke await.
  */
 
 const DB_NAVN = 'hummerkart';
-const DB_VERSJON = 1;
-const TABELL = 'markeringer';
+const DB_VERSJON = 2; // 2: tabellen «slettinger» lagt til
+const MARKERINGER = 'markeringer';
+const SLETTINGER = 'slettinger';
 
 let dbLofte = null;
 
@@ -18,11 +25,19 @@ function apne() {
   if (!dbLofte) {
     dbLofte = new Promise((ok, feil) => {
       const foresporsel = indexedDB.open(DB_NAVN, DB_VERSJON);
-      // Kjøres første gang (og ved ny DB_VERSJON): lag tabellen.
+      // Kjøres første gang og ved ny DB_VERSJON: lag tabellene som mangler.
+      // Eksisterende markeringer blir liggende urørt.
       foresporsel.onupgradeneeded = () => {
-        foresporsel.result.createObjectStore(TABELL, { keyPath: 'id' });
+        const db = foresporsel.result;
+        for (const navn of [MARKERINGER, SLETTINGER]) {
+          if (!db.objectStoreNames.contains(navn)) db.createObjectStore(navn, { keyPath: 'id' });
+        }
       };
-      foresporsel.onsuccess = () => ok(foresporsel.result);
+      foresporsel.onsuccess = () => {
+        const db = foresporsel.result;
+        db.onversionchange = () => db.close(); // en nyere versjon av appen vil oppgradere
+        ok(db);
+      };
       foresporsel.onerror = () => feil(foresporsel.error);
     });
   }
@@ -30,27 +45,33 @@ function apne() {
 }
 
 // Kjør én operasjon i en transaksjon og vent til den er lagret.
-async function transaksjon(modus, gjor) {
+async function transaksjon(tabell, modus, gjor) {
   const db = await apne();
   return new Promise((ok, feil) => {
-    const t = db.transaction(TABELL, modus);
-    const resultat = gjor(t.objectStore(TABELL));
+    const t = db.transaction(tabell, modus);
+    const resultat = gjor(t.objectStore(tabell));
     t.oncomplete = () => ok(resultat && 'result' in resultat ? resultat.result : undefined);
     t.onerror = () => feil(t.error);
     t.onabort = () => feil(t.error);
   });
 }
 
-export const hentAlle = () => transaksjon('readonly', (tabell) => tabell.getAll());
+export const hentAlle = () => transaksjon(MARKERINGER, 'readonly', (t) => t.getAll());
 
-export const lagre = (markering) => transaksjon('readwrite', (tabell) => tabell.put(markering));
+export const lagre = (markering) => transaksjon(MARKERINGER, 'readwrite', (t) => t.put(markering));
 
-export const slett = (id) => transaksjon('readwrite', (tabell) => tabell.delete(id));
+export const slett = (id) => transaksjon(MARKERINGER, 'readwrite', (t) => t.delete(id));
 
 export const lagreMange = (markeringer) =>
-  transaksjon('readwrite', (tabell) => {
-    for (const m of markeringer) tabell.put(m);
+  transaksjon(MARKERINGER, 'readwrite', (t) => {
+    for (const m of markeringer) t.put(m);
   });
+
+export const hentSlettinger = () => transaksjon(SLETTINGER, 'readonly', (t) => t.getAll());
+
+export const lagreSletting = (sletting) => transaksjon(SLETTINGER, 'readwrite', (t) => t.put(sletting));
+
+export const fjernSletting = (id) => transaksjon(SLETTINGER, 'readwrite', (t) => t.delete(id));
 
 /**
  * Be nettleseren om varig lagring, så dataene ikke slettes ved lite plass.

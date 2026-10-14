@@ -729,6 +729,9 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 }
 
 .hjelp { margin: 8px 0; font-size: 14px; line-height: 1.45; color: var(--dempet); }
+#synkstatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }
+#synkstatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
+.synk .felt { margin-bottom: 10px; }
 
 /* ---------- Flyttemodus ---------- */
 
@@ -842,18 +845,12 @@ body.flyttemodus .handlinger { visibility: hidden; }
 .bunnforklaring { display: grid; gap: 6px; margin: 6px 0; font-size: 14px; }
 .bunnforklaring span { display: flex; align-items: center; gap: 10px; }
 .tegn { width: 34px; height: 20px; flex: none; border-radius: 4px; border: 1px solid var(--kant); }
-.tegn.bratt {
-  background: repeating-linear-gradient(-45deg, rgba(110, 72, 28, 0.75) 0 1.5px, transparent 1.5px 6px), #c8e5f6;
-}
 .tegn.hard {
   background: radial-gradient(circle, rgba(60, 92, 20, 0.9) 1.2px, transparent 1.7px) 0 0 / 6px 6px,
     rgba(74, 112, 30, 0.2);
   border-color: rgba(60, 92, 20, 0.8);
 }
 .tegn.blot { background: rgba(240, 196, 40, 0.35); border: 1.5px dashed rgba(170, 125, 0, 0.9); }
-:root[data-tema="mork"] .tegn.bratt {
-  background: repeating-linear-gradient(-45deg, rgba(232, 196, 150, 0.6) 0 1.5px, transparent 1.5px 6px), #17425d;
-}
 .lenkeknapp {
   display: grid;
   place-items: center;

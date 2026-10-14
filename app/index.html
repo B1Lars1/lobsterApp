@@ -182,9 +182,7 @@
       <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner som er tatt opp</label>
       <label class="bryter"><input type="checkbox" name="visFredning"> Fredningsområder for hummer</label>
       <label class="bryter"><input type="checkbox" name="visBunnhint"> Bunnhint: tare, ålegras og skjellsand</label>
-      <label class="bryter"><input type="checkbox" name="visBratt"> Bratt bunn (beregnet)</label>
       <div class="bunnforklaring">
-        <span><i class="tegn bratt"></i>Bratt bunn – ofte fjell</span>
         <span><i class="tegn hard"></i>Tareskog – trolig fjell og stein</span>
         <span><i class="tegn blot"></i>Ålegras, skjellsand – trolig sand eller mudder</span>
       </div>
@@ -204,6 +202,21 @@
       <div class="knapperad">
         <button type="button" id="knapp-eksporter" class="sekundar">Eksporter GeoJSON</button>
         <button type="button" id="knapp-importer" class="sekundar">Importer</button>
+      </div>
+
+      <h2>Synkronisering med GitHub</h2>
+      <div class="synk">
+        <p id="synkstatus" class="hjelp" data-tilstand="av">Ikke satt opp.</p>
+        <label class="felt">Privat repo
+          <input name="synkRepo" placeholder="brukernavn/hummerkart-data" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+        <label class="felt">Tilgangsnøkkel (token)
+          <input name="synkToken" type="password" placeholder="github_pat_…" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+        <div class="knapperad">
+          <button type="button" id="knapp-synk" class="sekundar">Synkroniser nå</button>
+          <button type="button" id="knapp-synk-av" class="sekundar">Koble fra</button>
+        </div>
+        <p class="hjelp">Lagrer markeringene automatisk i et privat GitHub-repo som bare du, og
+          de du gir tilgang, kan se. Slik settes det opp: se README.</p>
       </div>
 
       <p id="kildeinfo" class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>

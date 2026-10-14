@@ -7,6 +7,7 @@
  *   kartmarkeringer.js symbolene på kartet
  *   markeringsark.js   knappene og arkene for markeringer
  *   fredning.js        fredningsområder for hummer
+ *   synk.js            synkronisering med et privat GitHub-repo
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -22,6 +23,7 @@ import { beOmVarigLagring } from './lager.js';
 import { markeringer } from './markeringer.js';
 import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { visMelding } from './melding.js';
+import { Synk, hentSynkOppsett } from './synk.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
 const DATAOMRADE = L.latLngBounds([58.08, 8.08], [58.37, 8.70]);
@@ -67,7 +69,7 @@ const bakgrunnskart = {
 
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
-let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint og bratt bunn
+let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint
 
 // Fredningsområder for hummer. Trykk på et område viser regler (arkene lages lenger ned).
 const fredning = new Fredning(kart, (omrade) => ark.visFredning(omrade));
@@ -87,7 +89,6 @@ function oppdaterKartlag() {
     visLand: bakgrunn === 'dybde',
     visDybdetall: innstillinger.dybdetall,
     visBunnhint: innstillinger.visBunnhint,
-    visBratt: innstillinger.visBratt,
   });
   dybdelag.addTo(kart);
 }
@@ -175,19 +176,13 @@ $('knapp-teine').addEventListener('click', () => ark.settTeine());
 $('knapp-hummer').addEventListener('click', () => ark.registrerFangst());
 $('knapp-teiner').addEventListener('click', () => ark.visTeineliste());
 
-// Trykk i kartet når du er zoomet langt inn: forklar bunnhint og bratt bunn der.
+// Trykk i kartet når du er zoomet langt inn: forklar bunnhintet der.
 kart.on('click', (e) => {
-  if (!bunnI || kart.getZoom() < 15) return;
-  const { hint, bratt } = bunnI(e.latlng.lat, e.latlng.lng);
-  const deler = [];
-  if (hint && innstillinger.visBunnhint) {
-    const hvordan = hint.modellert ? 'modellert' : `kartlagt${hint.aar ? ` ${hint.aar}` : ''}`;
-    deler.push(`${hint.navn} (${hvordan}): trolig ${hint.hard ? 'fjell og stein' : 'sand eller mudder'}`);
-  }
-  if (bratt && innstillinger.visBratt) {
-    deler.push(`${bratt === 'svaertbratt' ? 'Svært bratt' : 'Bratt'} bunn (beregnet): ofte fjell`);
-  }
-  if (deler.length) visMelding(deler.join(' · '), { ms: 5000 });
+  if (!bunnI || !innstillinger.visBunnhint || kart.getZoom() < 15) return;
+  const { hint } = bunnI(e.latlng.lat, e.latlng.lng);
+  if (!hint) return;
+  const hvordan = hint.modellert ? 'modellert' : `kartlagt${hint.aar ? ` ${hint.aar}` : ''}`;
+  visMelding(`${hint.navn} (${hvordan}): trolig ${hint.hard ? 'fjell og stein' : 'sand eller mudder'}`, { ms: 5000 });
 });
 
 // Langt trykk (eller høyreklikk på PC) i kartet: marker et valgfritt sted.
@@ -248,7 +243,8 @@ function oppdaterDatainfo() {
   $('datainfo').textContent =
     `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer ` +
     `(${alle.length} markeringer i alt). Sist eksportert: ${eksport}. ` +
-    (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass, så eksporter jevnlig.');
+    (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass.') +
+    (synk.erSattOpp() ? ' Markeringene synkroniseres med GitHub.' : ' Eksporter jevnlig, eller sett opp synkronisering med GitHub.');
 }
 
 $('knapp-eksporter').addEventListener('click', () => eksporter());
@@ -272,12 +268,16 @@ $('knapp-lag').addEventListener('click', () => {
   skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
   skjema.elements.visFredning.checked = innstillinger.visFredning;
   skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
-  skjema.elements.visBratt.checked = innstillinger.visBratt;
+  const synkOppsett = hentSynkOppsett();
+  skjema.elements.synkRepo.value = synkOppsett.repo || '';
+  skjema.elements.synkToken.value = synkOppsett.token || '';
+  visSynkStatus(synk.statusTekst());
   oppdaterDatainfo();
   innstillingsark.showModal();
 });
 
-skjema.addEventListener('change', () => {
+skjema.addEventListener('change', (e) => {
+  if (e.target.closest('.synk')) return; // feltene for synkronisering har egne knapper
   innstillinger.bakgrunn = skjema.elements.bakgrunn.value;
   innstillinger.tema = skjema.elements.tema.value;
   innstillinger.dybdetall = skjema.elements.dybdetall.checked;
@@ -285,7 +285,6 @@ skjema.addEventListener('change', () => {
   innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
   innstillinger.visFredning = skjema.elements.visFredning.checked;
   innstillinger.visBunnhint = skjema.elements.visBunnhint.checked;
-  innstillinger.visBratt = skjema.elements.visBratt.checked;
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
@@ -316,12 +315,41 @@ async function visKilder() {
     $('kildeinfo').innerHTML =
       `Dybdedata: ${d.kreditering}, <a href="${d.lisens_url}">${d.lisens}</a>, lastet ned ${dato(d.lastet_ned)}. ` +
       `${d.merknad}<br>Fredningsområder: ${f.kreditering}. Hentet ${dato(f.lastet_ned)}. ${f.merknad}` +
-      (kilder.bunnhint ? `<br>Bunnhint: ${kilder.bunnhint.kreditering}. Bratt bunn er beregnet fra ` +
-        'Kartverkets dybdedata.' : '');
+      (kilder.bunnhint ? `<br>Bunnhint: ${kilder.bunnhint.kreditering}.` : '');
   } catch {
     // Kildeteksten i index.html står igjen.
   }
 }
+
+// ---------- Synkronisering med GitHub ----------
+
+function visSynkStatus({ tilstand, tekst }) {
+  $('synkstatus').textContent = tekst;
+  $('synkstatus').dataset.tilstand = tilstand;
+}
+const synk = new Synk(markeringer, visSynkStatus);
+
+$('knapp-synk').addEventListener('click', () => {
+  const repo = skjema.elements.synkRepo.value.trim();
+  const token = skjema.elements.synkToken.value.trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
+    visMelding('Skriv repoet som brukernavn/reponavn', { fare: true });
+    return;
+  }
+  if (!token) {
+    visMelding('Lim inn tilgangsnøkkelen', { fare: true });
+    return;
+  }
+  synk.settOppsett({ repo, token });
+  synk.synkroniser({ manuell: true });
+});
+
+$('knapp-synk-av').addEventListener('click', () => {
+  synk.kobleFra();
+  skjema.elements.synkRepo.value = '';
+  skjema.elements.synkToken.value = '';
+  visMelding('Synkronisering er koblet fra. Markeringene på telefonen er urørt.');
+});
 
 // ---------- Uten nett og service worker ----------
 
@@ -356,7 +384,7 @@ document.querySelectorAll('dialog.ark').forEach(draNedForALukke);
 
 brukTema();
 visKilder();
-markeringer.last();
+markeringer.last().then(() => synk.synkroniser());
 fredning.last()
   .then(() => {
     fredning.settSynlig(innstillinger.visFredning);

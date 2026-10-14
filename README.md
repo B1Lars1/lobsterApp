@@ -91,7 +91,6 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
 | `bunnhint.geojson` | Tareskog, ålegras og skjellsand som hint om bunnen (se under) | `kategori`, `navn`, `modellert`, `aar` |
-| `bratt.geojson` | Bratt bunn beregnet fra dybdedataene (se under) | `klasse` |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
 Filene er til sammen ca. 21 MB, eller ca. 2,7 MB komprimert slik de sendes over
@@ -151,6 +150,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
+| `js/synk.js` | Synkronisering med et privat GitHub-repo |
 | `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
 
@@ -200,26 +200,20 @@ kart har egne navn. Avstand og zoomnivåer kan justeres øverst i skriptet
 Det finnes ikke noe åpent kart over bunntype (fjell, stein, sand) for området:
 NGUs detaljerte sedimentkart og Havforskningsinstituttets bunnobservasjoner dekker
 ikke Lillesand, og NGUs oversiktskart (1:1 mill.) er for grovt. Appen viser derfor
-to typer hint fra zoom 15:
+hint fra marine naturtyper fra zoom 15:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\lag_bunnhint.py      # Miljødirektoratets marine naturtyper
-.\.venv\Scripts\python.exe scripts\lag_bratt_bunn.py    # bratt bunn fra dybdedataene
 ```
 
-- **Bunnhint** (`lag_bunnhint.py`): marine naturtyper fra Miljødirektoratet (HB19).
-  Tareskog vokser på fjell og stein (grønne prikker). Ålegras, skjellsand og
-  bløtbunnsområder ligger på sand eller mudder (gult med stiplet kant).
-  Tareskog og skjellsand er for det meste modellert, ålegras er kartlagt i felt.
-- **Bratt bunn** (`lag_bratt_bunn.py`): et triangelnett av dybdepunkter, grunner,
-  kurver og kystlinjen gir helningen. Bunn brattere enn 20° skraveres, og over 35°
-  kryss-skraveres. Bratt bunn er ofte fjell, typisk «kanten». Med ca. 50 m mellom
-  dybdepunktene kommer store kanter med, men ikke enkeltsteiner. Grensene står
-  øverst i skriptet.
+Marine naturtyper fra Miljødirektoratet (HB19): tareskog vokser på fjell og stein
+(grønne prikker). Ålegras, skjellsand og bløtbunnsområder ligger på sand eller
+mudder (gult med stiplet kant). Tareskog og skjellsand er for det meste modellert,
+ålegras er kartlagt i felt.
 
 Trykk i kartet for å se hva som er der (for eksempel «Tareskog (modellert):
-trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Begge lagene kan
-slås av i innstillingsarket.
+trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Laget kan slås
+av i innstillingsarket.
 
 ## Fredningsområder og dybde
 
@@ -262,7 +256,8 @@ Sjekk alltid gjeldende forskrift.
   analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
-der når appen åpnes igjen, også uten nett. De forsvinner hvis nettleserdataene
+der når appen åpnes igjen, også uten nett. Med synkronisering (se under) får du i
+tillegg en automatisk kopi i et privat GitHub-repo. De forsvinner hvis nettleserdataene
 for siden slettes. På iPhone kan Safari dessuten slette data for nettsider som
 ikke er brukt på 7 dager, men det gjelder ikke apper lagt til på hjemskjermen.
 Eksporter derfor jevnlig. Tidspunktet for siste eksport står i innstillingsarket.
@@ -293,6 +288,60 @@ fangst = m[m["kategori"] == "hummer"]
 
 **Importer** leser en slik fil tilbake. Markeringer med samme id oppdateres bare
 hvis filen har en nyere versjon, så det er trygt å importere samme fil flere ganger.
+
+### Synkronisering med GitHub (sikkerhetskopi og deling)
+
+Appen kan lagre alle markeringene automatisk i et **privat** GitHub-repo, som
+filen `markeringer.geojson`. Synkroniseringen skjer når appen åpnes, kort tid
+etter hver endring og når telefonen får nett igjen. Den henter først filen fra
+GitHub, slår den sammen med markeringene på telefonen (nyeste versjon vinner, og
+slettinger følger med) og lagrer resultatet tilbake. Hver lagring blir en commit,
+så repoet har full historikk.
+
+**Oppsett (én gang):**
+
+1. **Lag et privat repo:** <https://github.com/new>. Kall det for eksempel
+   `hummerkart-data`, velg **Private** og trykk **Create repository**. Det kan
+   være helt tomt.
+2. **Lag en tilgangsnøkkel som bare gjelder dette repoet:**
+   <https://github.com/settings/personal-access-tokens/new>
+   - **Token name:** `Hummerkart`
+   - **Expiration:** for eksempel ett år (appen sier fra når den har utløpt)
+   - **Repository access:** **Only select repositories** → `hummerkart-data`
+   - **Permissions → Repository permissions → Contents:** **Read and write**
+   - Trykk **Generate token** og kopier nøkkelen (vises bare én gang).
+3. **I appen:** Innstillinger → **Synkronisering med GitHub**. Skriv
+   `B1Lars1/hummerkart-data` som repo, lim inn nøkkelen og trykk
+   **Synkroniser nå**. Statusen blir grønn når det virker.
+4. **Flere telefoner:** gjør punkt 3 på hver telefon. De får de samme
+   markeringene.
+
+Nøkkelen lagres bare på telefonen. Mister du telefonen, sletter du nøkkelen på
+<https://github.com/settings/personal-access-tokens>. «Koble fra» i appen
+fjerner oppsettet, men rører ikke markeringene.
+
+**Til analyse:** hent repoet inn i `data/private/` (som aldri kommer med i dette
+offentlige repoet):
+
+```powershell
+git clone https://github.com/B1Lars1/hummerkart-data.git data/private/hummerkart-data
+git -C data/private/hummerkart-data pull   # senere: hent siste versjon
+```
+
+```python
+m = gpd.read_file("data/private/hummerkart-data/markeringer.geojson")
+```
+
+**Deling:** i det private repoet → **Settings → Collaborators → Add people**.
+De får en invitasjon og må ha GitHub-konto. Merk:
+
+- I et repo på en personlig konto får de som inviteres **både lese- og
+  skrivetilgang**. Skal noen bare kunne se, må repoet ligge i en (gratis)
+  GitHub-organisasjon der du kan gi rollen **Read**, eller så sender du dem en
+  eksportert fil.
+- Kobler de egen app til samme repo, blir det en **felles logg**: de ser dine
+  teiner og fangst, og deres markeringer havner i samme fil.
+- Tilgangen trekkes tilbake samme sted.
 
 ## Bruk uten nett (PWA)
 
