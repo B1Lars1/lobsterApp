@@ -66,16 +66,21 @@ bruke `python` og `pip` direkte.
 ## Dybdedata
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\last_ned_dybdedata.py   # ca. 30 MB til data/raw/
-.\.venv\Scripts\python.exe scripts\lag_dybdekart.py        # skriver til app/data/
+.\.venv\Scripts\python.exe scripts\last_ned_dybdedata.py   # ca. 55 MB til data/raw/
+.\.venv\Scripts\python.exe scripts\lag_dybdekart.py        # ca. 5 min, skriver til app/data/
 ```
 
 `last_ned_dybdedata.py` bestiller Kartverkets «Sjøkart – Dybdedata» (File
-Geodatabase, UTM32) for Lillesand og Grimstad via Geonorges nedlastings-API.
+Geodatabase, UTM32) for Kristiansand, Lillesand og Grimstad via Geonorges
+nedlastings-API.
 Bruk `--force` for å hente nyeste versjon (Kartverket oppdaterer ukentlig).
 
-`lag_dybdekart.py` klipper til kartutsnittet (lon 8,28–8,52, lat 58,17–58,29),
-forenkler, reprojiserer til EPSG:4326 og skriver:
+`lag_dybdekart.py` klipper til kartområdet, forenkler, reprojiserer til
+EPSG:4326 og skriver filene under. Kartområdet er alt land innenfor utsnittet
+(lon 8,08–8,70, lat 58,08–58,37, fra østre del av Kristiansand til Grimstad) og
+sjø inntil 3 km fra nærmeste land, holme eller skjær. Begge deler styres av
+`BBOX_WGS84` og `SJO_AVSTAND_M` i `scripts/config.py`. Endrer du utsnittet, må
+også `DATAOMRADE` i `app/js/app.js` endres.
 
 | Fil i `app/data/` | Innhold | Egenskaper |
 |---|---|---|
@@ -84,9 +89,10 @@ forenkler, reprojiserer til EPSG:4326 og skriver:
 | `land.geojson` | Land og tørrfall, grunnkart når appen er offline | `kategori` |
 | `dybdetall.geojson` | Dybdepunkter, grunner og skjær | `kategori`, `dybde` |
 | `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
+| `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
-Filene er til sammen ca. 7 MB, eller ca. 1 MB komprimert slik de sendes over
+Filene er til sammen ca. 21 MB, eller ca. 2,7 MB komprimert slik de sendes over
 nettet. Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
 så naboflatene fortsatt passer sammen uten sprekker.
 
@@ -160,6 +166,29 @@ zoomer inn.
 
 **Batteri:** GPS-en er bare på mens appen er synlig. Den stoppes når skjermen
 slås av eller du bytter app.
+
+## Stedsnavn
+
+```powershell
+.\.venv\Scripts\python.exe scripts\lag_stedsnavn.py
+```
+
+Henter Kartverkets stedsnavn for Kristiansand, Lillesand og Grimstad fra det åpne
+stedsnavn-API-et og beholder øyer, holmer, grunner, båer, klakker og skjær i sjø
+innenfor kartområdet. Krever at `lag_dybdekart.py` er kjørt først.
+
+For at kartet ikke skal bli støyete, får hvert navn et laveste zoomnivå:
+
+- Store øyer vises først (zoom 11–13), deretter mindre øyer, holmer og grunner
+  (zoom 14–15), og små holmer, båer og skjær når du er helt inne (zoom 15–16).
+- Navnene plasseres i viktighetsrekkefølge. Et navn som ville kommet for nær et
+  annet, venter til et høyere zoomnivå der det er plass.
+- Tall langs kurvene og dybdetall som ville overlappet et navn, utelates.
+
+Øynavn står i mørk, rett skrift. Grunner og båer står i blå kursiv litt under
+punktet, som i sjøkartet. Navnene vises bare på «Dybdekart», siden Kartverkets
+kart har egne navn. Avstand og zoomnivåer kan justeres øverst i skriptet
+(`TYPER`, `LUFT_X`, `LUFT_Y`).
 
 ## Fredningsområder og dybde
 
@@ -257,4 +286,7 @@ ved hver push til `main`. Oppsettet beskrives i fase 7.
   Inneholder data under Norsk lisens for offentlige data
   ([NLOD](https://data.norge.no/nlod/no/1.0)) tilgjengeliggjort av
   Fiskeridirektoratet. [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/8901e1f8-b947-4f7d-819c-bf11e3e16a68).
+- **Stedsnavn:** Sentralt stedsnavnregister, © Kartverket, lisens
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), hentet fra
+  [Kartverkets stedsnavn-API](https://api.kartverket.no/stedsnavn/v1/).
 - **Kartbibliotek:** [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
