@@ -1,0 +1,118 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Hummerkart Lillesand: en PWA for hummerfiske (dybdekart, GPS, teiner og fangst,
+fredningsområder) pluss Python-skript som lager kartdataene og analyserer fangst.
+README.md er brukerdokumentasjonen og forklarer hver funksjon og hvert skript i
+detalj. Denne filen er det en agent trenger i tillegg.
+
+## Språk og stil
+
+- Alt er på norsk bokmål: kode, identifikatorer, kommentarer, tekst i appen,
+  README og commit-meldinger. Brukeren skriver også norsk. Svar på norsk.
+- Identifikatorer bruker ASCII i stedet for æ, ø og å: `naa`, `forste`, `oye`,
+  `lagreSletting`, `HUMMER_GLANS`. Kommentarer og tekst bruker vanlige bokstaver.
+- Commit-meldinger: kort tittel i imperativ («Legg til …», «Rett …», «Tegn …»),
+  tom linje, så en forklaring på hvorfor. Commit rett på `main`, ingen grener eller PR.
+- Hold README oppdatert når oppførsel endres. Den beskriver hver funksjon for brukeren.
+
+## Kommandoer
+
+Ingen byggesteg, ingen pakkehåndtering for JavaScript, ingen tester og ingen linter.
+Appen i `app/` er statiske filer. README viser kommandoene for Windows/PowerShell
+(`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
+
+```bash
+python scripts/testserver.py            # appen på http://localhost:8000, uten mellomlagring
+python scripts/lag_service_worker.py    # oppdater VERSJON og FILER i app/sw.js etter endringer i app/
+python scripts/lag_ikoner.py            # app-ikonene (PNG) i app/ikoner/, krever bare Pillow
+python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
+```
+
+- Dataskriptene (`last_ned_dybdedata.py`, `lag_dybdekart.py`, `lag_stedsnavn.py`,
+  `lag_bunnhint.py`, `lag_fredningsomrader.py`, `analyser_fangst.py`) krever
+  Python 3.14 og `requirements.txt` (geopandas osv.), det samme gjør `sjekk_miljo.py`.
+  De tre første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
+  trenger bare `pip install pillow`.
+- Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`.
+- Verifiser endringer i nettleseren med mobilstørrelse (ca. 375×812). Brukeren har
+  iPhone og bruker appen fra hjemskjermen.
+- Repoets vane er å kjøre `lag_service_worker.py` og committe den oppdaterte `sw.js`
+  sammen med endringer i `app/`. Workflowen gjør det også ved publisering.
+
+## Publisering
+
+Push til `main` som endrer `app/` starter `.github/workflows/publiser.yml`, som
+publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>.
+Telefonen får ny versjon neste gang appen åpnes med nett («Ny versjon av appen er
+klar» → «Last inn»). Følg kjøringen med `gh run list` / `gh run watch <id>`.
+Push publiserer altså rett til brukerens telefon: vis visuelle endringer (skjermbilde
+eller skisse) og spør før du pusher dem.
+
+På en ny maskin: git-identiteten i historikken er
+`Ben Larsen <113174196+B1Lars1@users.noreply.github.com>`, og push over HTTPS krever
+innlogging, for eksempel `gh auth login` og deretter `gh auth setup-git`.
+
+## Arkitektur
+
+**Moduler uten rammeverk.** `app/index.html` laster Leaflet (`app/vendor/`, globalt `L`)
+som vanlig script og `js/app.js` som ES-modul. `app.js` setter opp kartet og kobler
+sammen modulene. README har en tabell over hva hver fil gjør.
+
+**Markeringer (teiner og fangst) er sentrum.** `markeringer.js` eksporterer én instans
+`markeringer` som holder alle markeringer i minnet, lagrer hver endring i IndexedDB via
+`lager.js` og varsler lyttere med `naarEndret()`. Lytterne er `kartmarkeringer.js`
+(symbolene på kartet), `markeringsark.js` (arkene og listene), `synk.js`
+(synkronisering kort tid etter endringer) og merket på listeknappen i `app.js`.
+Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
+
+- IndexedDB `hummerkart`, versjon 2: tabellene `markeringer` og `slettinger`
+  (`{ id, endret, markering }`, der `markering` er en kopi så den kan gjenopprettes).
+  Ny tabell eller indeks: øk `DB_VERSJON` og la eksisterende data stå urørt i
+  `onupgradeneeded`.
+- Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
+  `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
+
+**Synkronisering** (`synk.js`) lagrer `markeringer.geojson` i brukerens private
+GitHub-repo via GitHub-API-et, med token i `localStorage`. Sammenslåingen skjer i
+`Markeringer.importer()`: nyeste `endret` vinner per id, og slettinger følger med som
+`slettet: [{ id, endret }]`. Gjenoppretting gir ny `endret`, så den vinner over
+slettingen. Flere telefoner deler filen, så formatet må forbli bakoverkompatibelt.
+
+**Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
+GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
+dataene har flere hundre tusen koordinater. `dybdeoppslag.js` anslår dybde og bunnhint
+i et punkt. Dataene lages av skriptene i `scripts/`, og `scripts/config.py` har felles
+stier og kartutsnitt. `BBOX_WGS84` der må stemme med `DATAOMRADE` i `app/js/app.js`.
+
+**Offline.** `app/sw.js` lagrer alle filene i `FILER` (generert av
+`lag_service_worker.py`, nesten alle filer under `app/`). Lagret versjon brukes først,
+unntatt på localhost, der nettverket brukes først så endringer vises med en gang.
+
+**Symbolene på kartet** er `L.divIcon` med klassen `symbol` (`symbol teine`,
+`symbol hummer`) og stiles i `app.css`, som også brukes i listene og arkene. Teinen er
+en SVG-tegning (`app/ikoner/teine.svg` og `teine-opptatt.svg`, tegnet for hånd) som
+bakgrunn, med nummeret som HTML oppå.
+
+## Fallgruver
+
+- Gi aldri Leaflet-markører (`.symbol`, `.gps-markor`) `position: relative`. Det
+  overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
+  symbolene før det. Det ga en feil der GPS-prikken og teinene havnet langt fra riktig
+  sted når man zoomet ut.
+- Arkene er `<dialog>` åpnet med `showModal()`. Alt utenfor, også meldingene fra
+  `melding.js`, er da utilgjengelig. En knapp i en melding kan ikke trykkes mens et
+  ark er åpent.
+- iPhone: dobbelttrykk når ikke fram til Leaflet, så `dobbelttrykk.js` oppdager det
+  selv. Langt trykk er Leaflets `contextmenu` (marker et valgfritt sted). Kartet og
+  knappene har `user-select: none`, ellers merker iPhone nærmeste tekst ved langt trykk.
+  Appen fra hjemskjermen har egen lagring, atskilt fra Safari.
+- Når nettleserpanelet er skjult, bremses tidtakere. Test tidsavhengig oppførsel ved
+  å simulere tid (`Date.now`) i stedet for å vente.
+
+## Personvern
+
+Repoet er offentlig. Ekte teineplasser og fangst skal aldri inn: `data/private/` og
+`markeringer*.geojson` er ignorert av git, og testdata skal være oppdiktede punkter.
+`data/raw/` og `data/processed/` lages på nytt av skriptene og ligger heller ikke i git.

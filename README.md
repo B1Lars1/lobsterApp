@@ -26,6 +26,7 @@ analyseres i GeoPandas.
 | 6 | PWA og offline | ✅ |
 | 7 | Publisering på GitHub Pages | ✅ |
 | 8 | Analyse av fangst | ✅ |
+| 9 | Finpuss: gjenoppretting av slettede markeringer, nye teinesymboler og app-ikon, dobbelttrykk for zoom, rettet plassering av symbolene | ✅ |
 
 ## Mappestruktur
 
@@ -37,6 +38,7 @@ data/
   processed/      Mellomprodukter i full oppløsning (ikke i git)
   private/        Dine egne markeringer (ALDRI i git)
 scripts/          Python-skript for databehandling
+CLAUDE.md         Instruksjoner for kodeagenter (Claude Code) som jobber i repoet
 ```
 
 `data/raw`, `data/processed` og `data/private` står i `.gitignore` og finnes
@@ -62,6 +64,22 @@ py -3.14 -m venv .venv
 
 Du kan også aktivere miljøet med `.\.venv\Scripts\Activate.ps1` og deretter
 bruke `python` og `pip` direkte.
+
+### macOS og Linux
+
+Kommandoene i denne README-en er skrevet for PowerShell. På Mac og Linux er stien
+til Python i miljøet `.venv/bin/python`, med skråstrek fremover:
+
+```bash
+python3.14 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python scripts/sjekk_miljo.py
+```
+
+Testserveren, `lag_service_worker.py` og `lag_ikoner.py` virker også med eldre
+Python 3. `lag_ikoner.py` trenger bare Pillow (`.venv/bin/python -m pip install pillow`).
+For å pushe fra en ny maskin må git være logget inn på GitHub, for eksempel med
+GitHub CLI: `gh auth login` og deretter `gh auth setup-git`.
 
 ## Dybdedata
 
@@ -157,6 +175,12 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 
 **Arkene** som kommer opp nedenfra (innstillinger, teineliste, detaljer) lukkes med
 «Ferdig», ved å trykke utenfor, eller ved å dra dem ned i håndtaket øverst.
+
+**Kartet:** dra for å flytte, knip eller bruk + og − for å zoome. Dobbelttrykk
+(dobbeltklikk på PC) zoomer inn ett nivå der du trykker. På iPhone tas dobbelttrykket
+hånd om av `js/dobbelttrykk.js`, siden Safari ikke sender det videre til Leaflet. Langt
+trykk markerer et sted (se «Markeringer»). Tekst på kartet og knappene kan ikke merkes,
+så et langt trykk ikke merker for eksempel målestokken på iPhone.
 
 **Kartvalg** (knappen øverst til høyre):
 
@@ -258,6 +282,18 @@ Sjekk alltid gjeldende forskrift.
 - **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet
   først. Trykk **Gjenopprett** for å få en markering tilbake, også lenge etter at
   «Angre» er borte. En teine du angrer rett etter at du satte den, havner ikke her.
+  Kopiene av slettede markeringer ligger bare på telefonen der de ble slettet (eller
+  som hadde markeringen da slettingen kom via synkronisering).
+
+**Symbolene på kartet:**
+
+- **Teine i sjøen:** svart bøyleteine sett fra siden, med nummeret midt på og hvit
+  kant rundt. Tegningen er `app/ikoner/teine.svg`.
+- **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
+  når «Teiner som er tatt opp» er slått på i innstillingene.
+- **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
+- **Rødt «!»:** teinen står i et fredningsområde.
+- **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
 der når appen åpnes igjen, også uten nett. Med synkronisering (se under) får du i
@@ -384,8 +420,10 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
 åpnes i fullskjerm som en vanlig app.
 
 - `manifest.webmanifest` gir navn, ikon og fullskjerm.
-- App-ikonene (PNG) i `app/ikoner/` lages av `scripts/lag_ikoner.py`. Teinesymbolene
-  på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet for hånd i samme mappe.
+- App-ikonene (PNG) i `app/ikoner/` lages av `scripts/lag_ikoner.py`: en svart hummer
+  (slik den er levende, før den kokes) med blågrå glans og lys kant, på mørkt hav med
+  dybdekurver. Teinesymbolene på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet
+  for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
   gang den åpnes med nett, ca. 22 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
