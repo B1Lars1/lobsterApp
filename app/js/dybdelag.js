@@ -25,6 +25,7 @@ export const PALETTER = {
     kurve: 'rgba(20, 62, 102, 0.6)', kurveViktig: 'rgba(20, 62, 102, 0.95)',
     tekst: '#0c2c4a', halo: 'rgba(255, 255, 255, 0.9)',
     dybdetall: '#2a4c6b', skjaer: '#141414',
+    navnLand: '#3a2e1c', navnSjo: '#174a78',
   },
   mork: {
     bakgrunn: '#07111a',
@@ -33,6 +34,7 @@ export const PALETTER = {
     kurve: 'rgba(110, 180, 228, 0.45)', kurveViktig: 'rgba(130, 196, 240, 0.85)',
     tekst: '#d3ebfb', halo: 'rgba(7, 17, 26, 0.9)',
     dybdetall: '#a3c9e4', skjaer: '#eef2f5',
+    navnLand: '#ece4cf', navnSjo: '#9fd2f7',
   },
 };
 
@@ -160,12 +162,13 @@ export async function lastDybdedata(mappe = 'data/') {
     if (!svar.ok) throw new Error(`Klarte ikke å hente ${navn} (${svar.status})`);
     return svar.json();
   };
-  const [areal, land, kurver, etiketter, dybdetall] = await Promise.all([
+  const [areal, land, kurver, etiketter, dybdetall, stedsnavn] = await Promise.all([
     hent('dybdeareal.geojson'),
     hent('land.geojson'),
     hent('dybdekurver.geojson'),
     hent('kurveetiketter.geojson'),
     hent('dybdetall.geojson'),
+    hent('stedsnavn.geojson').catch(() => ({ features: [] })), // kartet virker også uten navn
   ]);
   return {
     soner: new Rutenett(lagObjekter(areal, (p) => ({ sone: soneIndeks(p.min), min: p.min, maks: p.maks }))),
@@ -177,8 +180,21 @@ export async function lastDybdedata(mappe = 'data/') {
       tekst: String(p.dybde), vinkel: (p.vinkel * Math.PI) / 180, niva: p.niva,
     }))),
     dybdetall: new Rutenett(lagPunkter(dybdetall, (p) => ({ kategori: p.kategori, dybde: p.dybde }))),
+    stedsnavn: new Rutenett(lagPunkter(stedsnavn, (p) => ({ tekst: p.navn, stil: p.stil, zoom: p.zoom }))),
   };
 }
+
+// Stedsnavn: skrift og plassering per stil. Sjønavn (grunner, båer) står i kursiv litt
+// under punktet, som i sjøkartet. Må stemme med SKRIFT og SJO_FORSKYVNING i lag_stedsnavn.py.
+const NAVNESTIL = {
+  oy: { font: '600 14px system-ui, sans-serif', dy: 0 },
+  holme: { font: '600 12px system-ui, sans-serif', dy: 0 },
+  sjo: { font: 'italic 600 12px system-ui, sans-serif', dy: 11 },
+};
+
+// Er punktet (x, y) innenfor en av boksene, med ekstra luft rundt?
+const iBoks = (bokser, x, y, luft) =>
+  bokser.some((b) => x > b[0] - luft && x < b[2] + luft && y > b[1] - luft && y < b[3] + luft);
 
 // ---------- Tegning ----------
 
@@ -341,6 +357,24 @@ export const Dybdelag = L.GridLayer.extend({
     ctx.strokeStyle = p.halo;
     ctx.textBaseline = 'middle';
 
+    // Stedsnavn som skal vises (bare på dybdekartet; Kartverkets kart har egne navn).
+    // «zoom» er beregnet på forhånd i lag_stedsnavn.py, så navnene ikke overlapper hverandre.
+    const navn = [];
+    if (visLand) {
+      const navnMargin = 150 / t.skala; // lange navn kan stikke langt inn fra nabofliser
+      const navnSok = [t.bbox[0] - navnMargin, t.bbox[1] - margin, t.bbox[2] + navnMargin, t.bbox[3] + margin];
+      for (const n of this._data.stedsnavn.sok(navnSok)) {
+        if (n.zoom > z) continue;
+        const stil = NAVNESTIL[n.stil];
+        ctx.font = stil.font;
+        const bredde = ctx.measureText(n.tekst).width;
+        const x = n.x * t.skala - t.ox;
+        const y = n.y * t.skala - t.oy + stil.dy;
+        navn.push({ n, stil, x, y, boks: [x - bredde / 2 - 2, y - 9, x + bredde / 2 + 2, y + 9] });
+      }
+    }
+    const navneBokser = navn.map((v) => v.boks);
+
     // 5. Dybdetall langs kurvene. «niva» bestemmer tettheten per zoomnivå.
     if (z >= 13) {
       const maksNiva = z - 13;
@@ -349,8 +383,11 @@ export const Dybdelag = L.GridLayer.extend({
       ctx.fillStyle = p.tekst;
       for (const e of this._data.etiketter.sok(utvidet)) {
         if (e.niva > maksNiva) continue;
+        const ex = e.x * t.skala - t.ox;
+        const ey = e.y * t.skala - t.oy;
+        if (iBoks(navneBokser, ex, ey, 10)) continue; // vik for stedsnavn
         ctx.save();
-        ctx.translate(e.x * t.skala - t.ox, e.y * t.skala - t.oy);
+        ctx.translate(ex, ey);
         ctx.rotate(-e.vinkel);
         ctx.strokeText(e.tekst, 0, 0);
         ctx.fillText(e.tekst, 0, 0);
@@ -371,11 +408,22 @@ export const Dybdelag = L.GridLayer.extend({
           tegnSkjaer(ctx, x, y);
           ctx.lineWidth = 3;
           ctx.strokeStyle = p.halo;
-        } else if (d.kategori === 'grunne' ? z >= 15 : z >= 16) {
+        } else if ((d.kategori === 'grunne' ? z >= 15 : z >= 16) && !iBoks(navneBokser, x, y, 6)) {
           ctx.fillStyle = p.dybdetall;
           tegnDybde(ctx, x, y, d.dybde, str, d.kategori === 'grunne');
         }
       }
+    }
+
+    // 7. Stedsnavn øverst
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = p.halo;
+    for (const { n, stil, x, y } of navn) {
+      ctx.font = stil.font;
+      ctx.fillStyle = n.stil === 'sjo' ? p.navnSjo : p.navnLand;
+      ctx.strokeText(n.tekst, x, y);
+      ctx.fillText(n.tekst, x, y);
     }
   },
 });

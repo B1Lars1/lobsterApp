@@ -18,5 +18,14 @@
     "metadata_url": "https://kartkatalog.geonorge.no/metadata/8901e1f8-b947-4f7d-819c-bf11e3e16a68",
     "lastet_ned": "2026-10-14",
     "merknad": "Sjekk alltid gjeldende forskrift hos Fiskeridirektoratet."
+  },
+  "stedsnavn": {
+    "navn": "Stedsnavn (Sentralt stedsnavnregister)",
+    "eier": "Kartverket",
+    "kreditering": "© Kartverket",
+    "lisens": "CC BY 4.0",
+    "lisens_url": "https://creativecommons.org/licenses/by/4.0/",
+    "kilde_url": "https://api.kartverket.no/stedsnavn/v1/",
+    "lastet_ned": "2026-10-14"
   }
 }
