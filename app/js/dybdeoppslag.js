@@ -31,7 +31,7 @@ function iRing(x, y, r) {
 }
 
 // Inne i en flate (med hull og flere deler): odde antall ringer rundt punktet.
-function iFlate(x, y, objekt) {
+export function iFlate(x, y, objekt) {
   let inne = false;
   objekt.ringer.forEach((ring, k) => {
     const b = objekt.ringBokser[k];

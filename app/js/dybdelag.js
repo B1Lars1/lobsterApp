@@ -67,7 +67,7 @@ function ringerFraGeometri(g) {
 
 // Gjør om GeoJSON-objekter til { ringer, ringBokser, bbox, ...egenskaper }.
 // Hver ring lagres som Float64Array [x0, y0, x1, y1, ...] i verdenskoordinater.
-function lagObjekter(geojson, egenskaper) {
+export function lagObjekter(geojson, egenskaper) {
   return geojson.features.map((f) => {
     const ringer = [];
     const ringBokser = [];
