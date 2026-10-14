@@ -1,0 +1,154 @@
+"""Lag små GeoJSON-filer med dybdedata for appen.
+
+Leser Kartverkets «Sjøkart – Dybdedata» (FGDB) fra data/raw/dybdedata/, klipper til
+kartutsnittet, forenkler, reprojiserer til EPSG:4326 og skriver til app/data/:
+
+  dybdekurver.geojson  dybdekurver med egenskapen «dybde» (m)
+  dybdeareal.geojson   dybdeområder med «min» og «maks» (m), for farger og dybdeoppslag
+  land.geojson         land og tørrfall («kategori»), brukes som grunnkart offline
+  dybdetall.geojson    dybdepunkter, grunner og skjær («kategori», «dybde»)
+  kilder.json          kilde, lisens og nedlastingsdato
+
+Klippede data i full oppløsning (UTM32) lagres i data/processed/dybdedata_lillesand.gpkg
+for analyse i GeoPandas.
+
+Kjør fra roten av repoet:  python scripts/lag_dybdekart.py
+"""
+
+import gzip
+import json
+import sys
+import warnings
+
+import geopandas as gpd
+import pandas as pd
+import pyogrio
+import shapely
+from shapely.geometry import box
+
+from config import APP_DATA_DIR, BBOX_WGS84, CRS_UTM32, CRS_WGS84, PROCESSED_DIR, RAW_DIR, ROOT, ensure_dirs
+
+KILDE_DIR = RAW_DIR / "dybdedata"
+GPKG = PROCESSED_DIR / "dybdedata_lillesand.gpkg"
+
+LAG = ["dybdekurve", "dybdeareal", "dybdepunkt", "grunne", "skjer", "landareal", "torrfall"]
+
+# Forenkling (i meter, UTM32). Kildedataene er laget for målestokk 1:50 000,
+# så detaljer under ca. 10 m er uansett usikre.
+TOL_KURVE = 3    # Douglas-Peucker for dybdekurver
+TOL_AREAL = 15   # «coverage»-forenkling: naboflater forenkles likt, så det ikke blir sprekker
+PRESISJON = 5    # desimaler i lon/lat (ca. 1 m)
+
+
+def les_lag(gdbs, lag: str, utsnitt) -> gpd.GeoDataFrame:
+    """Les ett lag fra alle kommunefilene, fjern duplikater og klipp til utsnittet."""
+    deler = [
+        gpd.read_file(g, layer=lag, bbox=utsnitt.bounds)
+        for g in gdbs
+        if lag in pyogrio.list_layers(g)[:, 0]
+    ]
+    df = pd.concat(deler, ignore_index=True).drop_duplicates("lokalid")
+    df = df.drop(columns=["SHAPE_Length", "SHAPE_Area"], errors="ignore")
+    gdf = gpd.GeoDataFrame(df, crs=CRS_UTM32).clip(utsnitt)
+
+    # Klipping kan gi blandede geometrier (f.eks. en kurve som bare berører kanten blir
+    # linje + punkt). Del opp i enkeltdeler og behold bare den høyeste dimensjonen.
+    gdf = gdf.explode(index_parts=False)
+    dim = shapely.get_dimensions(gdf.geometry.values)
+    return gdf[dim == dim.max()]
+
+
+def skriv_geojson(gdf: gpd.GeoDataFrame, navn: str) -> None:
+    sti = APP_DATA_DIR / navn
+    sti.unlink(missing_ok=True)
+    gdf = gdf.to_crs(CRS_WGS84)
+    # Rund av koordinatene slik at geometrien fortsatt er gyldig etterpå.
+    gdf["geometry"] = shapely.set_precision(gdf.geometry.values, 10**-PRESISJON)
+    gdf = gdf[~gdf.is_empty]
+    gdf.to_file(
+        sti, driver="GeoJSON", engine="pyogrio",
+        layer_options={"RFC7946": "YES", "COORDINATE_PRECISION": PRESISJON},
+    )
+    kb = sti.stat().st_size / 1e3
+    kb_gz = len(gzip.compress(sti.read_bytes())) / 1e3
+    print(f"  {navn:22s} {len(gdf):6d} objekter  {kb:6.0f} kB  ({kb_gz:4.0f} kB komprimert)")
+
+
+def main() -> int:
+    ensure_dirs()
+    # GDAL advarer om ytelse når et polygon har over 100 deler. Ufarlig her.
+    warnings.filterwarnings("ignore", message="organizePolygons")
+
+    gdbs = sorted(KILDE_DIR.glob("*/*.gdb"))
+    if not gdbs:
+        print("Fant ingen dybdedata. Kjør først:  python scripts/last_ned_dybdedata.py")
+        return 1
+    print("Leser", ", ".join(g.stem for g in gdbs))
+
+    utsnitt = gpd.GeoSeries([box(*BBOX_WGS84)], crs=CRS_WGS84).to_crs(CRS_UTM32).iloc[0]
+    data = {lag: les_lag(gdbs, lag, utsnitt) for lag in LAG}
+
+    # 1) Full oppløsning for analyse
+    GPKG.unlink(missing_ok=True)
+    for lag, gdf in data.items():
+        gdf.to_file(GPKG, layer=lag, driver="GPKG", engine="pyogrio")
+    print(f"Full oppløsning lagret i {GPKG.relative_to(ROOT).as_posix()}")
+
+    # 2) Flater: dybdeareal, land og tørrfall forenkles samlet, så kantene passer sammen
+    flater = pd.concat([
+        data["dybdeareal"].assign(kategori="dybde"),
+        data["landareal"].assign(kategori="land"),
+        data["torrfall"].assign(kategori="torrfall"),
+    ], ignore_index=True)
+    flater = gpd.GeoDataFrame(flater, crs=CRS_UTM32)
+    flater["geometry"] = flater.geometry.simplify_coverage(TOL_AREAL)
+    flater = flater[~flater.is_empty]
+
+    dybdeareal = flater[flater["kategori"] == "dybde"].rename(
+        columns={"minimumsdybde": "min", "maksimumsdybde": "maks"})[["min", "maks", "geometry"]]
+    # Slå sammen land (og tørrfall), så det ikke blir synlige sømmer der kildedataene er delt opp.
+    land = (flater[flater["kategori"] != "dybde"][["kategori", "geometry"]]
+            .dissolve("kategori").reset_index().explode(index_parts=False))
+
+    # 3) Kurver
+    kurver = data["dybdekurve"][["dybde", "geometry"]].copy()
+    kurver["geometry"] = kurver.simplify(TOL_KURVE, preserve_topology=True)
+    kurver = kurver[~kurver.is_empty]
+
+    # 4) Dybdetall: dybdepunkter, grunner og skjær i ett punktlag
+    dybdetall = pd.concat([
+        data["dybdepunkt"].assign(kategori="punkt"),
+        data["grunne"].assign(kategori="grunne"),
+        data["skjer"].assign(kategori="skjaer", dybde=None),
+    ], ignore_index=True)[["kategori", "dybde", "geometry"]]
+    dybdetall["dybde"] = dybdetall["dybde"].astype(float).round(1)
+    dybdetall = gpd.GeoDataFrame(dybdetall, crs=CRS_UTM32)
+
+    print("Skriver til app/data/:")
+    skriv_geojson(kurver, "dybdekurver.geojson")
+    skriv_geojson(dybdeareal, "dybdeareal.geojson")
+    skriv_geojson(land, "land.geojson")
+    skriv_geojson(dybdetall, "dybdetall.geojson")
+
+    # 5) Kildeinformasjon som appen viser
+    logg_sti = KILDE_DIR / "nedlastinger.json"
+    nedlastet = max(r["lastet_ned"] for r in json.loads(logg_sti.read_text(encoding="utf-8")))
+    kilder_sti = APP_DATA_DIR / "kilder.json"
+    kilder = json.loads(kilder_sti.read_text(encoding="utf-8")) if kilder_sti.exists() else {}
+    kilder["dybdedata"] = {
+        "navn": "Sjøkart – Dybdedata",
+        "eier": "Kartverket",
+        "kreditering": "© Kartverket",
+        "lisens": "CC BY 4.0",
+        "lisens_url": "https://creativecommons.org/licenses/by/4.0/",
+        "metadata_url": "https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a",
+        "lastet_ned": nedlastet,
+        "merknad": "Ikke godkjent for navigasjon. Dybder er referert til sjøkartnull.",
+    }
+    kilder_sti.write_text(json.dumps(kilder, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print("  kilder.json")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
