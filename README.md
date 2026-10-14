@@ -23,7 +23,7 @@ analyseres i GeoPandas.
 | 3 | Kart og GPS | ✅ |
 | 4 | Markeringer, lagring, eksport/import | ✅ |
 | 5 | Fredningsområder og dybdeoppslag | ✅ |
-| 6 | PWA og offline | |
+| 6 | PWA og offline | ✅ |
 | 7 | Publisering på GitHub Pages | |
 | 8 | Analyse av fangst | |
 
@@ -262,6 +262,36 @@ fangst = m[m["kategori"] == "hummer"]
 
 **Importer** leser en slik fil tilbake. Markeringer med samme id oppdateres bare
 hvis filen har en nyere versjon, så det er trygt å importere samme fil flere ganger.
+
+## Bruk uten nett (PWA)
+
+Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
+åpnes i fullskjerm som en vanlig app.
+
+- `manifest.webmanifest` gir navn, ikon og fullskjerm.
+- Ikonene i `app/ikoner/` lages av `scripts/lag_ikoner.py`.
+- `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
+  gang den åpnes med nett, ca. 22 MB. Deretter virker appen helt uten nett:
+  dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
+- Kartverkets topo- og sjøkart lagres ikke (se «Kilder og kreditering»). Uten
+  nett bytter appen automatisk til dybdekartet.
+
+**Etter endringer i appen eller dataene** må fillisten og versjonen i `sw.js`
+oppdateres:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\lag_service_worker.py
+```
+
+Versjonen er en sjekksum av alle filene. Telefonen ser at versjonen er ny neste
+gang appen åpnes med nett, laster ned den nye versjonen i bakgrunnen og viser
+«Ny versjon av appen er klar». GitHub Actions-workflowen (fase 7) kjører skriptet
+automatisk ved publisering, så du ikke kan glemme det.
+
+På `localhost` henter service workeren filene fra testserveren først, så
+endringer vises med en gang du utvikler. Lagret versjon brukes bare når serveren
+ikke svarer. Slik kan du også teste bruk uten nett: stopp testserveren og last
+siden på nytt.
 
 ## Publisering
 
