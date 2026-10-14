@@ -292,7 +292,9 @@ button {
 
 /* ---------- GPS-prikk ---------- */
 
-.gps-markor { position: relative; }
+/* Merk: symbolene på kartet (GPS-prikken, teiner og fangst) plasseres av Leaflet med
+   position: absolute. Gi dem aldri position: relative: da legger nettleseren dem etter
+   hverandre, og hvert symbol blir forskjøvet med høyden av symbolene før det. */
 .gps-prikk {
   position: absolute;
   inset: 6px;
@@ -531,7 +533,6 @@ button {
 
 /* Hummer: hvit sirkel med rød kant */
 .symbol.hummer {
-  position: relative;
   border-radius: 50%;
   background: #fff;
   border: 3px solid var(--hummer);
@@ -857,7 +858,6 @@ body.flyttemodus .handlinger { visibility: hidden; }
 .fredning-brikke[hidden] { display: none; }
 
 /* Rødt «!» på teiner i fredningsområde */
-.symbol.teine { position: relative; }
 .symbol .varsel {
   position: absolute;
   top: -11px;
