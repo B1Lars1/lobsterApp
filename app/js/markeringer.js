@@ -176,10 +176,13 @@ export class Markeringer {
     }));
   }
 
-  nyFangst({ lat, lon, noyaktighet = null, kilde = 'gps', teine_id = null, beholdt = 1, satt_ut = 0 }) {
+  /** tid kan oppgis (når fangsten ble tatt), ellers nå. «endret» er alltid nå. */
+  nyFangst({
+    lat, lon, noyaktighet = null, kilde = 'gps', teine_id = null, beholdt = 1, satt_ut = 0, notat = '', tid,
+  }) {
     return this._lagre(normaliser({
-      kategori: 'hummer', lat, lon, noyaktighet, kilde, teine_id, beholdt, satt_ut,
-      dybde: this._dybde(lat, lon),
+      kategori: 'hummer', lat, lon, noyaktighet, kilde, teine_id, beholdt, satt_ut, notat, tid,
+      endret: naa(), dybde: this._dybde(lat, lon),
     }));
   }
 

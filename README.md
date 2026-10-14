@@ -271,8 +271,11 @@ Sjekk alltid gjeldende forskrift.
 
 - **Sett teine:** ett trykk markerer en teine der du er (GPS). Den får laveste
   ledige nummer, som kan endres.
-- **Hummer her:** ett trykk registrerer fangst der du er. Fangsten knyttes til
-  nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −.
+- **Hummer her:** ett trykk åpner et ark for ny fangst der du er. Fangsten knyttes
+  til nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −, og
+  trykk **Ferdig** for å registrere den. Trykker du **Avbryt**, drar arket ned eller
+  trykker utenfor, registreres ingenting. Det samme gjelder **Registrer fangst** i
+  teinearket og «Hummer her» etter langt trykk i kartet.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
   registrere fangst, flytte eller slette.

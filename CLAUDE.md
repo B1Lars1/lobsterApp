@@ -107,6 +107,10 @@ bakgrunn, med nummeret som HTML oppå.
   overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
   symbolene før det. Det ga en feil der GPS-prikken og teinene havnet langt fra riktig
   sted når man zoomet ut.
+- Ny fangst er et utkast (`_utkast` i `markeringsark.js`) til brukeren trykker «Ferdig».
+  Først da kalles `markeringer.nyFangst()`. Lukkes arket på annen måte, forkastes den.
+  Brukeren vil ikke at et feiltrykk skal bli liggende som en registrering. Et åpent
+  utkast finnes ikke i `markeringer`, så `naarEndret` må ikke lukke arket da.
 - Fangst registrert fra en teine får teinens posisjon og ligger under teinesymbolet
   på kartet (teiner har høyere z-indeks). Fangst må derfor kunne nås fra listene:
   teinearket og «Fangstregistreringer» i teinelisten (`_fangstRad` i `markeringsark.js`).
