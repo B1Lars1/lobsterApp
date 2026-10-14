@@ -134,6 +134,7 @@ def stolper_per_teinedoegn(ax, tabell: pd.DataFrame, tittel: str) -> None:
     x = np.arange(len(tabell))
     verdier = tabell["per_teinedoegn"].fillna(0).values
     ax.bar(x, verdier, width=min(0.45, 0.045 * len(tabell)), color=BLAA)  # smale stolper, luft mellom
+    ax.set_xlim(-0.5, len(tabell) - 0.5)  # ellers fyller én enkelt stolpe hele bredden
     for xi, v, n in zip(x, verdier, tabell["teinedoegn"]):
         if n > 0:
             ax.annotate(komma(v), (xi, v), xytext=(0, 4), textcoords="offset points",
@@ -166,6 +167,14 @@ def lag_figur(teiner, fangst_alle, dybdetabell, bunntabell, fil: Path, ut: Path)
         d.bar(datoer, per_dag["satt_ut"], width=0.6, bottom=per_dag["beholdt"], color=ORANSJE,
               edgecolor=FLATE, linewidth=1, label="Satt ut")
         d.legend(frameon=False, labelcolor=TEKST, loc="upper left")
+        # Minst en uke på aksen, så fangst fra én dag ikke blir en søyle over hele bredden,
+        # og bare hele dager som merker (ellers gjentas samme dato).
+        start, slutt = datoer.min() - pd.Timedelta(days=1), datoer.max() + pd.Timedelta(days=1)
+        if slutt - start < pd.Timedelta(days=7):
+            midt = start + (slutt - start) / 2
+            start, slutt = midt - pd.Timedelta(days=3.5), midt + pd.Timedelta(days=3.5)
+        d.set_xlim(start, slutt)
+        d.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, (slutt - start).days // 7)))
         d.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m."))
     stil(d, "Fangst per dag", ytekst="Antall hummer")
     d.yaxis.get_major_locator().set_params(integer=True)
