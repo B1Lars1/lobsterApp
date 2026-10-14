@@ -11,12 +11,13 @@
  */
 
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
+import { lagDybdeoppslag } from './dybdeoppslag.js';
 import { Gps } from './gps.js';
 import { faktiskTema, hentInnstillinger, lagreInnstillinger } from './innstillinger.js';
 import { Kartmarkeringer } from './kartmarkeringer.js';
 import { beOmVarigLagring } from './lager.js';
 import { markeringer } from './markeringer.js';
-import { Markeringsark } from './markeringsark.js';
+import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { visMelding } from './melding.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
@@ -62,6 +63,7 @@ const bakgrunnskart = {
 };
 
 let dybdelag = null; // lages når dataene er lastet
+let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
 
 function oppdaterKartlag() {
   for (const [navn, lag] of Object.entries(bakgrunnskart)) {
@@ -101,6 +103,14 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 const gpsStatus = $('gps-status');
 const gpsTekst = gpsStatus.querySelector('.tekst');
 
+// Anslått dybde der du er, under GPS-statusen
+function visDybdeHer() {
+  const p = gps.posisjon;
+  const dybde = p && dybdeI ? dybdeI(p.latlng.lat, p.latlng.lng) : null;
+  $('dybde-her').hidden = dybde == null;
+  if (dybde != null) $('dybde-her').querySelector('.tekst').textContent = `Dybde ${formaterDybde(dybde)}`;
+}
+
 const gps = new Gps(kart, (s) => {
   if (s.type === 'posisjon') {
     const { noyaktighet, fart } = s.posisjon;
@@ -108,6 +118,7 @@ const gps = new Gps(kart, (s) => {
     if (fart != null && fart > 0.3) tekst += ` · ${(fart * 1.943844).toFixed(1).replace('.', ',')} kn`;
     gpsTekst.textContent = tekst;
     gpsStatus.dataset.kvalitet = noyaktighet <= 15 ? 'god' : noyaktighet <= 50 ? 'middels' : 'darlig';
+    visDybdeHer();
   } else if (s.type === 'feil') {
     gpsTekst.textContent = s.tekst;
     gpsStatus.dataset.kvalitet = s.kode === 3 ? 'venter' : 'feil';
@@ -287,6 +298,9 @@ lastDybdedata()
       attribution: KREDITERING,
     });
     oppdaterKartlag();
+    dybdeI = lagDybdeoppslag(data);
+    markeringer.settDybdeoppslag(dybdeI);
+    visDybdeHer();
   })
   .catch((feil) => {
     console.error(feil);

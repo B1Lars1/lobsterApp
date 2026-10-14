@@ -22,9 +22,15 @@
 
   <!-- Øverst: GPS-status og kartlag -->
   <header class="topplinje">
-    <div id="gps-status" class="brikke" data-kvalitet="venter" role="status">
-      <span class="gps-ikon" aria-hidden="true"></span>
-      <span class="tekst">Søker GPS …</span>
+    <div class="statuskolonne">
+      <div id="gps-status" class="brikke" data-kvalitet="venter" role="status">
+        <span class="gps-ikon" aria-hidden="true"></span>
+        <span class="tekst">Søker GPS …</span>
+      </div>
+      <div id="dybde-her" class="brikke dybde-brikke" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v15"/><path d="m6 13 6 6 6-6"/><path d="M3 21h18" opacity=".5"/></svg>
+        <span class="tekst"></span>
+      </div>
     </div>
     <div class="toppknapper">
       <button id="knapp-teiner" class="rund-knapp" type="button" aria-label="Mine teiner">

@@ -121,6 +121,11 @@ button {
 
 @keyframes blink { 50% { opacity: 0.25; } }
 
+.statuskolonne { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.dybde-brikke { min-height: 40px; padding: 0 14px; gap: 8px; font-size: 16px; }
+.dybde-brikke svg { width: 18px; height: 18px; color: var(--aksent); }
+.dybde-brikke[hidden] { display: none; }
+
 .laster {
   position: fixed;
   top: 50%;
