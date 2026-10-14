@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '0a2e2ffaea42';
+const VERSJON = 'ac0fb8e3ee0c';
 const FILER = [
   './',
   'css/app.css',
@@ -32,6 +32,8 @@ const FILER = [
   'ikoner/ikon-192.png',
   'ikoner/ikon-512.png',
   'ikoner/ikon-maskable-512.png',
+  'ikoner/teine-opptatt.svg',
+  'ikoner/teine.svg',
   'index.html',
   'js/app.js',
   'js/dra-ned.js',

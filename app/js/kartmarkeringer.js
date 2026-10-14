@@ -1,6 +1,6 @@
 /*
  * Viser markeringene på kartet med egne symboler (utseendet ligger i app.css):
- *   teine i sjøen   gul hummerteine med nummer
+ *   teine i sjøen   svart bøyleteine sett fra siden, med nummer
  *   teine tatt opp  grå, stiplet teine (bare når «Opptatte teiner» er slått på)
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
  *   rødt «!»        teinen ligger i et fredningsområde
@@ -112,7 +112,7 @@ function symbol(m, iFredning) {
     return {
       html: `<span>${m.nummer ?? '?'}</span>${varsel}`,
       klasse: iSjoen ? 'teine' : 'teine opptatt',
-      storrelse: [46, 40], // bredere enn høy, som en teine
+      storrelse: [58, 40], // bredere enn høy, som tegningen av teinen
       z: iSjoen ? 500 : -200,
     };
   }

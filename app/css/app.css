@@ -501,28 +501,20 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* Teine i sjøen: hummerteine sett forfra, med nett, tung bunnramme og
-   nummeret i inngangen midt på */
+/* Teine i sjøen: svart bøyleteine sett fra langsiden med en liten trakt
+   (tegningen er ikoner/teine.svg), og nummeret midt på. Bredere enn høy (64:44). */
 .symbol.teine {
-  --nett: rgba(28, 19, 0, 0.26);
-  border: 3px solid #1c1300;
-  border-bottom-width: 5px;
-  border-radius: 50% 50% 6px 6px / 70% 70% 6px 6px;
-  background-color: var(--teine);
-  background-image:
-    repeating-linear-gradient(45deg, var(--nett) 0 1.2px, transparent 1.2px 7px),
-    repeating-linear-gradient(-45deg, var(--nett) 0 1.2px, transparent 1.2px 7px);
+  background: url(../ikoner/teine.svg) center / contain no-repeat;
   color: var(--teine-tekst);
-  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0, 0, 0, 0.45);
-  font-size: 15px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  font-size: 13px;
 }
 .symbol.teine > span {
   display: grid;
   place-items: center;
-  min-width: 1.6em;
-  height: 1.6em;
-  margin-top: 0.3em; /* litt ned, under buen */
-  padding: 0 0.25em;
+  min-width: 1.5em;
+  height: 1.5em;
+  padding: 0 0.2em;
   border: 2px solid #1c1300;
   border-radius: 999px;
   background: #fff7de;
@@ -530,12 +522,9 @@ button {
 }
 /* Teine tatt opp: grå og stiplet */
 .symbol.teine.opptatt {
-  --nett: rgba(75, 85, 96, 0.3);
-  background-color: #d9dde1;
+  background-image: url(../ikoner/teine-opptatt.svg);
   color: #4b5560;
-  border-color: #6b7580;
-  border-style: dashed;
-  box-shadow: none;
+  filter: none;
   opacity: 0.85;
 }
 .symbol.teine.opptatt > span { border-color: #6b7580; background: #eef0f2; }
@@ -569,6 +558,11 @@ button {
 .symbol.flyttes { animation: puls 1s ease-in-out infinite; }
 @keyframes puls {
   50% { box-shadow: 0 0 0 8px rgba(10, 102, 194, 0.45), 0 2px 6px rgba(0, 0, 0, 0.45); }
+}
+/* Teinen er en tegning, så gløden må følge omrisset (filter i stedet for box-shadow) */
+.symbol.teine.flyttes { animation-name: puls-teine; }
+@keyframes puls-teine {
+  50% { filter: drop-shadow(0 0 4px #0a66c2) drop-shadow(0 0 3px #0a66c2); }
 }
 
 /* Valgt sted etter langt trykk */
@@ -637,7 +631,7 @@ button {
 }
 .ark-topp .symbol.teine,
 .ark-topp .symbol.hummer { width: 46px; height: 46px; flex: none; }
-.ark-topp .symbol.teine { width: 54px; font-size: 18px; } /* bredere enn høy, som en teine */
+.ark-topp .symbol.teine { width: 67px; font-size: 15px; } /* bredere enn høy, som tegningen */
 .ark-topp .symbol.hummer .emoji { font-size: 24px; }
 .ark-tittel { flex: 1; min-width: 0; margin: 0; }
 .ark-tittel h3,
@@ -752,7 +746,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 }
 .liste .symbol.teine,
 .liste .symbol.hummer { width: 40px; height: 40px; flex: none; }
-.liste .symbol.teine { width: 46px; }
+.liste .symbol.teine { width: 58px; }
 .radtekst { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .radtekst b { font-size: 17px; }
 .radtekst small { color: var(--dempet); font-size: 14px; }

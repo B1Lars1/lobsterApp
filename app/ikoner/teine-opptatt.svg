@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 44">
+  <!-- Samme bøyleteine som teine.svg, i grått med stiplet omriss: teine som er tatt opp. -->
+  <defs>
+    <pattern id="nett" width="4.5" height="4.5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M0 0H4.5M0 0V4.5" fill="none" stroke="#4b5560" stroke-width="0.7" stroke-opacity="0.5"/>
+    </pattern>
+  </defs>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round">
+    <path d="M5 39V14Q5 5 14 5H50Q59 5 59 14V39Z"/>
+    <rect x="4" y="37.5" width="56" height="3.5" rx="1"/>
+  </g>
+  <path d="M5 39V14Q5 5 14 5H50Q59 5 59 14V39Z" fill="#dfe3e7"/>
+  <path d="M5 39V14Q5 5 14 5H50Q59 5 59 14V39Z" fill="url(#nett)"/>
+  <path d="M23 5V38M41 5V38" stroke="#6b7580" stroke-width="2.4"/>
+  <path d="M5 39V14Q5 5 14 5H50Q59 5 59 14V39Z" fill="none" stroke="#6b7580" stroke-width="2.4" stroke-linejoin="round" stroke-dasharray="3 2"/>
+  <rect x="4" y="37.5" width="56" height="3.5" rx="1" fill="#8a939c"/>
+</svg>

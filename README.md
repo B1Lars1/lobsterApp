@@ -383,7 +383,8 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
 åpnes i fullskjerm som en vanlig app.
 
 - `manifest.webmanifest` gir navn, ikon og fullskjerm.
-- Ikonene i `app/ikoner/` lages av `scripts/lag_ikoner.py`.
+- App-ikonene (PNG) i `app/ikoner/` lages av `scripts/lag_ikoner.py`. Teinesymbolene
+  på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
   gang den åpnes med nett, ca. 22 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
