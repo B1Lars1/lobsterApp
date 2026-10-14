@@ -12,6 +12,7 @@
  */
 
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
+import { draNedForALukke } from './dra-ned.js';
 import { lagBunnoppslag, lagDybdeoppslag } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
@@ -349,6 +350,9 @@ if ('serviceWorker' in navigator) {
 }
 
 // ---------- Oppstart ----------
+
+// Alle arkene kan lukkes ved å dra dem ned
+document.querySelectorAll('dialog.ark').forEach(draNedForALukke);
 
 brukTema();
 visKilder();

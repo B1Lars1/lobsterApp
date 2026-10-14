@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '4b18533baeb7';
+const VERSJON = 'cdea6a296143';
 const FILER = [
   './',
   'css/app.css',
@@ -35,6 +35,7 @@ const FILER = [
   'ikoner/ikon-maskable-512.png',
   'index.html',
   'js/app.js',
+  'js/dra-ned.js',
   'js/dybdelag.js',
   'js/dybdeoppslag.js',
   'js/fredning.js',

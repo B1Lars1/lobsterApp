@@ -319,14 +319,35 @@ button {
 }
 .ark::backdrop { background: var(--bakteppe); }
 
+/* Håndtaket øverst: stort tak-område, alltid synlig, dra ned for å lukke (dra-ned.js) */
 .handtak {
+  position: sticky;
+  top: -8px;
+  z-index: 2;
+  height: 30px;
+  margin: -8px -18px 0;
+  background: var(--flate);
+  cursor: grab;
+  touch-action: none;
+}
+.handtak::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 12px;
   width: 44px;
   height: 5px;
-  margin: 4px auto 6px;
   border-radius: 3px;
   background: var(--kant);
+  transform: translateX(-50%);
 }
 .handtak:focus { outline: none; } /* får fokus når arket åpnes, i stedet for et tekstfelt */
+
+/* Arket glir opp når det åpnes, og følger fingeren når det dras ned */
+.ark { transition: transform 0.18s ease-out; overscroll-behavior: contain; }
+.ark.drar { transition: none; }
+.ark[open] { animation: ark-inn 0.2s ease-out; }
+@keyframes ark-inn { from { transform: translateY(100%); } }
 
 .ark h2 {
   margin: 18px 0 8px;
