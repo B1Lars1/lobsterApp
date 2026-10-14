@@ -72,6 +72,18 @@ button {
   inset: 0;
 }
 
+/* Langt trykk i kartet skal markere et sted. Uten dette merker iPhone nærmeste
+   tekst (f.eks. målestokken) og viser kopieringsmenyen. Tekst i arkene kan fortsatt merkes. */
+#kart,
+.topplinje,
+.kartknapper,
+.handlinger,
+.flyttelinje {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* ---------- Øverste linje ---------- */
 
 .topplinje {
