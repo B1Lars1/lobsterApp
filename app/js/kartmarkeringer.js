@@ -3,6 +3,7 @@
  *   teine i sjøen   gul firkant med nummer
  *   teine tatt opp  grå, stiplet firkant (bare når «Opptatte teiner» er slått på)
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
+ *   rødt «!»        teinen ligger i et fredningsområde
  *
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
  * markeringer. Kartet oppdateres automatisk når markeringene endres.
@@ -23,6 +24,7 @@ export class Kartmarkeringer {
     this.visOpptatte = false;
     this.visFangst = true;
     this.flytter = null; // id til markeringen som flyttes nå
+    this.iFredning = () => false; // settes når fredningsområdene er lastet
     markeringer.naarEndret(() => this.tegn());
   }
 
@@ -44,7 +46,7 @@ export class Kartmarkeringer {
     for (const m of this.markeringer.alle()) {
       if (!this._synlig(m)) continue;
       synlige.add(m.id);
-      const { html, klasse, storrelse, z } = symbol(m);
+      const { html, klasse, storrelse, z } = symbol(m, this.iFredning(m));
       const noekkel = html + klasse;
       const finnes = this._markorer.get(m.id);
       if (finnes) {
@@ -103,11 +105,12 @@ function ikon(html, klasse, storrelse) {
   return L.divIcon({ html, className: `symbol ${klasse}`, iconSize: [storrelse, storrelse] });
 }
 
-function symbol(m) {
+function symbol(m, iFredning) {
   if (m.kategori === 'teine') {
     const iSjoen = m.status === 'i_sjoen';
+    const varsel = iSjoen && iFredning ? '<b class="varsel" title="I fredningsområde">!</b>' : '';
     return {
-      html: `<span>${m.nummer ?? '?'}</span>`,
+      html: `<span>${m.nummer ?? '?'}</span>${varsel}`,
       klasse: iSjoen ? 'teine' : 'teine opptatt',
       storrelse: 40,
       z: iSjoen ? 500 : -200,

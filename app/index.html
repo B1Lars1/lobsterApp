@@ -27,6 +27,9 @@
         <span class="gps-ikon" aria-hidden="true"></span>
         <span class="tekst">Søker GPS …</span>
       </div>
+      <button id="fredning-her" type="button" class="brikke fredning-brikke" hidden>
+        <span aria-hidden="true">!</span> Fredningsområde
+      </button>
       <div id="dybde-her" class="brikke dybde-brikke" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v15"/><path d="m6 13 6 6 6-6"/><path d="M3 21h18" opacity=".5"/></svg>
         <span class="tekst"></span>
@@ -115,6 +118,32 @@
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
+  <!-- Fredningsområde: navn, regel og lenker -->
+  <dialog id="ark-fredning" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <div class="ark-topp">
+      <div class="fredning-ikon" aria-hidden="true">!</div>
+      <div class="ark-tittel"><h3 data-tekst="navn"></h3><p>Fredningsområde for hummer</p></div>
+    </div>
+    <p class="regel" data-tekst="regel"></p>
+    <div class="knapperad">
+      <a class="sekundar lenkeknapp" data-lenke="forskrift" target="_blank" rel="noopener">Forskriften</a>
+      <a class="sekundar lenkeknapp" data-lenke="oversikt" target="_blank" rel="noopener">Fiskeridirektoratet</a>
+    </div>
+    <p class="hjelp">Grensene er fra Fiskeridirektoratets kartdata. Sjekk alltid gjeldende forskrift.</p>
+    <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
+  </dialog>
+
+  <!-- Skravering for fredningsområdene (brukes av CSS-klassen .fredning) -->
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <pattern id="skravur" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="10" height="10" fill="#d0213a" fill-opacity="0.12"/>
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#d0213a" stroke-width="3" stroke-opacity="0.5"/>
+      </pattern>
+    </defs>
+  </svg>
+
   <input type="file" id="velg-fil" accept=".geojson,.json,application/geo+json,application/json" hidden>
 
   <!-- Ark for kartvalg og innstillinger -->
@@ -143,6 +172,7 @@
       <h2>Vis på kartet</h2>
       <label class="bryter"><input type="checkbox" name="visFangst"> Hummerfangst</label>
       <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner som er tatt opp</label>
+      <label class="bryter"><input type="checkbox" name="visFredning"> Fredningsområder for hummer</label>
 
       <h2>Tema</h2>
       <fieldset class="segment">

@@ -6,12 +6,14 @@
  *   markeringer.js     teiner og fangst (data, lagring, GeoJSON)
  *   kartmarkeringer.js symbolene på kartet
  *   markeringsark.js   knappene og arkene for markeringer
+ *   fredning.js        fredningsområder for hummer
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
 
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { lagDybdeoppslag } from './dybdeoppslag.js';
+import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
 import { faktiskTema, hentInnstillinger, lagreInnstillinger } from './innstillinger.js';
 import { Kartmarkeringer } from './kartmarkeringer.js';
@@ -65,6 +67,9 @@ const bakgrunnskart = {
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
 
+// Fredningsområder for hummer. Trykk på et område viser regler (arkene lages lenger ned).
+const fredning = new Fredning(kart, (omrade) => ark.visFredning(omrade));
+
 function oppdaterKartlag() {
   for (const [navn, lag] of Object.entries(bakgrunnskart)) {
     if (navn === innstillinger.bakgrunn) lag.addTo(kart);
@@ -103,13 +108,20 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 const gpsStatus = $('gps-status');
 const gpsTekst = gpsStatus.querySelector('.tekst');
 
-// Anslått dybde der du er, under GPS-statusen
+// Under GPS-statusen: anslått dybde der du er, og varsel hvis du er i et fredningsområde
+let omradeHer = null;
 function visDybdeHer() {
   const p = gps.posisjon;
   const dybde = p && dybdeI ? dybdeI(p.latlng.lat, p.latlng.lng) : null;
   $('dybde-her').hidden = dybde == null;
   if (dybde != null) $('dybde-her').querySelector('.tekst').textContent = `Dybde ${formaterDybde(dybde)}`;
+
+  omradeHer = p ? fredning.omradeFor(p.latlng.lat, p.latlng.lng) : null;
+  $('fredning-her').hidden = !omradeHer;
 }
+$('fredning-her').addEventListener('click', () => {
+  if (omradeHer) ark.visFredning(omradeHer);
+});
 
 const gps = new Gps(kart, (s) => {
   if (s.type === 'posisjon') {
@@ -147,11 +159,12 @@ $('knapp-meg').addEventListener('click', () => {
 
 const kartmarkeringer = new Kartmarkeringer(kart, markeringer, {
   naarTrykket: (id) => ark.visMarkering(id),
-  naarFlyttet: (id, latlng) => markeringer.oppdater(id, {
-    lat: latlng.lat, lon: latlng.lng, noyaktighet: null, kilde: 'kart',
-  }),
+  naarFlyttet: async (id, latlng) => {
+    await markeringer.oppdater(id, { lat: latlng.lat, lon: latlng.lng, noyaktighet: null, kilde: 'kart' });
+    ark.etterFlytt(id);
+  },
 });
-const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer });
+const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer, fredning });
 kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
 
 $('knapp-teine').addEventListener('click', () => ark.settTeine());
@@ -238,6 +251,7 @@ $('knapp-lag').addEventListener('click', () => {
   skjema.elements.dybdetall.checked = innstillinger.dybdetall;
   skjema.elements.visFangst.checked = innstillinger.visFangst;
   skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
+  skjema.elements.visFredning.checked = innstillinger.visFredning;
   oppdaterDatainfo();
   innstillingsark.showModal();
 });
@@ -248,7 +262,9 @@ skjema.addEventListener('change', () => {
   innstillinger.dybdetall = skjema.elements.dybdetall.checked;
   innstillinger.visFangst = skjema.elements.visFangst.checked;
   innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
+  innstillinger.visFredning = skjema.elements.visFredning.checked;
   lagreInnstillinger(innstillinger);
+  fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
   brukTema();
 });
@@ -271,11 +287,12 @@ function tegnTegnforklaring(tema) {
 async function visKilder() {
   try {
     const kilder = await (await fetch('data/kilder.json')).json();
+    const dato = (iso) => new Date(iso).toLocaleDateString('nb-NO');
     const d = kilder.dybdedata;
-    const dato = new Date(d.lastet_ned).toLocaleDateString('nb-NO');
+    const f = kilder.fredningsomrader;
     $('kildeinfo').innerHTML =
-      `Dybdedata: ${d.kreditering}, <a href="${d.lisens_url}">${d.lisens}</a>, lastet ned ${dato}. ` +
-      `${d.merknad}`;
+      `Dybdedata: ${d.kreditering}, <a href="${d.lisens_url}">${d.lisens}</a>, lastet ned ${dato(d.lastet_ned)}. ` +
+      `${d.merknad}<br>Fredningsområder: ${f.kreditering}. Hentet ${dato(f.lastet_ned)}. ${f.merknad}`;
   } catch {
     // Kildeteksten i index.html står igjen.
   }
@@ -286,6 +303,14 @@ async function visKilder() {
 brukTema();
 visKilder();
 markeringer.last();
+fredning.last()
+  .then(() => {
+    fredning.settSynlig(innstillinger.visFredning);
+    kartmarkeringer.iFredning = (m) => m.kategori === 'teine' && Boolean(fredning.omradeFor(m.lat, m.lon));
+    kartmarkeringer.tegn();
+    visDybdeHer();
+  })
+  .catch((feil) => console.error(feil));
 beOmVarigLagring().then((varig) => {
   varigLagring = varig;
 });

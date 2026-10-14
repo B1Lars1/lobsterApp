@@ -4,6 +4,7 @@
  *   - valg etter langt trykk i kartet (marker et valgfritt sted)
  *   - detaljer for en teine eller fangst: endre, ta opp, flytte, slette
  *   - listen over teiner i sjøen med avstand og retning
+ *   - advarsel når en teine havner i et fredningsområde, og info om området
  *
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
  */
@@ -52,19 +53,21 @@ function fraMal(html) {
 const navnPa = (m) => (m.kategori === 'teine' ? `Teine ${m.nummer}` : 'Fangst');
 
 export class Markeringsark {
-  constructor({ kart, gps, markeringer, kartmarkeringer }) {
+  constructor({ kart, gps, markeringer, kartmarkeringer, fredning }) {
     this.kart = kart;
+    this.fredning = fredning;
     this.gps = gps;
     this.markeringer = markeringer;
     this.kartmarkeringer = kartmarkeringer;
     this.arkMarkering = document.getElementById('ark-markering');
     this.arkVelg = document.getElementById('ark-velg');
     this.arkTeiner = document.getElementById('ark-teiner');
+    this.arkFredning = document.getElementById('ark-fredning');
     this.aapenId = null;
     this._sikte = null;
     this._aapnetTid = 0;
 
-    for (const ark of [this.arkMarkering, this.arkVelg, this.arkTeiner]) {
+    for (const ark of [this.arkMarkering, this.arkVelg, this.arkTeiner, this.arkFredning]) {
       // Trykk på den mørke bakgrunnen utenfor arket lukker det.
       ark.addEventListener('click', (e) => {
         if (e.target === ark) ark.close();
@@ -97,6 +100,9 @@ export class Markeringsark {
     // Teinelisten
     this.arkTeiner.addEventListener('click', (e) => this._listeKlikk(e));
 
+    this.arkFredning.querySelector('[data-handling="lukk"]')
+      .addEventListener('click', () => this.arkFredning.close());
+
     // Hold arkene oppdatert når markeringene endres
     markeringer.naarEndret(() => {
       if (this.arkMarkering.open && !markeringer.hent(this.aapenId)) this.arkMarkering.close();
@@ -127,11 +133,43 @@ export class Markeringsark {
     if (!pos) return;
     const t = await this.markeringer.nyTeine(pos);
     this._sjekkLagring();
+    const angre = { knapp: 'Angre', handling: () => this.markeringer.slett(t.id) };
+    const omrade = this._fredningFor(t);
+    if (omrade) {
+      visMelding(`Teine ${t.nummer} er satt i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
+        { ...angre, ms: 10000, fare: true });
+      return;
+    }
     const usikker = pos.noyaktighet > 50 ? ` (usikker GPS ± ${pos.noyaktighet} m)` : '';
-    visMelding(`Teine ${t.nummer} satt${usikker}`, {
-      knapp: 'Angre',
-      handling: () => this.markeringer.slett(t.id),
-    });
+    visMelding(`Teine ${t.nummer} satt${usikker}`, angre);
+  }
+
+  // ---------- Fredningsområder ----------
+
+  /** Fredningsområdet en teine i sjøen ligger i, ellers null. */
+  _fredningFor(m) {
+    if (!this.fredning || m.kategori !== 'teine' || m.status !== 'i_sjoen') return null;
+    return this.fredning.omradeFor(m.lat, m.lon);
+  }
+
+  /** Kalles etter at en markering er flyttet: advar hvis en teine havnet i et fredningsområde. */
+  etterFlytt(id) {
+    const m = this.markeringer.hent(id);
+    const omrade = m && this._fredningFor(m);
+    if (omrade) {
+      visMelding(`Teine ${m.nummer} ligger i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
+        { ms: 8000, fare: true });
+    }
+  }
+
+  /** Vis navn, regel og lenker for et fredningsområde. */
+  visFredning(omrade) {
+    const ark = this.arkFredning;
+    ark.querySelector('[data-tekst="navn"]').textContent = omrade.navn;
+    ark.querySelector('[data-tekst="regel"]').textContent = omrade.regel;
+    ark.querySelector('[data-lenke="forskrift"]').href = omrade.forskrift;
+    ark.querySelector('[data-lenke="oversikt"]').href = omrade.oversikt;
+    if (!ark.open) ark.showModal();
   }
 
   /** Registrer fangst. Knyttes til nærmeste teine i sjøen innen 50 m, hvis ikke annet er oppgitt. */
@@ -188,6 +226,9 @@ export class Markeringsark {
         <div class="ark-tittel"><h3 data-tekst="tittel"></h3><p data-tekst="undertekst"></p></div>
         <span class="status ${iSjoen ? 'i-sjoen' : ''}">${iSjoen ? 'I sjøen' : 'Tatt opp'}</span>
       </div>
+      <button type="button" class="fredningsvarsel" data-handling="visFredning" hidden>
+        <b>Ligger i et fredningsområde</b><span data-tekst="fredning"></span>
+      </button>
       <dl class="fakta">
         <div><dt>Avstand</dt><dd data-tekst="avstand"></dd></div>
         <div><dt>Dybde</dt><dd data-tekst="dybde"></dd></div>
@@ -218,6 +259,11 @@ export class Markeringsark {
     sett('fangst', fangst.length ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
     el.querySelector('[data-felt="nummer"]').value = m.nummer ?? '';
     el.querySelector('[data-felt="notat"]').value = m.notat;
+    const omrade = this._fredningFor(m);
+    if (omrade) {
+      el.querySelector('.fredningsvarsel').hidden = false;
+      sett('fredning', `${omrade.navn}. Teiner er forbudt her. Trykk for regler.`);
+    }
     return el;
   }
 
@@ -273,6 +319,9 @@ export class Markeringsark {
       case 'lukk':
         this.arkMarkering.close();
         break;
+      case 'visFredning':
+        this.visFredning(this._fredningFor(m));
+        break;
       case 'taOpp':
         this.arkMarkering.close();
         await this.markeringer.taOpp(id);
@@ -291,6 +340,7 @@ export class Markeringsark {
           knapp: 'Angre',
           handling: () => this.markeringer.slett(ny.id),
         });
+        this.etterFlytt(ny.id);
         break;
       }
       case 'fangst':
@@ -349,9 +399,11 @@ export class Markeringsark {
     this.kart.panTo([m.lat, m.lon]);
     document.body.classList.add('flyttemodus');
     const linje = document.getElementById('flyttelinje');
-    linje.querySelector('[data-handling="tilMeg"]').onclick = () => {
+    linje.querySelector('[data-handling="tilMeg"]').onclick = async () => {
       const pos = this._gpsPosisjon();
-      if (pos) this.markeringer.oppdater(id, pos);
+      if (!pos) return;
+      await this.markeringer.oppdater(id, pos);
+      this.etterFlytt(id);
     };
     linje.querySelector('[data-handling="ferdig"]').onclick = () => this.stoppFlytt();
   }

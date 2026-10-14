@@ -732,3 +732,92 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .flytteknapper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 body.flyttemodus .flyttelinje { display: flex; }
 body.flyttemodus .handlinger { visibility: hidden; }
+
+/* =====================================================================
+ * Fredningsområder
+ * ===================================================================== */
+
+/* Rød skravering (mønsteret #skravur ligger i index.html) og stiplet kant */
+.fredning {
+  fill: url(#skravur);
+  fill-opacity: 1;
+}
+
+/* Rød advarsel øverst */
+.melding.fare { background: var(--darlig); color: #fff; }
+.melding.fare button { background: #fff; color: var(--darlig); }
+
+/* Brikke under GPS-statusen når du er i et fredningsområde */
+.fredning-brikke {
+  min-height: 40px;
+  padding: 0 14px;
+  border: none;
+  background: var(--darlig);
+  color: #fff;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.fredning-brikke span,
+.fredning-ikon,
+.symbol .varsel {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--darlig);
+  font-weight: 900;
+}
+.fredning-brikke span { width: 22px; height: 22px; font-size: 15px; }
+.fredning-brikke[hidden] { display: none; }
+
+/* Rødt «!» på teiner i fredningsområde */
+.symbol.teine { position: relative; }
+.symbol .varsel {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  background: var(--darlig);
+  color: #fff;
+  border: 2px solid #fff;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Varselfelt i teinearket */
+.fredningsvarsel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--darlig);
+  color: #fff;
+  font-size: 15px;
+  text-align: left;
+}
+.fredningsvarsel[hidden] { display: none; }
+.fredningsvarsel b { font-size: 17px; }
+
+/* Arket for et fredningsområde */
+.fredning-ikon {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  background: var(--darlig);
+  color: #fff;
+  font-size: 26px;
+}
+.regel { margin: 0 0 14px; font-size: 17px; line-height: 1.45; }
+.lenkeknapp {
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+  border-radius: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}

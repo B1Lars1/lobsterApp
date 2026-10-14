@@ -12,6 +12,7 @@ const STANDARD = {
   dybdetall: true,
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
+  visFredning: true,    // vis fredningsområder for hummer
   sistEksportert: null, // tidspunkt (ISO) for siste GeoJSON-eksport
 };
 
