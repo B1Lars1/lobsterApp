@@ -787,9 +787,9 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   font-weight: 800;
 }
 
-/* Slettede markeringer, sammenlagt under teinelisten */
-.slettede { margin: 4px 0 8px; border-top: 1px solid var(--kant); }
-.slettede summary {
+/* Fangstregistreringer og slettede markeringer, sammenlagt under teinelisten */
+.utvidbar { margin: 4px 0 8px; border-top: 1px solid var(--kant); }
+.utvidbar summary {
   min-height: 52px;
   display: flex;
   align-items: center;
@@ -800,10 +800,14 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   font-weight: 700;
   cursor: pointer;
 }
-.slettede summary::-webkit-details-marker { display: none; }
-.slettede summary::before { content: '▸'; transition: transform 0.15s; }
-.slettede[open] summary::before { transform: rotate(90deg); }
+.utvidbar summary::-webkit-details-marker { display: none; }
+.utvidbar summary::before { content: '▸'; transition: transform 0.15s; }
+.utvidbar[open] summary::before { transform: rotate(90deg); }
 .symbol.slettet { filter: grayscale(1); opacity: 0.6; }
+
+/* «Endre» på fangstradene, og fangstradene i teinearket */
+.endre { color: var(--aksent); font-size: 15px; font-weight: 800; white-space: nowrap; }
+.fangst-i-teine { margin: -4px 0 12px; }
 
 .hjelp { margin: 8px 0; font-size: 14px; line-height: 1.45; color: var(--dempet); }
 #synkstatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }

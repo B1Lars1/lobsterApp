@@ -107,6 +107,9 @@ bakgrunn, med nummeret som HTML oppå.
   overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
   symbolene før det. Det ga en feil der GPS-prikken og teinene havnet langt fra riktig
   sted når man zoomet ut.
+- Fangst registrert fra en teine får teinens posisjon og ligger under teinesymbolet
+  på kartet (teiner har høyere z-indeks). Fangst må derfor kunne nås fra listene:
+  teinearket og «Fangstregistreringer» i teinelisten (`_fangstRad` i `markeringsark.js`).
 - Arkene er `<dialog>` åpnet med `showModal()`. Alt utenfor, også meldingene fra
   `melding.js`, er da utilgjengelig. En knapp i en melding kan ikke trykkes mens et
   ark er åpent.

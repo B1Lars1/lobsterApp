@@ -278,6 +278,11 @@ Sjekk alltid gjeldende forskrift.
   registrere fangst, flytte eller slette.
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
   Tallet på knappen er antall teiner i sjøen.
+- **Rette fangst:** fangst registrert fra en teine ligger på samme sted som teinen, og
+  er derfor gjemt under teinesymbolet på kartet. Du finner den i teinearket (under
+  faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert
+  først. Trykk på en fangst for å endre antall beholdt og satt ut, tidspunkt, teine
+  eller notat, flytte den eller slette den.
 - **Tatt opp** fjerner teinen fra kartet, men tar vare på den i historikken for
   analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
 - **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet

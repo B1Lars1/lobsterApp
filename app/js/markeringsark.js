@@ -3,8 +3,8 @@
  *   - «Sett teine» og «Hummer her» (ett trykk, bruker GPS-posisjonen)
  *   - valg etter langt trykk i kartet (marker et valgfritt sted)
  *   - detaljer for en teine eller fangst: endre, ta opp, flytte, slette
- *   - listen over teiner i sjøen med avstand og retning, og under den slettede
- *     markeringer som kan gjenopprettes
+ *   - listen over teiner i sjøen med avstand og retning, og under den all fangst
+ *     (som kan rettes) og slettede markeringer (som kan gjenopprettes)
  *   - advarsel når en teine havner i et fredningsområde, og info om området
  *
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
@@ -16,6 +16,13 @@ const tidFormat = new Intl.DateTimeFormat('nb-NO', {
   weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
 });
 const formaterTid = (iso) => tidFormat.format(new Date(iso));
+
+// <input type="datetime-local"> bruker lokal tid uten tidssone, f.eks. «2026-10-14T19:05».
+function tilLokalTid(iso) {
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
 
 function formaterSiden(iso) {
   const min = Math.round((Date.now() - new Date(iso)) / 60000);
@@ -75,10 +82,11 @@ export class Markeringsark {
       });
     }
 
-    // Detaljarket: én lytter for alle knapper og felt.
+    // Detaljarket: én lytter for alle knapper og felt. data-id er en annen markering
+    // knappen gjelder (fangstradene i teinearket).
     this.arkMarkering.addEventListener('click', (e) => {
       const knapp = e.target.closest('[data-handling]');
-      if (knapp) this._handling(knapp.dataset.handling, knapp.dataset.felt);
+      if (knapp) this._handling(knapp.dataset.handling, knapp.dataset.felt, knapp.dataset.id);
     });
     this.arkMarkering.addEventListener('change', (e) => this._feltEndret(e.target));
     this.arkMarkering.addEventListener('close', () => {
@@ -235,6 +243,7 @@ export class Markeringsark {
         <div><dt>Dybde</dt><dd data-tekst="dybde"></dd></div>
         <div><dt>Fangst</dt><dd data-tekst="fangst"></dd></div>
       </dl>
+      <ul class="liste fangst-i-teine" data-liste="fangst"></ul>
       <div class="felter">
         <label class="felt smal">Nummer<input type="number" inputmode="numeric" min="1" data-felt="nummer"></label>
         <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
@@ -258,6 +267,13 @@ export class Markeringsark {
     sett('avstand', this._avstandTekst(m));
     sett('dybde', m.dybde != null ? formaterDybde(m.dybde) : '–');
     sett('fangst', fangst.length ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
+    // Hver fangstregistrering fra teinen. Fangsten ligger ofte under teinen på kartet,
+    // så her er veien til å rette eller slette den.
+    for (const f of [...fangst].sort((a, b) => b.tid.localeCompare(a.tid))) {
+      const rad = this._fangstRad(f);
+      Object.assign(rad.querySelector('.rad').dataset, { handling: 'visFangst', id: f.id });
+      el.querySelector('[data-liste="fangst"]').append(rad);
+    }
     el.querySelector('[data-felt="nummer"]').value = m.nummer ?? '';
     el.querySelector('[data-felt="notat"]').value = m.notat;
     const omrade = this._fredningFor(m);
@@ -266,6 +282,24 @@ export class Markeringsark {
       sett('fredning', `${omrade.navn}. Teiner er forbudt her. Trykk for regler.`);
     }
     return el;
+  }
+
+  // Rad for én fangstregistrering: antall, tidspunkt og teine. Den som bruker raden,
+  // bestemmer hva et trykk gjør (data-vis i teinelisten, data-handling i teinearket).
+  _fangstRad(f) {
+    const li = fraMal(`
+      <li>
+        <button type="button" class="rad">
+          <span class="symbol hummer"><span class="emoji">🦞</span></span>
+          <span class="radtekst"><b data-tekst="tittel"></b><small data-tekst="info"></small></span>
+          <span class="endre">Endre</span>
+        </button>
+      </li>`);
+    const teine = this.markeringer.hent(f.teine_id);
+    li.querySelector('[data-tekst="tittel"]').textContent = `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
+    li.querySelector('[data-tekst="info"]').textContent =
+      `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}` : 'ingen teine'}`;
+    return li;
   }
 
   _fangstInnhold(m) {
@@ -287,6 +321,7 @@ export class Markeringsark {
         <button type="button" data-handling="pluss" data-felt="satt_ut" aria-label="Én mer satt ut">+</button>
       </div>
       <div class="felter">
+        <label class="felt">Tidspunkt<input type="datetime-local" data-felt="tid"></label>
         <label class="felt">Fra teine<select data-felt="teine_id"></select></label>
         <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
       </div>
@@ -299,6 +334,7 @@ export class Markeringsark {
     el.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(m.tid);
     el.querySelector('[data-tekst="beholdt"]').textContent = m.beholdt;
     el.querySelector('[data-tekst="satt_ut"]').textContent = m.satt_ut;
+    el.querySelector('[data-felt="tid"]').value = tilLokalTid(m.tid);
     el.querySelector('[data-felt="notat"]').value = m.notat;
 
     // Teinene i sjøen, pluss den fangsten allerede er knyttet til (selv om den er tatt opp)
@@ -312,13 +348,16 @@ export class Markeringsark {
     return el;
   }
 
-  async _handling(navn, felt) {
+  async _handling(navn, felt, annenId) {
     const id = this.aapenId;
     const m = this.markeringer.hent(id);
     if (!m) return;
     switch (navn) {
       case 'lukk':
         this.arkMarkering.close();
+        break;
+      case 'visFangst':
+        this.visMarkering(annenId);
         break;
       case 'visFredning':
         this.visFredning(this._fredningFor(m));
@@ -389,6 +428,10 @@ export class Markeringsark {
       this.markeringer.oppdater(m.id, { notat: el.value });
     } else if (felt === 'teine_id' && (el.value || null) !== m.teine_id) {
       this.markeringer.oppdater(m.id, { teine_id: el.value || null });
+    } else if (felt === 'tid' && el.value && el.value !== tilLokalTid(m.tid)) {
+      const tid = new Date(el.value).toISOString(); // feltets verdi tolkes som lokal tid
+      this.markeringer.oppdater(m.id, { tid });
+      this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(tid);
     }
   }
 
@@ -466,12 +509,24 @@ export class Markeringsark {
     const sattUt = iAar.reduce((s, f) => s + f.satt_ut, 0);
     this.arkTeiner.querySelector('[data-tekst="sesong"]').textContent =
       `Fangst i ${aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
+
+    // All fangst, sist registrert først. Trykk åpner fangsten, så den kan rettes eller slettes.
+    const fangst = this.markeringer.alle().filter((m) => m.kategori === 'hummer')
+      .sort((a, b) => b.tid.localeCompare(a.tid));
+    const fangstdel = this.arkTeiner.querySelector('[data-del="fangst"]');
+    fangstdel.hidden = fangst.length === 0;
+    fangstdel.querySelector('[data-tekst="antallFangst"]').textContent = fangst.length;
+    fangstdel.querySelector('[data-liste="fangst"]').replaceChildren(...fangst.map((f) => {
+      const rad = this._fangstRad(f);
+      rad.querySelector('.rad').dataset.vis = f.id;
+      return rad;
+    }));
   }
 
   // Slettede markeringer, sist slettet først, så en sletting kan angres også senere.
   _tegnSlettede() {
     const slettede = this.markeringer.slettede();
-    this.arkTeiner.querySelector('.slettede').hidden = slettede.length === 0;
+    this.arkTeiner.querySelector('[data-del="slettede"]').hidden = slettede.length === 0;
     this.arkTeiner.querySelector('[data-tekst="antallSlettede"]').textContent = slettede.length;
     const rader = slettede.map(({ endret, markering: m }) => {
       const teine = m.kategori === 'teine';
