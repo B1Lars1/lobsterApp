@@ -3,7 +3,7 @@
 En enkel web-app (PWA) for hummerfiske i skjærgården ved Lillesand. Appen legges
 til på hjemskjermen på telefonen og viser:
 
-- sjøkart med dybdekurver
+- dybdekart med dybdekurver, stedsnavn og hint om bunnforhold
 - egen posisjon fra GPS
 - teiner og fangst som du markerer med ett trykk
 - hummerfredningsområder i Agder
@@ -90,6 +90,8 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `dybdetall.geojson` | Dybdepunkter, grunner og skjær | `kategori`, `dybde` |
 | `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
+| `bunnhint.geojson` | Tareskog, ålegras og skjellsand som hint om bunnen (se under) | `kategori`, `navn`, `modellert`, `aar` |
+| `bratt.geojson` | Bratt bunn beregnet fra dybdedataene (se under) | `klasse` |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
 Filene er til sammen ca. 21 MB, eller ca. 2,7 MB komprimert slik de sendes over
@@ -155,7 +157,6 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 
 - **Dybdekart:** bare våre egne data. Fungerer uten nett.
 - **Topo + dybde:** Kartverkets gråtone-topokart med dybdesoner og kurver oppå.
-- **Sjøkart:** Kartverkets sjøkart.
 
 **Ytelse:** dybdekartet tegnes som kartfliser på `<canvas>`. Hver flis tegnes
 én gang og gjenbrukes når du panorerer. Et rutenett (romlig indeks) gjør at hver
@@ -189,6 +190,32 @@ For at kartet ikke skal bli støyete, får hvert navn et laveste zoomnivå:
 punktet, som i sjøkartet. Navnene vises bare på «Dybdekart», siden Kartverkets
 kart har egne navn. Avstand og zoomnivåer kan justeres øverst i skriptet
 (`TYPER`, `LUFT_X`, `LUFT_Y`).
+
+## Bunnforhold
+
+Det finnes ikke noe åpent kart over bunntype (fjell, stein, sand) for området:
+NGUs detaljerte sedimentkart og Havforskningsinstituttets bunnobservasjoner dekker
+ikke Lillesand, og NGUs oversiktskart (1:1 mill.) er for grovt. Appen viser derfor
+to typer hint fra zoom 15:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\lag_bunnhint.py      # Miljødirektoratets marine naturtyper
+.\.venv\Scripts\python.exe scripts\lag_bratt_bunn.py    # bratt bunn fra dybdedataene
+```
+
+- **Bunnhint** (`lag_bunnhint.py`): marine naturtyper fra Miljødirektoratet (HB19).
+  Tareskog vokser på fjell og stein (grønne prikker). Ålegras, skjellsand og
+  bløtbunnsområder ligger på sand eller mudder (gult med stiplet kant).
+  Tareskog og skjellsand er for det meste modellert, ålegras er kartlagt i felt.
+- **Bratt bunn** (`lag_bratt_bunn.py`): et triangelnett av dybdepunkter, grunner,
+  kurver og kystlinjen gir helningen. Bunn brattere enn 20° skraveres, og over 35°
+  kryss-skraveres. Bratt bunn er ofte fjell, typisk «kanten». Med ca. 50 m mellom
+  dybdepunktene kommer store kanter med, men ikke enkeltsteiner. Grensene står
+  øverst i skriptet.
+
+Trykk i kartet for å se hva som er der (for eksempel «Tareskog (modellert):
+trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Begge lagene kan
+slås av i innstillingsarket.
 
 ## Fredningsområder og dybde
 
@@ -273,7 +300,7 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
   gang den åpnes med nett, ca. 22 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
-- Kartverkets topo- og sjøkart lagres ikke (se «Kilder og kreditering»). Uten
+- Kartverkets topokart lagres ikke (se «Kilder og kreditering»). Uten
   nett bytter appen automatisk til dybdekartet.
 
 **Etter endringer i appen eller dataene** må fillisten og versjonen i `sw.js`
@@ -351,7 +378,7 @@ versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
   Dataene er forenklet og klippet. De er ikke godkjent for navigasjon, og
   dybdene er referert til sjøkartnull.
 - **Bakgrunnskart:** © Kartverket, lisens CC BY 4.0. WMTS-tjenesten
-  `cache.kartverket.no` (lagene `topograatone` og `sjokartraster`, fra
+  `cache.kartverket.no` (laget `topograatone`, fra
   [GetCapabilities](https://cache.kartverket.no/v1/wmts/1.0.0/WMTSCapabilities.xml)).
   Flisene vises direkte fra tjenesten og lagres ikke av appen for bruk uten nett.
   Ifølge [Kartverkets vilkår](https://www.kartverket.no/api-og-data/vilkar-for-bruk)
@@ -361,6 +388,10 @@ versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
   Inneholder data under Norsk lisens for offentlige data
   ([NLOD](https://data.norge.no/nlod/no/1.0)) tilgjengeliggjort av
   Fiskeridirektoratet. [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/8901e1f8-b947-4f7d-819c-bf11e3e16a68).
+- **Bunnhint:** «Marine naturtyper (HB19)», Miljødirektoratet. Inneholder data
+  under Norsk lisens for offentlige data
+  ([NLOD 2.0](https://data.norge.no/nlod/no/2.0)) tilgjengeliggjort av
+  Miljødirektoratet. [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/e4f40b02-7a32-4163-87af-d4121de48e6d).
 - **Stedsnavn:** Sentralt stedsnavnregister, © Kartverket, lisens
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), hentet fra
   [Kartverkets stedsnavn-API](https://api.kartverket.no/stedsnavn/v1/).
