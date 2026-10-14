@@ -476,15 +476,17 @@ nå uten nett» kommer (lagrer ca. 22 MB).
 opp et ark med fremgangsmåten for telefonen som brukes. På Android (Chrome) er det
 oftest en knapp, **Installer appen**, som installerer den direkte. På iPhone viser
 arket veien via Del-knappen i Safari, og minner om at markeringer gjort i nettleseren
-ikke blir med over til appen. Trykker man **Ikke nå**, kommer arket ikke av seg selv
-igjen før det har gått en uke. Det kan også åpnes fra innstillingsarket med
+ikke blir med over til appen. Arket kommer hver gang lenken åpnes i nettleseren på
+telefonen, siden appen er ment å brukes fra hjemskjermen. **Ikke nå** lukker det for
+denne gangen. Det kan også åpnes fra innstillingsarket med
 **Legg appen til på hjemskjermen**. Fra hjemskjermen og på PC vises ingen av delene.
 Fremgangsmåten for hånd står under.
 
 **iPhone (Safari):**
 
 1. Åpne <https://b1lars1.github.io/lobsterApp/> i **Safari**.
-2. Trykk **Del**-knappen (firkant med pil opp). Ser du den ikke, trykk først **•••**.
+2. Trykk på knappen med tre streker til venstre for adressefeltet, og velg **Del**
+   (firkant med pil opp). På eldre iPhoner ligger **Del** rett i verktøylinjen.
 3. Velg **Legg til på Hjem-skjerm**, la **Åpne som nettapp** være på hvis du ser det
    valget, og trykk **Legg til**.
 4. Åpne appen fra ikonet. Tillat posisjon når du blir spurt.

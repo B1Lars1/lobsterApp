@@ -119,11 +119,13 @@ bakgrunn, med nummeret som HTML oppå.
   øverst, plasseres med `var(--topp)` i `app.css` (statuslinjen + 36 px), ikke høyere.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
   ved hver endring. Andre moduler som husker noe i `localStorage`, bruker derfor egen
-  nøkkel (`hummerkart.synk`, `hummerkart.hjemskjerm`), ellers blir verdien overskrevet.
-- Veiledningen for hjemskjermen (`hjemskjerm.js`) vises bare i nettleseren på telefon.
-  På PC skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste
+  nøkkel (som `hummerkart.synk`), ellers blir verdien overskrevet.
+- Veiledningen for hjemskjermen (`hjemskjerm.js`) vises hver gang siden åpnes i
+  nettleseren på telefon (brukeren vil det slik, ikke «vis igjen om en uke»). På PC
+  skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste
   iPhone-versjonen: overstyr `navigator.userAgent` og kall `visHjemskjermVeiledning()`.
-  Lukkes arket, lagres tidspunktet, og det vises ikke av seg selv igjen på en uke.
+  iPhone-trinnene gjelder Safari i iOS 26: Del ligger bak knappen med tre streker til
+  venstre for adressefeltet.
 - Når nettleserpanelet er skjult, bremses tidtakere. Test tidsavhengig oppførsel ved
   å simulere tid (`Date.now`) i stedet for å vente.
 

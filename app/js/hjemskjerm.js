@@ -8,12 +8,10 @@
  *   - iPhone: en nettside kan ikke installere seg selv, så arket viser veien via
  *     Del-knappen i Safari. iPhone-appen fra hjemskjermen har egen lagring, atskilt
  *     fra Safari, så arket sier også fra om det.
- * Lukkes arket, vises det ikke av seg selv igjen på en uke. Det kan også åpnes fra
- * innstillingsarket.
+ * Arket vises hver gang siden åpnes i nettleseren på en telefon, siden appen er ment å
+ * brukes fra hjemskjermen. Det kan også åpnes fra innstillingsarket.
  */
 
-const NOKKEL = 'hummerkart.hjemskjerm';
-const VIS_IGJEN_ETTER_MS = 7 * 24 * 60 * 60 * 1000;
 const VENT_FOR_VISNING_MS = 1500; // la kartet komme opp først
 
 /** True når appen er åpnet fra hjemskjermen (som app), ikke i nettleseren. */
@@ -49,23 +47,6 @@ function oppdaterAndroid() {
   a.querySelector('[data-steg="android"]').hidden = Boolean(installering);
 }
 
-function nyligLukket() {
-  try {
-    const { lukket } = JSON.parse(localStorage.getItem(NOKKEL) || '{}');
-    return Boolean(lukket) && Date.now() - new Date(lukket) < VIS_IGJEN_ETTER_MS;
-  } catch {
-    return false;
-  }
-}
-
-function huskLukket() {
-  try {
-    localStorage.setItem(NOKKEL, JSON.stringify({ lukket: new Date().toISOString() }));
-  } catch {
-    // Uten localStorage vises veiledningen igjen neste gang. Ikke kritisk.
-  }
-}
-
 export function visHjemskjermVeiledning() {
   const a = ark();
   const type = telefontype();
@@ -90,7 +71,5 @@ export function settOppHjemskjerm() {
       else oppdaterAndroid();
     }
   });
-  a.addEventListener('close', huskLukket);
-
-  if (kanLeggesTil() && !nyligLukket()) setTimeout(visHjemskjermVeiledning, VENT_FOR_VISNING_MS);
+  if (kanLeggesTil()) setTimeout(visHjemskjermVeiledning, VENT_FOR_VISNING_MS);
 }
