@@ -26,6 +26,9 @@ export const PALETTER = {
     tekst: '#0c2c4a', halo: 'rgba(255, 255, 255, 0.9)',
     dybdetall: '#2a4c6b', skjaer: '#141414',
     navnLand: '#3a2e1c', navnSjo: '#174a78',
+    bratt: 'rgba(110, 72, 28, 0.6)',
+    hardFyll: 'rgba(74, 112, 30, 0.16)', hardPrikk: 'rgba(60, 92, 20, 0.8)',
+    blotFyll: 'rgba(240, 196, 40, 0.28)', blotKant: 'rgba(170, 125, 0, 0.9)',
   },
   mork: {
     bakgrunn: '#07111a',
@@ -35,6 +38,9 @@ export const PALETTER = {
     tekst: '#d3ebfb', halo: 'rgba(7, 17, 26, 0.9)',
     dybdetall: '#a3c9e4', skjaer: '#eef2f5',
     navnLand: '#ece4cf', navnSjo: '#9fd2f7',
+    bratt: 'rgba(232, 196, 150, 0.5)',
+    hardFyll: 'rgba(130, 180, 80, 0.14)', hardPrikk: 'rgba(160, 205, 110, 0.75)',
+    blotFyll: 'rgba(240, 200, 60, 0.18)', blotKant: 'rgba(240, 200, 80, 0.85)',
   },
 };
 
@@ -162,13 +168,16 @@ export async function lastDybdedata(mappe = 'data/') {
     if (!svar.ok) throw new Error(`Klarte ikke å hente ${navn} (${svar.status})`);
     return svar.json();
   };
-  const [areal, land, kurver, etiketter, dybdetall, stedsnavn] = await Promise.all([
+  const tom = { features: [] }; // valgfrie lag: kartet virker også uten dem
+  const [areal, land, kurver, etiketter, dybdetall, stedsnavn, bunnhint, bratt] = await Promise.all([
     hent('dybdeareal.geojson'),
     hent('land.geojson'),
     hent('dybdekurver.geojson'),
     hent('kurveetiketter.geojson'),
     hent('dybdetall.geojson'),
-    hent('stedsnavn.geojson').catch(() => ({ features: [] })), // kartet virker også uten navn
+    hent('stedsnavn.geojson').catch(() => tom),
+    hent('bunnhint.geojson').catch(() => tom),
+    hent('bratt.geojson').catch(() => tom),
   ]);
   return {
     soner: new Rutenett(lagObjekter(areal, (p) => ({ sone: soneIndeks(p.min), min: p.min, maks: p.maks }))),
@@ -181,6 +190,10 @@ export async function lastDybdedata(mappe = 'data/') {
     }))),
     dybdetall: new Rutenett(lagPunkter(dybdetall, (p) => ({ kategori: p.kategori, dybde: p.dybde }))),
     stedsnavn: new Rutenett(lagPunkter(stedsnavn, (p) => ({ tekst: p.navn, stil: p.stil, zoom: p.zoom }))),
+    bunnhint: new Rutenett(lagObjekter(bunnhint, (p) => ({
+      hard: p.kategori === 'hard', navn: p.navn, modellert: p.modellert, aar: p.aar,
+    }))),
+    bratt: new Rutenett(lagObjekter(bratt, (p) => ({ svaert: p.klasse === 'svaertbratt' }))),
   };
 }
 
@@ -233,6 +246,54 @@ function tegnDybde(ctx, x, y, dybde, str, fet) {
   if (dybde < 0) ctx.fillRect(x0, y + str * 0.6, bredde, 1.2);
 }
 
+// ---------- Mønstre for bunnforhold ----------
+
+// Skravering og prikker tegnes som små mønsterbilder som gjentas. Mønsteret er 8 px,
+// som går opp i flisstørrelsen (256 px), så det henger sammen over flisgrensene.
+const MONSTER = 8;
+const monsterBuffer = new Map();
+
+function monster(ctx, navn, farge, dpr, tegn) {
+  const nokkel = `${navn}|${farge}|${dpr}`;
+  let bilde = monsterBuffer.get(nokkel);
+  if (!bilde) {
+    bilde = document.createElement('canvas');
+    bilde.width = bilde.height = MONSTER * dpr;
+    const c = bilde.getContext('2d');
+    c.scale(dpr, dpr);
+    c.strokeStyle = c.fillStyle = farge;
+    c.lineWidth = 1.3;
+    tegn(c);
+    monsterBuffer.set(nokkel, bilde);
+  }
+  const m = ctx.createPattern(bilde, 'repeat');
+  m.setTransform(new DOMMatrix().scale(1 / dpr)); // samme skarphet som resten av flisa
+  return m;
+}
+
+const skraa = (c) => {
+  c.beginPath();
+  for (const [x0, y0, x1, y1] of [[0, 8, 8, 0], [-1, 1, 1, -1], [7, 9, 9, 7]]) {
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+  }
+  c.stroke();
+};
+const kryss = (c) => {
+  skraa(c);
+  c.beginPath();
+  for (const [x0, y0, x1, y1] of [[0, 0, 8, 8], [-1, 7, 1, 9], [7, -1, 9, 1]]) {
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+  }
+  c.stroke();
+};
+const prikk = (c) => {
+  c.beginPath();
+  c.arc(4, 4, 1.1, 0, 2 * Math.PI);
+  c.fill();
+};
+
 // Sjøkartsymbol for skjær: kryss med fire prikker.
 function tegnSkjaer(ctx, x, y) {
   ctx.beginPath();
@@ -256,6 +317,8 @@ export const Dybdelag = L.GridLayer.extend({
     tema: 'lys',              // 'lys' | 'mork'
     visLand: true,            // false når et bakgrunnskart fra Kartverket viser land
     visDybdetall: true,
+    visBunnhint: true,        // tareskog, ålegras og skjellsand (Miljødirektoratet)
+    visBratt: true,           // bratt bunn beregnet fra dybdedataene
   },
 
   initialize(data, options) {
@@ -335,6 +398,39 @@ export const Dybdelag = L.GridLayer.extend({
       ctx.strokeStyle = viktig ? p.kurveViktig : p.kurve;
       ctx.lineWidth = viktig ? bredde * 1.5 : bredde;
       ctx.stroke();
+    }
+
+    // 3b. Bunnforhold når du er zoomet langt inn: bunnhint og bratt bunn
+    if (z >= 15) {
+      if (this.options.visBunnhint) {
+        const hint = this._data.bunnhint.sok(t.bbox);
+        for (const hard of [false, true]) {
+          const utvalg = hint.filter((o) => o.hard === hard);
+          if (!utvalg.length) continue;
+          tegnSti(utvalg, true);
+          ctx.fillStyle = hard ? p.hardFyll : p.blotFyll;
+          ctx.fill('evenodd');
+          if (hard) {
+            ctx.fillStyle = monster(ctx, 'prikk', p.hardPrikk, dpr, prikk);
+            ctx.fill('evenodd');
+          }
+          ctx.setLineDash(hard ? [] : [5, 4]);
+          ctx.strokeStyle = hard ? p.hardPrikk : p.blotKant;
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+      if (this.options.visBratt) {
+        const bratt = this._data.bratt.sok(t.bbox);
+        for (const svaert of [false, true]) {
+          const utvalg = bratt.filter((o) => o.svaert === svaert);
+          if (!utvalg.length) continue;
+          tegnSti(utvalg, true);
+          ctx.fillStyle = monster(ctx, svaert ? 'kryss' : 'skraa', p.bratt, dpr, svaert ? kryss : skraa);
+          ctx.fill('evenodd');
+        }
+      }
     }
 
     // 4. Land og tørrfall

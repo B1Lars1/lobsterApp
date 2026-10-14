@@ -168,8 +168,6 @@
           <span><b>Dybdekart</b><small>Fungerer uten nett</small></span></label>
         <label><input type="radio" name="bakgrunn" value="topo">
           <span><b>Topo + dybde</b><small>Stedsnavn og veier. Krever nett</small></span></label>
-        <label><input type="radio" name="bakgrunn" value="sjokart">
-          <span><b>Sjøkart</b><small>Kartverkets sjøkart. Krever nett</small></span></label>
       </fieldset>
       <label class="bryter"><input type="checkbox" name="dybdetall"> Vis dybdetall og skjær</label>
 
@@ -183,6 +181,15 @@
       <label class="bryter"><input type="checkbox" name="visFangst"> Hummerfangst</label>
       <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner som er tatt opp</label>
       <label class="bryter"><input type="checkbox" name="visFredning"> Fredningsområder for hummer</label>
+      <label class="bryter"><input type="checkbox" name="visBunnhint"> Bunnhint: tare, ålegras og skjellsand</label>
+      <label class="bryter"><input type="checkbox" name="visBratt"> Bratt bunn (beregnet)</label>
+      <div class="bunnforklaring">
+        <span><i class="tegn bratt"></i>Bratt bunn – ofte fjell</span>
+        <span><i class="tegn hard"></i>Tareskog – trolig fjell og stein</span>
+        <span><i class="tegn blot"></i>Ålegras, skjellsand – trolig sand eller mudder</span>
+      </div>
+      <p class="hjelp">Vises når du zoomer langt inn. Trykk i kartet for å se hva som er der.
+        Der det ikke står noe, er bunnen ukjent. Tareskog og skjellsand er modellert, ikke kartlagt.</p>
 
       <h2>Tema</h2>
       <fieldset class="segment">

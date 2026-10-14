@@ -41,6 +41,21 @@ export function iFlate(x, y, objekt) {
 }
 
 /**
+ * Lag en funksjon bunnI(lat, lon) som forteller hva vi vet om bunnen i punktet:
+ * { hint: bunnhint-objektet (tareskog, ålegras …) eller null, bratt: 'bratt' | 'svaertbratt' | null }
+ */
+export function lagBunnoppslag(data) {
+  return function bunnI(lat, lon) {
+    const [x, y] = tilVerden(lon, lat);
+    const punkt = [x, y, x, y];
+    const hint = data.bunnhint.sok(punkt).find((o) => iFlate(x, y, o)) ?? null;
+    const bratt = data.bratt.sok(punkt).filter((o) => iFlate(x, y, o));
+    const klasse = bratt.length ? (bratt.some((o) => o.svaert) ? 'svaertbratt' : 'bratt') : null;
+    return { hint, bratt: klasse };
+  };
+}
+
+/**
  * Lag en funksjon dybdeI(lat, lon) som returnerer anslått dybde i meter, eller null.
  * @param {object} data  resultatet fra lastDybdedata()
  */

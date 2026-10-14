@@ -30,6 +30,7 @@ export class Fredning {
     this.omrader = lagObjekter(geojson, (p) => ({ ...p }));
     this.lag = L.geoJSON(geojson, {
       pane: 'fredning',
+      bubblingMouseEvents: false, // trykk på et område skal ikke også gå til kartet
       attribution: 'Fredning: <a href="https://www.fiskeridir.no/">Fiskeridirektoratet</a> (NLOD)',
       style: () => ({ className: 'fredning', color: '#d0213a', weight: 2.5, dashArray: '8 5' }),
       onEachFeature: (f, lag) => lag.on('click', () => this.naarTrykket(f.properties)),

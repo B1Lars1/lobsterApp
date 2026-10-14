@@ -14,10 +14,12 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '7e083b3ca996';
+const VERSJON = '4b18533baeb7';
 const FILER = [
   './',
   'css/app.css',
+  'data/bratt.geojson',
+  'data/bunnhint.geojson',
   'data/dybdeareal.geojson',
   'data/dybdekurver.geojson',
   'data/dybdetall.geojson',
