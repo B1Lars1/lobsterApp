@@ -1,7 +1,8 @@
 """Tegn app-ikonene (PNG) til app/ikoner/.
 
-Motiv: rød hummer sett ovenfra på mørkt hav med dybdekurver. Tegnes i stor
-størrelse og skaleres ned, så kantene blir glatte.
+Motiv: svart hummer (slik den er levende, før den kokes) sett ovenfra på mørkt
+hav med dybdekurver. Hummeren har blågrå glans og en lys kant rundt, så den synes
+mot havet. Tegnes i stor størrelse og skaleres ned, så kantene blir glatte.
 
   ikon-192.png, ikon-512.png  vanlige ikoner (avrundede hjørner)
   ikon-maskable-512.png       Android «adaptive icon»: helt utfylt, motivet innenfor trygg sone
@@ -14,7 +15,7 @@ Kjør fra roten av repoet:  python scripts/lag_ikoner.py
 import math
 import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 from config import ROOT
 
@@ -23,10 +24,11 @@ UT = ROOT / "app" / "ikoner"
 HAV_GRUNT = (24, 92, 146)   # midt i ikonet
 HAV_DYPT = (7, 32, 60)      # ut mot kantene
 KURVE = (127, 184, 224, 95)
-HUMMER = (224, 58, 44)
-HUMMER_LYS = (245, 112, 82)
-HUMMER_MORK = (128, 24, 18)
-OYE = (30, 8, 6)
+HUMMER = (16, 19, 24)          # nesten svart
+HUMMER_GLANS = (62, 84, 110)   # blågrå glans på ryggen, som på levende hummer
+HUMMER_LEDD = (78, 104, 134)   # leddene i halen og vifta
+OYE = (170, 190, 210)
+KANT = (214, 234, 247)         # lys kant rundt hummeren
 
 STOR = 2048  # tegnestørrelse før nedskalering
 
@@ -117,19 +119,19 @@ def hummer(motiv_andel: float) -> Image.Image:
             ytterkant = klopunkter((f * 0.072, 0.0), (f * 0.085, 0.15), (f * 0.014, 0.215))
             innerkant = klopunkter((f * 0.014, 0.215), (f * 0.034, 0.12), (f * 0.007, 0.06))
             d.polygon(ytterkant + innerkant, fill=HUMMER)
-        d.polygon(ellipse(*i_klo(side * -0.02, -0.005), 0.024, 0.045, math.degrees(v)), fill=HUMMER_LYS)
+        d.polygon(ellipse(*i_klo(side * -0.02, -0.005), 0.024, 0.045, math.degrees(v)), fill=HUMMER_GLANS)
 
     # Halevifta: fem fliker som sprer seg ut fra enden av halen (tegnes først, under halen)
     feste = (0.5, 0.815)
     for vinkel in (-50, 50, -25, 25, 0):
         a = math.radians(vinkel)
         cx, cy = feste[0] + math.sin(a) * 0.052, feste[1] + math.cos(a) * 0.052
-        d.polygon(ellipse(cx, cy, 0.03, 0.058, -vinkel), fill=HUMMER, outline=HUMMER_MORK, width=b(0.006))
+        d.polygon(ellipse(cx, cy, 0.03, 0.058, -vinkel), fill=HUMMER, outline=HUMMER_LEDD, width=b(0.006))
 
     # Ryggskjold med pigg (rostrum) foran
     d.polygon([p(0.5, 0.255), p(0.476, 0.33), p(0.524, 0.33)], fill=HUMMER)
     d.polygon(ellipse(0.5, 0.435, 0.092, 0.13), fill=HUMMER)
-    d.polygon(ellipse(0.5, 0.45, 0.03, 0.09), fill=HUMMER_LYS)
+    d.polygon(ellipse(0.5, 0.45, 0.03, 0.09), fill=HUMMER_GLANS)
     for side in (-1, 1):
         x, y = p(0.5 + side * 0.034, 0.318)
         r = b(0.014)
@@ -140,14 +142,24 @@ def hummer(motiv_andel: float) -> Image.Image:
         topp = 0.545 + i * 0.044
         (x0, y0), (x1, y1) = p(0.5 - bredde / 2, topp), p(0.5 + bredde / 2, topp + 0.054)
         d.rounded_rectangle((x0, y0, x1, y1), radius=b(0.022), fill=HUMMER,
-                            outline=HUMMER_MORK, width=b(0.008))
+                            outline=HUMMER_LEDD, width=b(0.008))
         (x0, y0), (x1, y1) = p(0.5 - 0.022, topp + 0.012), p(0.5 + 0.022, topp + 0.042)
-        d.rounded_rectangle((x0, y0, x1, y1), radius=b(0.012), fill=HUMMER_LYS)
+        d.rounded_rectangle((x0, y0, x1, y1), radius=b(0.012), fill=HUMMER_GLANS)
     return lag
 
 
+def med_kant(lag: Image.Image, bredde: float = 0.011) -> Image.Image:
+    """Legg en lys kant rundt motivet, så den svarte hummeren synes mot det mørke havet."""
+    # Uskarp kopi av omrisset, gjort skarp igjen med en lav terskel: et litt større omriss
+    alfa = lag.getchannel("A").filter(ImageFilter.GaussianBlur(bredde * STOR / 1.9))
+    alfa = alfa.point(lambda v: 255 if v > 8 else 0).filter(ImageFilter.GaussianBlur(2))
+    kant = Image.new("RGBA", lag.size, KANT)
+    kant.putalpha(alfa)
+    return Image.alpha_composite(kant, lag)
+
+
 def tegn(avrundet: bool, motiv_andel: float) -> Image.Image:
-    bilde = Image.alpha_composite(hav(), hummer(motiv_andel))
+    bilde = Image.alpha_composite(hav(), med_kant(hummer(motiv_andel)))
     if avrundet:  # klipp alt til avrundede hjørner til slutt
         maske = Image.new("L", bilde.size, 0)
         ImageDraw.Draw(maske).rounded_rectangle((0, 0, STOR - 1, STOR - 1), radius=int(STOR * 0.22), fill=255)
