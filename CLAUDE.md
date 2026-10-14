@@ -15,7 +15,13 @@ detalj. Denne filen er det en agent trenger i tillegg.
   `lagreSletting`, `HUMMER_GLANS`. Kommentarer og tekst bruker vanlige bokstaver.
 - Commit-meldinger: kort tittel i imperativ («Legg til …», «Rett …», «Tegn …»),
   tom linje, så en forklaring på hvorfor. Commit rett på `main`, ingen grener eller PR.
-- Hold README oppdatert når oppførsel endres. Den beskriver hver funksjon for brukeren.
+- **README.md og CLAUDE.md skal alltid være oppdatert.** Oppdater dem i samme commit
+  som endringen de beskriver:
+  - README.md når noe brukeren merker endres: funksjoner, oppførsel, utseende,
+    skript, kommandoer eller oppsett. Den beskriver hver funksjon for brukeren.
+  - CLAUDE.md når noe en agent må vite endres: kommandoer, arkitektur, dataformater,
+    konvensjoner, arbeidsflyt eller nye fallgruver du oppdager.
+  - Sjekk begge før hver commit, og si fra til brukeren hva du har oppdatert.
 
 ## Kommandoer
 
