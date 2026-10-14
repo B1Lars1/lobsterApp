@@ -1,0 +1,30 @@
+# --- Private data: skal ALDRI inn i det offentlige repoet ---
+# Egne markeringer (teineplasser, fangst) eksportert fra appen.
+data/private/
+# Ekstra sikring hvis en eksport havner et annet sted i repoet ved et uhell.
+markeringer*.geojson
+
+# --- Store rådata og mellomprodukter (lages på nytt av skriptene) ---
+data/raw/
+data/processed/
+
+# --- Python-miljø og cache ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+
+# --- Hemmeligheter ---
+.env
+.env.*
+*.pem
+*.key
+
+# --- Editor og operativsystem ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
