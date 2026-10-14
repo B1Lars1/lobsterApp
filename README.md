@@ -150,8 +150,12 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
 | `js/melding.js` | Korte meldinger med «Angre» |
+| `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
+
+**Arkene** som kommer opp nedenfra (innstillinger, teineliste, detaljer) lukkes med
+«Ferdig», ved å trykke utenfor, eller ved å dra dem ned i håndtaket øverst.
 
 **Kartvalg** (knappen øverst til høyre):
 
