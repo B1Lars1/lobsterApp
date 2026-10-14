@@ -411,12 +411,32 @@ Teiner som fortsatt står i sjøen, regnes frem til nå. Fangst må være knytte
 teine for å telle med. Det skjer automatisk når du trykker «Hummer her» ved teinen
 eller «Registrer fangst» i teinearket.
 
+På Mac og Linux: `.venv/bin/python scripts/analyser_fangst.py`.
+
 Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
 
 | Fil | Innhold |
 |---|---|
-| `fangst.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint og fangst per dag (beholdt og satt ut) |
+| `tidslinje.png` | Tidslinje, statistikk og teinesettinger med og uten hummer (se under) |
+| `dybde_og_bunn.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint og fangst per dag (beholdt og satt ut) |
 | `teinesettinger.csv` | Én rad per teinesetting: tid, døgn i sjøen, dybde, bunnhint, antall hummer og posisjon |
+
+**Tidslinjen** har én rad per teinenummer. Hver gang teinen er satt, vises en stolpe
+fra den ble satt til den ble tatt opp, eller frem til nå hvis den står i sjøen (lysere
+farge og en pil). Blå stolpe betyr at settingen ga hummer, grå at den ikke gjorde det.
+Hver fangstregistrering er en oransje prikk med antall hummer, der den ble registrert.
+En svart firkant er der teinen ble tatt opp uten fangst akkurat da. Fangst som ikke er
+knyttet til en teine, står på en egen rad nederst. Tidene er norsk tid.
+
+**Statistikken** summerer perioden, antall teinesettinger (og hvor mange som står i
+sjøen), hvor mange som ga hummer og hvor mange som ikke gjorde det (tatt opp tomme og
+i sjøen uten fangst ennå), antall hummer beholdt og satt ut, teinedøgn, hummer per
+teinedøgn, snitt døgn per setting og den beste settingen. Den samme statistikken og
+tidslinjen skrives også i terminalen.
+
+Appen registrerer at en teine er satt, at den er tatt opp, og fangst. Sjekker du en
+teine og setter den rett ut igjen uten å trykke «Tatt opp», vises det derfor som én lang
+setting. Vil du at sjekken skal synes, trykk «Tatt opp» og deretter «Sett ut igjen her».
 
 Dybden er anslått fra Kartverkets dybdedata (se «Fredningsområder og dybde»), og
 bunnhint kommer fra Miljødirektoratet. Med få teinedøgn (under 30) sier skriptet

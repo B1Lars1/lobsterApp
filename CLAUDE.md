@@ -77,6 +77,10 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   (`{ id, endret, markering }`, der `markering` er en kopi så den kan gjenopprettes).
   Ny tabell eller indeks: øk `DB_VERSJON` og la eksisterende data stå urørt i
   `onupgradeneeded`.
+- En teinesetting går fra `tid` til `tatt_opp` (eller er i sjøen). «Sett ut igjen her»
+  lager en ny teine med samme nummer. Fangst er egne markeringer med `teine_id`. Det
+  finnes ingen hendelse for «sjekket, ingen hummer». Tidslinjen i `analyser_fangst.py`
+  bygger på dette.
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
 
