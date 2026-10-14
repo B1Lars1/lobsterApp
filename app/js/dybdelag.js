@@ -204,33 +204,17 @@ function leggTilRinger(ctx, objekt, t, lukk) {
   }
 }
 
-// Dybdetall i sjøkartstil: hele meter stort, desimalen liten og senket («12₃»).
-// Negative verdier er tørrfallshøyder og understrekes, som i sjøkartet.
-function tegnDybde(ctx, x, y, dybde, str, p, fet) {
-  const verdi = Math.abs(dybde);
-  const hel = Math.floor(verdi);
-  const desimal = Math.round((verdi - hel) * 10) % 10;
-  const visDesimal = verdi < 31 && desimal !== 0;
-  const fontHel = `${fet ? 700 : 500} ${str}px system-ui, sans-serif`;
-  const fontDes = `${fet ? 700 : 500} ${Math.round(str * 0.75)}px system-ui, sans-serif`;
-
-  ctx.font = fontHel;
-  const bHel = ctx.measureText(String(hel)).width;
-  let bDes = 0;
-  if (visDesimal) {
-    ctx.font = fontDes;
-    bDes = ctx.measureText(String(desimal)).width;
-  }
-  const x0 = x - (bHel + bDes) / 2;
-  ctx.font = fontHel;
-  ctx.strokeText(String(hel), x0, y);
-  ctx.fillText(String(hel), x0, y);
-  if (visDesimal) {
-    ctx.font = fontDes;
-    ctx.strokeText(String(desimal), x0 + bHel, y + str * 0.3);
-    ctx.fillText(String(desimal), x0 + bHel, y + str * 0.3);
-  }
-  if (dybde < 0) ctx.fillRect(x0, y + str * 0.6, bHel + bDes, 1.2);
+// Dybdetall i hele meter, rundet nedover som i sjøkartet (12,8 m vises som 12),
+// så kartet aldri viser dypere vann enn det som er målt.
+// Negative verdier er tørrfallshøyder (over sjøkartnull) og understrekes.
+function tegnDybde(ctx, x, y, dybde, str, fet) {
+  const tekst = String(dybde >= 0 ? Math.floor(dybde) : Math.round(-dybde));
+  ctx.font = `${fet ? 700 : 500} ${str}px system-ui, sans-serif`;
+  const bredde = ctx.measureText(tekst).width;
+  const x0 = x - bredde / 2;
+  ctx.strokeText(tekst, x0, y);
+  ctx.fillText(tekst, x0, y);
+  if (dybde < 0) ctx.fillRect(x0, y + str * 0.6, bredde, 1.2);
 }
 
 // Sjøkartsymbol for skjær: kryss med fire prikker.
@@ -389,7 +373,7 @@ export const Dybdelag = L.GridLayer.extend({
           ctx.strokeStyle = p.halo;
         } else if (d.kategori === 'grunne' ? z >= 15 : z >= 16) {
           ctx.fillStyle = p.dybdetall;
-          tegnDybde(ctx, x, y, d.dybde, str, p, d.kategori === 'grunne');
+          tegnDybde(ctx, x, y, d.dybde, str, d.kategori === 'grunne');
         }
       }
     }
