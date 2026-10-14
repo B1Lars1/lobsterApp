@@ -2,15 +2,97 @@
 <html lang="nb">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4eedb">
+  <meta name="color-scheme" content="light dark">
   <title>Hummerkart Lillesand</title>
-  <style>
-    body { margin: 0; padding: 24px; font-family: system-ui, sans-serif;
-           background: #0b1620; color: #f2f5f7; }
-  </style>
+  <script>
+    // Sett tema før siden tegnes, så den ikke blinker hvitt i mørket.
+    try {
+      const t = JSON.parse(localStorage.getItem('hummerkart.innstillinger') || '{}').tema || 'auto';
+      document.documentElement.dataset.tema = t !== 'auto' ? t
+        : (matchMedia('(prefers-color-scheme: dark)').matches ? 'mork' : 'lys');
+    } catch { document.documentElement.dataset.tema = 'lys'; }
+  </script>
+  <link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css">
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <h1>Hummerkart Lillesand</h1>
-  <p>Under arbeid. Kartet kommer i fase 3.</p>
+  <div id="kart" aria-label="Kart"></div>
+
+  <!-- Øverst: GPS-status og kartlag -->
+  <header class="topplinje">
+    <div id="gps-status" class="brikke" data-kvalitet="venter" role="status">
+      <span class="gps-ikon" aria-hidden="true"></span>
+      <span class="tekst">Søker GPS …</span>
+    </div>
+    <button id="knapp-lag" class="rund-knapp" type="button" aria-label="Kart og innstillinger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="m2 12.5 10 5 10-5"/><path d="m2 17 10 5 10-5"/></svg>
+    </button>
+  </header>
+
+  <div id="laster" class="brikke laster" role="status">Laster dybdekart …</div>
+  <div id="melding" class="melding" role="status" aria-live="polite"></div>
+
+  <!-- Høyre side: zoom og «finn meg» -->
+  <div class="kartknapper">
+    <button id="knapp-zoom-inn" class="rund-knapp" type="button" aria-label="Zoom inn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button id="knapp-zoom-ut" class="rund-knapp" type="button" aria-label="Zoom ut">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
+    </button>
+    <button id="knapp-meg" class="rund-knapp stor" type="button" aria-label="Sentrer og følg min posisjon" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>
+    </button>
+  </div>
+
+  <!-- Nederst: store knapper for markering -->
+  <nav class="handlinger" aria-label="Markeringer">
+    <button id="knapp-teine" class="handling teine" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8.5"/><path d="M12 2.5 18 5l-6 2.5Z" fill="currentColor"/><circle cx="12" cy="14.5" r="4"/><path d="M2 21.5c2.5-1.5 4.5-1.5 6.5 0s4.5 1.5 7 0 4.5-1.5 6.5 0"/></svg>
+      Sett teine
+    </button>
+    <button id="knapp-hummer" class="handling hummer" type="button">
+      <span class="emoji" aria-hidden="true">🦞</span>
+      Hummer her
+    </button>
+  </nav>
+
+  <!-- Ark for kartvalg og innstillinger -->
+  <dialog id="lagvelger" class="ark">
+    <form method="dialog">
+      <div class="handtak" aria-hidden="true"></div>
+
+      <h2>Kart</h2>
+      <fieldset class="valg">
+        <legend class="skjult">Bakgrunnskart</legend>
+        <label><input type="radio" name="bakgrunn" value="dybde">
+          <span><b>Dybdekart</b><small>Fungerer uten nett</small></span></label>
+        <label><input type="radio" name="bakgrunn" value="topo">
+          <span><b>Topo + dybde</b><small>Stedsnavn og veier. Krever nett</small></span></label>
+        <label><input type="radio" name="bakgrunn" value="sjokart">
+          <span><b>Sjøkart</b><small>Kartverkets sjøkart. Krever nett</small></span></label>
+      </fieldset>
+      <label class="bryter"><input type="checkbox" name="dybdetall"> Vis dybdetall og skjær</label>
+
+      <h2>Dybde (meter)</h2>
+      <div id="tegnforklaring" class="tegnforklaring"></div>
+
+      <h2>Tema</h2>
+      <fieldset class="segment">
+        <legend class="skjult">Tema</legend>
+        <label><input type="radio" name="tema" value="auto">Auto</label>
+        <label><input type="radio" name="tema" value="lys">Lys</label>
+        <label><input type="radio" name="tema" value="mork">Mørk</label>
+      </fieldset>
+
+      <p id="kildeinfo" class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>
+      <button class="ferdig" value="lukk">Ferdig</button>
+    </form>
+  </dialog>
+
+  <script src="vendor/leaflet-1.9.4/leaflet.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
