@@ -50,7 +50,7 @@ function soneIndeks(minDybde) {
 // ---------- Koordinater ----------
 
 // lon/lat -> Web Mercator «verdenskoordinater» der hele jorda er 0–1 i x og y.
-function tilVerden(lon, lat) {
+export function tilVerden(lon, lat) {
   const s = Math.sin((lat * Math.PI) / 180);
   return [(lon + 180) / 360, 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)];
 }

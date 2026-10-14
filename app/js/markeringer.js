@@ -11,7 +11,7 @@
  *   tid          når teinen ble satt / fangsten registrert (ISO 8601, UTC)
  *   endret       sist endret (ISO 8601, UTC)
  *   notat        fritekst
- *   dybde        dybde i meter fra dybdedataene (fylles inn i fase 5)
+ *   dybde        anslått dybde i meter fra dybdedataene (se dybdeoppslag.js)
  *   noyaktighet  GPS-nøyaktighet i meter, null hvis plassert i kartet
  *   kilde        'gps' | 'kart'
  *   nummer       teinenummer                                   (teine)
@@ -61,7 +61,38 @@ export class Markeringer {
   constructor() {
     this._alle = new Map(); // id -> markering
     this._lyttere = new Set();
+    this._dybdeI = null; // (lat, lon) => dybde, settes når dybdedataene er lastet
     this.lagringVirker = true;
+  }
+
+  /** Ta i bruk dybdeoppslag, og fyll inn dybde på markeringer som mangler det. */
+  settDybdeoppslag(dybdeI) {
+    this._dybdeI = dybdeI;
+    this._fyllInnDybde();
+  }
+
+  _dybde(lat, lon) {
+    return this._dybdeI ? this._dybdeI(lat, lon) : null;
+  }
+
+  // Dybde er avledet fra kartdataene, så «endret» røres ikke.
+  async _fyllInnDybde() {
+    if (!this._dybdeI) return;
+    const mangler = this.alle().filter((m) => m.dybde == null);
+    const oppdatert = [];
+    for (const m of mangler) {
+      const dybde = this._dybde(m.lat, m.lon);
+      if (dybde == null) continue;
+      m.dybde = dybde;
+      oppdatert.push(m);
+    }
+    if (!oppdatert.length) return;
+    this._varsle();
+    try {
+      await lager.lagreMange(oppdatert);
+    } catch (feil) {
+      console.error(feil);
+    }
   }
 
   /** Les inn alle markeringer fra databasen. */
@@ -73,6 +104,7 @@ export class Markeringer {
       this.lagringVirker = false;
     }
     this._varsle();
+    this._fyllInnDybde();
   }
 
   naarEndret(funksjon) {
@@ -132,17 +164,22 @@ export class Markeringer {
   }
 
   nyTeine({ lat, lon, noyaktighet = null, kilde = 'gps', nummer = this.nesteTeinenummer() }) {
-    return this._lagre(normaliser({ kategori: 'teine', lat, lon, noyaktighet, kilde, nummer }));
+    return this._lagre(normaliser({
+      kategori: 'teine', lat, lon, noyaktighet, kilde, nummer, dybde: this._dybde(lat, lon),
+    }));
   }
 
   nyFangst({ lat, lon, noyaktighet = null, kilde = 'gps', teine_id = null, beholdt = 1, satt_ut = 0 }) {
     return this._lagre(normaliser({
       kategori: 'hummer', lat, lon, noyaktighet, kilde, teine_id, beholdt, satt_ut,
+      dybde: this._dybde(lat, lon),
     }));
   }
 
   oppdater(id, endringer) {
-    return this._lagre({ ...this.hent(id), ...endringer, endret: naa() });
+    const m = { ...this.hent(id), ...endringer, endret: naa() };
+    if ('lat' in endringer || 'lon' in endringer) m.dybde = this._dybde(m.lat, m.lon); // flyttet
+    return this._lagre(m);
   }
 
   taOpp(id) {
@@ -214,6 +251,7 @@ export class Markeringer {
     for (const m of tilLagring) this._alle.set(m.id, m);
     await lager.lagreMange(tilLagring);
     this._varsle();
+    this._fyllInnDybde();
     return resultat;
   }
 }

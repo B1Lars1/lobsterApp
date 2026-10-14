@@ -24,6 +24,9 @@ function formaterSiden(iso) {
   return `${Math.round(timer / 24)} døgn siden`;
 }
 
+// Anslått dybde vises i hele meter.
+export const formaterDybde = (dybde) => `ca. ${Math.round(dybde)} m`;
+
 const formaterAvstand = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`);
 
 // Kompasskurs i grader fra nord, fra a til b.
@@ -211,7 +214,7 @@ export class Markeringsark {
       ? `Satt ${formaterTid(m.tid)} · ${formaterSiden(m.tid)}`
       : `Tatt opp ${formaterTid(m.tatt_opp)}`);
     sett('avstand', this._avstandTekst(m));
-    sett('dybde', m.dybde != null ? `${String(m.dybde).replace('.', ',')} m` : '–');
+    sett('dybde', m.dybde != null ? formaterDybde(m.dybde) : '–');
     sett('fangst', fangst.length ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
     el.querySelector('[data-felt="nummer"]').value = m.nummer ?? '';
     el.querySelector('[data-felt="notat"]').value = m.notat;
@@ -383,7 +386,7 @@ export class Markeringsark {
         </li>`);
       li.querySelector('[data-tekst="nummer"]').textContent = t.nummer;
       li.querySelector('[data-tekst="tittel"]').textContent = `Teine ${t.nummer}`;
-      const dybde = t.dybde != null ? ` · ${String(t.dybde).replace('.', ',')} m` : '';
+      const dybde = t.dybde != null ? ` · ${formaterDybde(t.dybde)}` : '';
       li.querySelector('[data-tekst="info"]').textContent = `Satt ${formaterSiden(t.tid)}${dybde}`;
       const der = L.latLng(t.lat, t.lon);
       const avstand = her?.distanceTo(der);
