@@ -1,0 +1,61 @@
+# Publiserer appen (mappen app/) til GitHub Pages ved hver push til main som
+# endrer appen. Kan også startes for hånd under «Actions» → «Publiser appen» → «Run workflow».
+#
+# Før publisering oppdateres fillisten og versjonen i app/sw.js, så telefonen alltid
+# henter den nye versjonen (se scripts/lag_service_worker.py).
+
+name: Publiser appen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "scripts/lag_service_worker.py"
+      - ".github/workflows/publiser.yml"
+  workflow_dispatch:
+
+# Bare det som trengs for å publisere til Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Ikke publiser to ganger samtidig
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  bygg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v7
+
+      - name: Sett opp Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Oppdater fillisten og versjonen i sw.js
+        run: python scripts/lag_service_worker.py
+
+      - name: Klargjør GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Pakk mappen app/
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: app
+
+  publiser:
+    needs: bygg
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publisering.outputs.page_url }}
+    steps:
+      - name: Publiser til GitHub Pages
+        id: publisering
+        uses: actions/deploy-pages@v5
