@@ -8,5 +8,15 @@
     "metadata_url": "https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a",
     "lastet_ned": "2026-10-14",
     "merknad": "Ikke godkjent for navigasjon. Dybder er referert til sjøkartnull."
+  },
+  "fredningsomrader": {
+    "navn": "Hummer – fredningsområder",
+    "eier": "Fiskeridirektoratet",
+    "kreditering": "Inneholder data under Norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Fiskeridirektoratet",
+    "lisens": "NLOD",
+    "lisens_url": "https://data.norge.no/nlod/no/1.0",
+    "metadata_url": "https://kartkatalog.geonorge.no/metadata/8901e1f8-b947-4f7d-819c-bf11e3e16a68",
+    "lastet_ned": "2026-10-14",
+    "merknad": "Sjekk alltid gjeldende forskrift hos Fiskeridirektoratet."
   }
 }
