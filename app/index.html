@@ -123,8 +123,12 @@
       <h3 class="ark-tittel">Teiner i sjøen (<span data-tekst="antall">0</span>)</h3>
       <button type="button" class="fare liten" data-handling="taOppAlle">Ta opp alle</button>
     </div>
-    <ul class="liste"></ul>
+    <ul class="liste" data-liste="teiner"></ul>
     <p class="kilde" data-tekst="sesong"></p>
+    <details class="slettede" hidden>
+      <summary><span>Slettede markeringer (<span data-tekst="antallSlettede">0</span>)</span></summary>
+      <ul class="liste" data-liste="slettede"></ul>
+    </details>
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 

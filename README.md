@@ -254,6 +254,9 @@ Sjekk alltid gjeldende forskrift.
   Tallet på knappen er antall teiner i sjøen.
 - **Tatt opp** fjerner teinen fra kartet, men tar vare på den i historikken for
   analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
+- **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet
+  først. Trykk **Gjenopprett** for å få en markering tilbake, også lenge etter at
+  «Angre» er borte. En teine du angrer rett etter at du satte den, havner ikke her.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
 der når appen åpnes igjen, også uten nett. Med synkronisering (se under) får du i

@@ -8,7 +8,8 @@
  * To tabeller:
  *   markeringer  teiner og fangst
  *   slettinger   id og tidspunkt for markeringer du har slettet, så slettingen også
- *                gjelder for kopien på GitHub og andre telefoner
+ *                gjelder for kopien på GitHub og andre telefoner, og en kopi av
+ *                markeringen, så den kan gjenopprettes (eldre slettinger mangler kopien)
  *
  * IndexedDB har et tungvint, hendelsesbasert API. Funksjonene her pakker det inn
  * i Promise, så resten av appen kan bruke await.

@@ -717,7 +717,8 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   color: inherit;
   text-align: left;
 }
-.liste .symbol.teine { width: 40px; height: 40px; flex: none; }
+.liste .symbol.teine,
+.liste .symbol.hummer { width: 40px; height: 40px; flex: none; }
 .radtekst { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .radtekst b { font-size: 17px; }
 .radtekst small { color: var(--dempet); font-size: 14px; }
@@ -731,7 +732,8 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 }
 .pil { display: inline-grid; width: 20px; height: 20px; color: var(--aksent); }
 .pil[hidden] { display: none; }
-.ta-opp {
+.ta-opp,
+.gjenopprett {
   min-height: 48px;
   padding: 0 14px;
   border: 2px solid var(--kant);
@@ -741,6 +743,24 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   font-size: 15px;
   font-weight: 800;
 }
+
+/* Slettede markeringer, sammenlagt under teinelisten */
+.slettede { margin: 4px 0 8px; border-top: 1px solid var(--kant); }
+.slettede summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  color: var(--dempet);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.slettede summary::-webkit-details-marker { display: none; }
+.slettede summary::before { content: '▸'; transition: transform 0.15s; }
+.slettede[open] summary::before { transform: rotate(90deg); }
+.symbol.slettet { filter: grayscale(1); opacity: 0.6; }
 
 .hjelp { margin: 8px 0; font-size: 14px; line-height: 1.45; color: var(--dempet); }
 #synkstatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }

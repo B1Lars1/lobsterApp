@@ -3,7 +3,8 @@
  *   - «Sett teine» og «Hummer her» (ett trykk, bruker GPS-posisjonen)
  *   - valg etter langt trykk i kartet (marker et valgfritt sted)
  *   - detaljer for en teine eller fangst: endre, ta opp, flytte, slette
- *   - listen over teiner i sjøen med avstand og retning
+ *   - listen over teiner i sjøen med avstand og retning, og under den slettede
+ *     markeringer som kan gjenopprettes
  *   - advarsel når en teine havner i et fredningsområde, og info om området
  *
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
@@ -133,7 +134,7 @@ export class Markeringsark {
     if (!pos) return;
     const t = await this.markeringer.nyTeine(pos);
     this._sjekkLagring();
-    const angre = { knapp: 'Angre', handling: () => this.markeringer.slett(t.id) };
+    const angre = { knapp: 'Angre', handling: () => this.markeringer.slett(t.id, { husk: false }) };
     const omrade = this._fredningFor(t);
     if (omrade) {
       visMelding(`Teine ${t.nummer} er satt i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
@@ -338,7 +339,7 @@ export class Markeringsark {
         const ny = await this.markeringer.nyTeine({ ...pos, nummer: m.nummer });
         visMelding(`Teine ${ny.nummer} satt ut igjen`, {
           knapp: 'Angre',
-          handling: () => this.markeringer.slett(ny.id),
+          handling: () => this.markeringer.slett(ny.id, { husk: false }),
         });
         this.etterFlytt(ny.id);
         break;
@@ -452,9 +453,11 @@ export class Markeringsark {
       }
       return li;
     });
-    const liste = this.arkTeiner.querySelector('.liste');
+    const liste = this.arkTeiner.querySelector('[data-liste="teiner"]');
     if (rader.length) liste.replaceChildren(...rader);
     else liste.replaceChildren(fraMal('<li class="tom">Ingen teiner i sjøen. Trykk «Sett teine» når du setter en.</li>'));
+
+    this._tegnSlettede();
 
     // Fangst i år
     const aar = new Date().getFullYear();
@@ -465,10 +468,38 @@ export class Markeringsark {
       `Fangst i ${aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
   }
 
+  // Slettede markeringer, sist slettet først, så en sletting kan angres også senere.
+  _tegnSlettede() {
+    const slettede = this.markeringer.slettede();
+    this.arkTeiner.querySelector('.slettede').hidden = slettede.length === 0;
+    this.arkTeiner.querySelector('[data-tekst="antallSlettede"]').textContent = slettede.length;
+    const rader = slettede.map(({ endret, markering: m }) => {
+      const teine = m.kategori === 'teine';
+      const li = fraMal(`
+        <li>
+          <span class="rad">
+            <span class="symbol slettet ${teine ? 'teine' : 'hummer'}"><span data-tekst="symbol"></span></span>
+            <span class="radtekst"><b data-tekst="tittel"></b><small data-tekst="info"></small></span>
+          </span>
+          <button type="button" class="gjenopprett">Gjenopprett</button>
+        </li>`);
+      const symbol = li.querySelector('[data-tekst="symbol"]');
+      if (teine) symbol.textContent = m.nummer ?? '?';
+      else Object.assign(symbol, { className: 'emoji', textContent: '🦞' });
+      li.querySelector('[data-tekst="tittel"]').textContent = navnPa(m);
+      li.querySelector('[data-tekst="info"]').textContent =
+        `Slettet ${formaterSiden(endret)} · ${teine ? 'satt' : 'registrert'} ${formaterTid(m.tid)}`;
+      li.querySelector('.gjenopprett').dataset.gjenopprett = m.id;
+      return li;
+    });
+    this.arkTeiner.querySelector('[data-liste="slettede"]').replaceChildren(...rader);
+  }
+
   async _listeKlikk(e) {
     if (e.target === this.arkTeiner) return; // bakgrunnsklikk håndteres i konstruktøren
     const vis = e.target.closest('[data-vis]')?.dataset.vis;
     const taOpp = e.target.closest('[data-ta-opp]')?.dataset.taOpp;
+    const gjenopprett = e.target.closest('[data-gjenopprett]')?.dataset.gjenopprett;
     const handling = e.target.closest('[data-handling]')?.dataset.handling;
 
     if (vis) {
@@ -476,6 +507,14 @@ export class Markeringsark {
       this.arkTeiner.close();
       this.kart.setView([t.lat, t.lon], Math.max(this.kart.getZoom(), 16));
       this.visMarkering(vis);
+    } else if (gjenopprett) {
+      const slettet = this.markeringer.slettede().find((s) => s.id === gjenopprett);
+      if (!slettet) return;
+      const m = await this.markeringer.gjenopprett(slettet.markering);
+      const nummerBrukt = m.kategori === 'teine' && m.status === 'i_sjoen'
+        && this.markeringer.teinerISjoen().some((t) => t.nummer === m.nummer && t.id !== m.id);
+      visMelding(`${navnPa(m)} gjenopprettet${nummerBrukt ? `. Obs: teine ${m.nummer} finnes allerede i sjøen` : ''}`,
+        { ms: nummerBrukt ? 5000 : undefined });
     } else if (taOpp) {
       const t = this.markeringer.hent(taOpp);
       await this.markeringer.taOpp(taOpp);
