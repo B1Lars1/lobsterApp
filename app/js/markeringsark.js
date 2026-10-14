@@ -77,6 +77,7 @@ export class Markeringsark {
     this.arkFredning = document.getElementById('ark-fredning');
     this.aapenId = null;
     this._utkast = null; // ny fangst som ikke er lagret ennå (se registrerFangst)
+    this._utkastTittel = ''; // overskriften i arket for utkastet
     this._sikte = null;
     this._aapnetTid = 0;
 
@@ -198,13 +199,14 @@ export class Markeringsark {
    * annet er oppgitt. Fangsten er bare et utkast i arket og lagres først når du trykker
    * «Ferdig», så et feiltrykk ikke blir liggende som en registrering.
    */
-  registrerFangst(pos = this._gpsPosisjon(), teine = undefined) {
+  registrerFangst(pos = this._gpsPosisjon(), teine = undefined, { beholdt = 1, tittel = 'Ny hummerfangst' } = {}) {
     if (!pos) return;
     const fra = teine === undefined ? this.markeringer.naermesteTeine(L.latLng(pos.lat, pos.lon)) : teine;
     this._utkast = {
-      ...pos, kategori: 'hummer', teine_id: fra?.id ?? null, beholdt: 1, satt_ut: 0, notat: '',
+      ...pos, kategori: 'hummer', teine_id: fra?.id ?? null, beholdt, satt_ut: 0, notat: '',
       tid: new Date().toISOString(),
     };
+    this._utkastTittel = tittel;
     this.aapenId = null;
     this.arkMarkering.querySelector('.innhold').replaceChildren(this._fangstInnhold(this._utkast));
     this._visTaOppHint();
@@ -230,6 +232,15 @@ export class Markeringsark {
         if (teine) await this.markeringer.oppdater(teine.id, { status: 'i_sjoen', tatt_opp: null });
       },
     });
+  }
+
+  /**
+   * «Tatt opp» for én teine: åpne arket for fangsten fra den, med 0 hummer som utgangspunkt
+   * (de fleste opptak er tomme). Teinen markeres som tatt opp først når man trykker «Ferdig».
+   */
+  _taOppMedFangst(t) {
+    this.registrerFangst({ lat: t.lat, lon: t.lon, noyaktighet: t.noyaktighet, kilde: t.kilde }, t,
+      { beholdt: 0, tittel: `Teine ${t.nummer} tatt opp` });
   }
 
   // Teinen en ny fangst kommer fra, hvis den står i sjøen og derfor skal tas opp. Ellers null.
@@ -310,7 +321,6 @@ export class Markeringsark {
         ${iSjoen
           ? '<button type="button" class="stor teine-farge" data-handling="taOpp">Tatt opp</button>'
           : '<button type="button" class="stor teine-farge" data-handling="settUtIgjen">Sett ut igjen her</button>'}
-        ${iSjoen ? '<button type="button" class="sekundar" data-handling="fangst">🦞 Registrer fangst</button>' : ''}
         <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
         <button type="button" class="fare" data-handling="slett">Slett</button>
         <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
@@ -366,7 +376,7 @@ export class Markeringsark {
   _fangstInnhold(m) {
     const ny = !m.id;
     const sjekk = !ny && erSjekk(m);
-    const tittel = ny ? 'Ny hummerfangst' : sjekk ? 'Ingen hummer' : 'Hummerfangst';
+    const tittel = ny ? this._utkastTittel : sjekk ? 'Ingen hummer' : 'Hummerfangst';
     const el = fraMal(`
       <div class="ark-topp">
         <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></div>
@@ -437,12 +447,7 @@ export class Markeringsark {
         this.visFredning(this._fredningFor(m));
         break;
       case 'taOpp':
-        this.arkMarkering.close();
-        await this.markeringer.taOpp(id);
-        visMelding(`Teine ${m.nummer} tatt opp`, {
-          knapp: 'Angre',
-          handling: () => this.markeringer.oppdater(id, { status: 'i_sjoen', tatt_opp: null }),
-        });
+        this._taOppMedFangst(m);
         break;
       case 'settUtIgjen': {
         // Ny utsetting med samme nummer. Den gamle beholdes som historikk.
@@ -457,9 +462,6 @@ export class Markeringsark {
         this.etterFlytt(ny.id);
         break;
       }
-      case 'fangst':
-        this.registrerFangst({ lat: m.lat, lon: m.lon, noyaktighet: m.noyaktighet, kilde: m.kilde }, m);
-        break;
       case 'flytt':
         this.arkMarkering.close();
         this.startFlytt(id);
@@ -654,12 +656,8 @@ export class Markeringsark {
       visMelding(`${navnPa(m)} gjenopprettet${nummerBrukt ? `. Obs: teine ${m.nummer} finnes allerede i sjøen` : ''}`,
         { ms: nummerBrukt ? 5000 : undefined });
     } else if (taOpp) {
-      const t = this.markeringer.hent(taOpp);
-      await this.markeringer.taOpp(taOpp);
-      visMelding(`Teine ${t.nummer} tatt opp`, {
-        knapp: 'Angre',
-        handling: () => this.markeringer.oppdater(taOpp, { status: 'i_sjoen', tatt_opp: null }),
-      });
+      this.arkTeiner.close();
+      this._taOppMedFangst(this.markeringer.hent(taOpp));
     } else if (handling === 'taOppAlle') {
       const teiner = this.markeringer.teinerISjoen();
       if (!window.confirm(`Ta opp alle ${teiner.length} teinene?`)) return;

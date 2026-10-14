@@ -626,8 +626,7 @@ button {
   margin-top: 16px;
 }
 .knapper .stor,
-.knapper .ferdig,
-.knapper [data-handling="fangst"] { grid-column: 1 / -1; }
+.knapper .ferdig { grid-column: 1 / -1; }
 .knapperad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* ---------- Detaljark ---------- */

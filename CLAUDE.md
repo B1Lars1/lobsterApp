@@ -81,7 +81,8 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   lager en ny teine med samme nummer. Fangst er egne markeringer med `teine_id`.
   Brukerens arbeidsflyt: å registrere fangst fra en teine i sjøen betyr at teinen er
   tatt opp i båten, så `_lagreUtkast` setter teinen til `tatt_opp` (på fangstens tid),
-  også ved 0 hummer. Den settes ut igjen med «Sett teine», og `nesteTeinenummer()`
+  også ved 0 hummer. «Tatt opp» (teinearket) og «Ta opp» (listen) åpner det samme
+  fangstarket med 0 som utgangspunkt (`_taOppMedFangst`). Den settes ut igjen med «Sett teine», og `nesteTeinenummer()`
   gir da nummeret til teinen som sist ble tatt opp (siste 12 timer) hvis det er ledig.
   Tom teine er fangst med 0 beholdt og 0 satt ut (`erSjekk`), ikke en egen `kategori`:
   en ny kategori ville eldre versjoner av appen forkastet og så slettet fra GitHub ved

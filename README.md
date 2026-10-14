@@ -275,8 +275,8 @@ Sjekk alltid gjeldende forskrift.
 - **Hummer her:** ett trykk åpner et ark for ny fangst der du er. Fangsten knyttes
   til nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −, og
   trykk **Ferdig** for å registrere den. Trykker du **Avbryt**, drar arket ned eller
-  trykker utenfor, registreres ingenting. Det samme gjelder **Registrer fangst** i
-  teinearket og «Hummer her» etter langt trykk i kartet.
+  trykker utenfor, registreres ingenting. Det samme gjelder «Hummer her» etter langt
+  trykk i kartet.
 - **Fangst betyr at teinen er tatt opp:** registrerer du fangst fra en teine i sjøen,
   også 0 hummer når den var tom, markeres teinen som tatt opp og forsvinner fra
   kartet. Arket sier fra om det før du trykker Ferdig, og «Angre» angrer begge deler.
@@ -284,7 +284,7 @@ Sjekk alltid gjeldende forskrift.
   Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
-  registrere fangst, flytte eller slette.
+  ta opp med fangst, flytte eller slette.
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
   Tallet på knappen er antall teiner i sjøen.
 - **Rette fangst:** fangst registrert fra en teine ligger på samme sted som teinen, og
@@ -294,9 +294,10 @@ Sjekk alltid gjeldende forskrift.
   eller notat, flytte den eller slette den.
 - **0 hummer** vises med en grå hake og «Ingen hummer» i teinearket og under
   Fangstregistreringer, og som en hul ring i tidslinjen i analysen.
-- **Tatt opp** i teinearket tar opp teinen uten å registrere fangst, for eksempel når
-  du tar den med hjem. Den forsvinner fra kartet, men tas vare på i historikken for
-  analyse. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
+- **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
+  med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
+  og teinen tas opp (forsvinner fra kartet, men tas vare på i historikken). **Ta opp
+  alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
 - **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet
   først. Trykk **Gjenopprett** for å få en markering tilbake, også lenge etter at
   «Angre» er borte. En teine du angrer rett etter at du satte den, havner ikke her.
