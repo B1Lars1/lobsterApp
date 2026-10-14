@@ -501,23 +501,44 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* Teine i sjøen: gul firkant med nummer */
+/* Teine i sjøen: hummerteine sett forfra, med nett, tung bunnramme og
+   nummeret i inngangen midt på */
 .symbol.teine {
-  border-radius: 10px;
-  background: var(--teine);
-  color: var(--teine-tekst);
+  --nett: rgba(28, 19, 0, 0.26);
   border: 3px solid #1c1300;
+  border-bottom-width: 5px;
+  border-radius: 50% 50% 6px 6px / 70% 70% 6px 6px;
+  background-color: var(--teine);
+  background-image:
+    repeating-linear-gradient(45deg, var(--nett) 0 1.2px, transparent 1.2px 7px),
+    repeating-linear-gradient(-45deg, var(--nett) 0 1.2px, transparent 1.2px 7px);
+  color: var(--teine-tekst);
   box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0, 0, 0, 0.45);
-  font-size: 18px;
+  font-size: 15px;
+}
+.symbol.teine > span {
+  display: grid;
+  place-items: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  margin-top: 0.3em; /* litt ned, under buen */
+  padding: 0 0.25em;
+  border: 2px solid #1c1300;
+  border-radius: 999px;
+  background: #fff7de;
+  line-height: 1;
 }
 /* Teine tatt opp: grå og stiplet */
 .symbol.teine.opptatt {
-  background: #d9dde1;
+  --nett: rgba(75, 85, 96, 0.3);
+  background-color: #d9dde1;
   color: #4b5560;
-  border: 3px dashed #6b7580;
+  border-color: #6b7580;
+  border-style: dashed;
   box-shadow: none;
   opacity: 0.85;
 }
+.symbol.teine.opptatt > span { border-color: #6b7580; background: #eef0f2; }
 
 /* Hummer: hvit sirkel med rød kant */
 .symbol.hummer {
@@ -616,7 +637,7 @@ button {
 }
 .ark-topp .symbol.teine,
 .ark-topp .symbol.hummer { width: 46px; height: 46px; flex: none; }
-.ark-topp .symbol.teine { font-size: 20px; }
+.ark-topp .symbol.teine { width: 54px; font-size: 18px; } /* bredere enn høy, som en teine */
 .ark-topp .symbol.hummer .emoji { font-size: 24px; }
 .ark-tittel { flex: 1; min-width: 0; margin: 0; }
 .ark-tittel h3,
@@ -731,6 +752,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 }
 .liste .symbol.teine,
 .liste .symbol.hummer { width: 40px; height: 40px; flex: none; }
+.liste .symbol.teine { width: 46px; }
 .radtekst { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .radtekst b { font-size: 17px; }
 .radtekst small { color: var(--dempet); font-size: 14px; }

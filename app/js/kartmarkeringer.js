@@ -1,7 +1,7 @@
 /*
  * Viser markeringene på kartet med egne symboler (utseendet ligger i app.css):
- *   teine i sjøen   gul firkant med nummer
- *   teine tatt opp  grå, stiplet firkant (bare når «Opptatte teiner» er slått på)
+ *   teine i sjøen   gul hummerteine med nummer
+ *   teine tatt opp  grå, stiplet teine (bare når «Opptatte teiner» er slått på)
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
  *   rødt «!»        teinen ligger i et fredningsområde
  *
@@ -101,8 +101,8 @@ export class Kartmarkeringer {
   }
 }
 
-function ikon(html, klasse, storrelse) {
-  return L.divIcon({ html, className: `symbol ${klasse}`, iconSize: [storrelse, storrelse] });
+function ikon(html, klasse, [bredde, hoyde]) {
+  return L.divIcon({ html, className: `symbol ${klasse}`, iconSize: [bredde, hoyde] });
 }
 
 function symbol(m, iFredning) {
@@ -112,7 +112,7 @@ function symbol(m, iFredning) {
     return {
       html: `<span>${m.nummer ?? '?'}</span>${varsel}`,
       klasse: iSjoen ? 'teine' : 'teine opptatt',
-      storrelse: 40,
+      storrelse: [46, 40], // bredere enn høy, som en teine
       z: iSjoen ? 500 : -200,
     };
   }
@@ -120,7 +120,7 @@ function symbol(m, iFredning) {
   return {
     html: `<span class="emoji">🦞</span>${antall > 1 ? `<b class="antall">${antall}</b>` : ''}`,
     klasse: m.beholdt > 0 ? 'hummer' : 'hummer bare-satt-ut',
-    storrelse: 36,
+    storrelse: [36, 36],
     z: 0,
   };
 }
