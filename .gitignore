@@ -28,3 +28,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# --- Lokal konfigurasjon for Claude Code (testserver) ---
+.claude/

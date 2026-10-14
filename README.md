@@ -20,7 +20,7 @@ analyseres i GeoPandas.
 |---|---|---|
 | 1 | Oppsett: repo, mappestruktur, Python-miljø | ✅ |
 | 2 | Dybdedata: nedlasting og behandling | ✅ |
-| 3 | Kart og GPS | |
+| 3 | Kart og GPS | ✅ |
 | 4 | Markeringer, lagring, eksport/import | |
 | 5 | Fredningsområder og dybdeoppslag | |
 | 6 | PWA og offline | |
@@ -83,6 +83,7 @@ forenkler, reprojiserer til EPSG:4326 og skriver:
 | `dybdeareal.geojson` | Dybdeområder mellom kurvene | `min`, `maks` |
 | `land.geojson` | Land og tørrfall, grunnkart når appen er offline | `kategori` |
 | `dybdetall.geojson` | Dybdepunkter, grunner og skjær | `kategori`, `dybde` |
+| `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
 Filene er til sammen ca. 7 MB, eller ca. 1 MB komprimert slik de sendes over
@@ -114,6 +115,42 @@ det beste grunnlaget som finnes.
 `localhost`, men på telefonen krever nettleseren HTTPS. Telefonen testes derfor
 mot versjonen på GitHub Pages.
 
+PC-en har som regel ikke GPS. Bruk en simulert posisjon for å teste:
+<http://localhost:8000/?simuler=58.2405,8.3810>
+
+Bruk gjerne nettleserens mobilvisning (F12 → enhetsverktøylinjen) for å se
+appen i telefonformat.
+
+## Appen
+
+Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
+`app/vendor/`, så appen ikke er avhengig av en ekstern CDN.
+
+| Fil | Hva den gjør |
+|---|---|
+| `index.html` | Skjermoppsett: kart, GPS-status, knapper og innstillingsark |
+| `css/app.css` | Utseende, lys og mørk modus (fargevariabler øverst) |
+| `js/app.js` | Hovedfil: kart, kartlag, knapper, tema og innstillinger |
+| `js/dybdelag.js` | Tegner dybdekartet som kartfliser, med farger og tekst |
+| `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
+| `js/innstillinger.js` | Husker tema og kartvalg i nettleseren |
+
+**Kartvalg** (knappen øverst til høyre):
+
+- **Dybdekart:** bare våre egne data. Fungerer uten nett.
+- **Topo + dybde:** Kartverkets gråtone-topokart med dybdesoner og kurver oppå.
+- **Sjøkart:** Kartverkets sjøkart.
+
+**Ytelse:** dybdekartet tegnes som kartfliser på `<canvas>`. Hver flis tegnes
+én gang og gjenbrukes når du panorerer. Et rutenett (romlig indeks) gjør at hver
+flis bare ser på objektene i nærheten. Når kartet er zoomet ut, hoppes det over
+punkter som ligger nærmere hverandre enn én piksel, og bare hovedkurvene (5, 10,
+20 og 50 m) tegnes. Tall langs kurvene og dybdetall dukker opp gradvis når du
+zoomer inn.
+
+**Batteri:** GPS-en er bare på mens appen er synlig. Den stoppes når skjermen
+slås av eller du bytter app.
+
 ## Publisering
 
 Appen publiseres fra mappen `app/` til GitHub Pages med en GitHub Actions-workflow
@@ -126,6 +163,12 @@ ved hver push til `main`. Oppsettet beskrives i fase 7.
   [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a).
   Dataene er forenklet og klippet. De er ikke godkjent for navigasjon, og
   dybdene er referert til sjøkartnull.
-- **Bakgrunnskart:** © Kartverket. Tjeneste og vilkår skrives inn i fase 3.
+- **Bakgrunnskart:** © Kartverket, lisens CC BY 4.0. WMTS-tjenesten
+  `cache.kartverket.no` (lagene `topograatone` og `sjokartraster`, fra
+  [GetCapabilities](https://cache.kartverket.no/v1/wmts/1.0.0/WMTSCapabilities.xml)).
+  Flisene vises direkte fra tjenesten og lagres ikke av appen for bruk uten nett.
+  Ifølge [Kartverkets vilkår](https://www.kartverket.no/api-og-data/vilkar-for-bruk)
+  inneholder kartene Geovekst-data på zoomnivå 12–20, og kopiering krever særskilt
+  tillatelse. Uten nett brukes derfor bare dybdedataene over.
 - **Hummerfredningsområder:** Fiskeridirektoratet. Kilden bekreftes i fase 5.
 - **Kartbibliotek:** [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
