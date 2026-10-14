@@ -114,6 +114,9 @@ bakgrunn, med nummeret som HTML oppå.
   selv. Langt trykk er Leaflets `contextmenu` (marker et valgfritt sted). Kartet og
   knappene har `user-select: none`, ellers merker iPhone nærmeste tekst ved langt trykk.
   Appen fra hjemskjermen har egen lagring, atskilt fra Safari.
+- iOS 26 legger en myk uskarphet over de øverste ca. 30 punktene under statuslinjen i
+  apper på hjemskjermen, og en nettside kan ikke slå den av. Alt som skal være skarpt
+  øverst, plasseres med `var(--topp)` i `app.css` (statuslinjen + 36 px), ikke høyere.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
   ved hver endring. Andre moduler som husker noe i `localStorage`, bruker derfor egen
   nøkkel (`hummerkart.synk`, `hummerkart.hjemskjerm`), ellers blir verdien overskrevet.

@@ -86,9 +86,14 @@ button {
 
 /* ---------- Øverste linje ---------- */
 
+/* Avstand fra statuslinjen. iOS 26 legger en myk uskarphet over de øverste ca. 30 px
+   under statuslinjen i apper på hjemskjermen, og det kan ikke slås av fra en nettside.
+   Knappene og tallmerket må derfor stå nedenfor den. */
+:root { --topp: calc(env(safe-area-inset-top) + 36px); }
+
 .topplinje {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 10px);
+  top: var(--topp);
   left: 10px;
   right: 10px;
   z-index: 1000;
@@ -229,7 +234,7 @@ button {
 
 .melding {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 72px);
+  top: calc(var(--topp) + 62px);
   left: 16px;
   right: 16px;
   z-index: 1100;
