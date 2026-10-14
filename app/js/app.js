@@ -1,6 +1,11 @@
 /*
  * Hummerkart – hovedfil. Setter opp kartet, kartlagene, GPS-en, knappene og
- * innstillingsarket. Selve dybdekartet tegnes i dybdelag.js, GPS-en ligger i gps.js.
+ * innstillingsarket, og kobler sammen modulene:
+ *   dybdelag.js        dybdekartet
+ *   gps.js             posisjonen din
+ *   markeringer.js     teiner og fangst (data, lagring, GeoJSON)
+ *   kartmarkeringer.js symbolene på kartet
+ *   markeringsark.js   knappene og arkene for markeringer
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -8,6 +13,11 @@
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { Gps } from './gps.js';
 import { faktiskTema, hentInnstillinger, lagreInnstillinger } from './innstillinger.js';
+import { Kartmarkeringer } from './kartmarkeringer.js';
+import { beOmVarigLagring } from './lager.js';
+import { markeringer } from './markeringer.js';
+import { Markeringsark } from './markeringsark.js';
+import { visMelding } from './melding.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
 const DATAOMRADE = L.latLngBounds([58.17, 8.28], [58.29, 8.52]);
@@ -86,17 +96,6 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   if (innstillinger.tema === 'auto') brukTema();
 });
 
-// ---------- Meldinger ----------
-
-let meldingTimer;
-function visMelding(tekst, ms = 2500) {
-  const m = $('melding');
-  m.textContent = tekst;
-  m.classList.add('vis');
-  clearTimeout(meldingTimer);
-  meldingTimer = setTimeout(() => m.classList.remove('vis'), ms);
-}
-
 // ---------- GPS ----------
 
 const gpsStatus = $('gps-status');
@@ -133,34 +132,119 @@ $('knapp-meg').addEventListener('click', () => {
   if (!gps.settFolg(true)) visMelding('Venter på GPS-posisjon …');
 });
 
-// Markeringer kommer i fase 4.
-for (const id of ['knapp-teine', 'knapp-hummer']) {
-  $(id).addEventListener('click', () => visMelding('Markering kommer i neste versjon'));
+// ---------- Markeringer ----------
+
+const kartmarkeringer = new Kartmarkeringer(kart, markeringer, {
+  naarTrykket: (id) => ark.visMarkering(id),
+  naarFlyttet: (id, latlng) => markeringer.oppdater(id, {
+    lat: latlng.lat, lon: latlng.lng, noyaktighet: null, kilde: 'kart',
+  }),
+});
+const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer });
+kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
+
+$('knapp-teine').addEventListener('click', () => ark.settTeine());
+$('knapp-hummer').addEventListener('click', () => ark.registrerFangst());
+$('knapp-teiner').addEventListener('click', () => ark.visTeineliste());
+
+// Langt trykk (eller høyreklikk på PC) i kartet: marker et valgfritt sted.
+kart.on('contextmenu', (e) => {
+  if (!kartmarkeringer.flytter) ark.visVelgType(e.latlng);
+});
+
+// Antall teiner i sjøen vises som et merke på listeknappen.
+markeringer.naarEndret(() => {
+  const antall = markeringer.teinerISjoen().length;
+  $('teine-antall').textContent = antall;
+  $('teine-antall').hidden = antall === 0;
+});
+
+// ---------- Sikkerhetskopi: eksport og import av GeoJSON ----------
+
+let varigLagring = false;
+
+async function eksporter() {
+  const navn = `markeringer-${new Date().toISOString().slice(0, 10)}.geojson`;
+  const fil = new File([JSON.stringify(markeringer.tilGeoJSON(), null, 1)], navn, { type: 'application/geo+json' });
+  let delt = false;
+  // På telefonen: «Del» (lagre i Filer, send på e-post osv.). På PC: vanlig nedlasting.
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fil] })) {
+    try {
+      await navigator.share({ files: [fil], title: navn });
+      delt = true;
+    } catch (feil) {
+      if (feil.name === 'AbortError') return; // avbrutt av brukeren
+    }
+  }
+  if (!delt) {
+    const url = URL.createObjectURL(fil);
+    Object.assign(document.createElement('a'), { href: url, download: navn }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+  innstillinger.sistEksportert = new Date().toISOString();
+  lagreInnstillinger(innstillinger);
+  oppdaterDatainfo();
 }
+
+async function importer(fil) {
+  try {
+    const r = await markeringer.importer(JSON.parse(await fil.text()));
+    const ugyldige = r.ugyldige ? `, ${r.ugyldige} ugyldige hoppet over` : '';
+    visMelding(`Importert: ${r.nye} nye, ${r.oppdaterte} oppdatert, ${r.uendret} uendret${ugyldige}`, { ms: 5000 });
+  } catch (feil) {
+    visMelding(`Kunne ikke importere: ${feil.message}`, { ms: 5000 });
+  }
+  oppdaterDatainfo();
+}
+
+function oppdaterDatainfo() {
+  const alle = markeringer.alle();
+  const fangst = alle.filter((m) => m.kategori === 'hummer').length;
+  const eksport = innstillinger.sistEksportert
+    ? new Date(innstillinger.sistEksportert).toLocaleDateString('nb-NO') : 'aldri';
+  $('datainfo').textContent =
+    `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer ` +
+    `(${alle.length} markeringer i alt). Sist eksportert: ${eksport}. ` +
+    (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass, så eksporter jevnlig.');
+}
+
+$('knapp-eksporter').addEventListener('click', () => eksporter());
+$('knapp-importer').addEventListener('click', () => $('velg-fil').click());
+$('velg-fil').addEventListener('change', (e) => {
+  const fil = e.target.files[0];
+  e.target.value = ''; // så samme fil kan velges igjen
+  if (fil) importer(fil);
+});
 
 // ---------- Innstillingsark ----------
 
-const ark = $('lagvelger');
-const skjema = ark.querySelector('form');
+const innstillingsark = $('lagvelger');
+const skjema = innstillingsark.querySelector('form');
 
 $('knapp-lag').addEventListener('click', () => {
   skjema.elements.bakgrunn.value = innstillinger.bakgrunn;
   skjema.elements.tema.value = innstillinger.tema;
   skjema.elements.dybdetall.checked = innstillinger.dybdetall;
-  ark.showModal();
+  skjema.elements.visFangst.checked = innstillinger.visFangst;
+  skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
+  oppdaterDatainfo();
+  innstillingsark.showModal();
 });
 
 skjema.addEventListener('change', () => {
   innstillinger.bakgrunn = skjema.elements.bakgrunn.value;
   innstillinger.tema = skjema.elements.tema.value;
   innstillinger.dybdetall = skjema.elements.dybdetall.checked;
+  innstillinger.visFangst = skjema.elements.visFangst.checked;
+  innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
   lagreInnstillinger(innstillinger);
+  kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
   brukTema();
 });
 
 // Trykk på den mørke bakgrunnen utenfor arket lukker det.
-ark.addEventListener('click', (e) => {
-  if (e.target === ark) ark.close();
+innstillingsark.addEventListener('click', (e) => {
+  if (e.target === innstillingsark) innstillingsark.close();
 });
 
 function tegnTegnforklaring(tema) {
@@ -190,6 +274,10 @@ async function visKilder() {
 
 brukTema();
 visKilder();
+markeringer.last();
+beOmVarigLagring().then((varig) => {
+  varigLagring = varig;
+});
 
 lastDybdedata()
   .then((data) => {
@@ -202,7 +290,7 @@ lastDybdedata()
   })
   .catch((feil) => {
     console.error(feil);
-    visMelding('Klarte ikke å laste dybdekartet', 6000);
+    visMelding('Klarte ikke å laste dybdekartet', { ms: 6000 });
   })
   .finally(() => {
     $('laster').hidden = true;

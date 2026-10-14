@@ -26,9 +26,15 @@
       <span class="gps-ikon" aria-hidden="true"></span>
       <span class="tekst">Søker GPS …</span>
     </div>
-    <button id="knapp-lag" class="rund-knapp" type="button" aria-label="Kart og innstillinger">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="m2 12.5 10 5 10-5"/><path d="m2 17 10 5 10-5"/></svg>
-    </button>
+    <div class="toppknapper">
+      <button id="knapp-teiner" class="rund-knapp" type="button" aria-label="Mine teiner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 6h11M9.5 12h11M9.5 18h11"/><circle cx="4.5" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>
+        <span id="teine-antall" class="merke" hidden>0</span>
+      </button>
+      <button id="knapp-lag" class="rund-knapp" type="button" aria-label="Kart og innstillinger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="m2 12.5 10 5 10-5"/><path d="m2 17 10 5 10-5"/></svg>
+      </button>
+    </div>
   </header>
 
   <div id="laster" class="brikke laster" role="status">Laster dybdekart …</div>
@@ -59,10 +65,56 @@
     </button>
   </nav>
 
+  <!-- Vises mens en markering flyttes (erstatter de store knappene) -->
+  <div id="flyttelinje" class="flyttelinje">
+    <span>Dra markeringen dit den skal</span>
+    <div class="flytteknapper">
+      <button type="button" class="sekundar" data-handling="tilMeg">Til min posisjon</button>
+      <button type="button" class="ferdig" data-handling="ferdig">Ferdig</button>
+    </div>
+  </div>
+
+  <!-- Etter langt trykk i kartet -->
+  <dialog id="ark-velg" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <h2>Marker valgt sted</h2>
+    <div class="velg-knapper">
+      <button type="button" class="handling teine" data-valg="teine">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8.5"/><path d="M12 2.5 18 5l-6 2.5Z" fill="currentColor"/><circle cx="12" cy="14.5" r="4"/><path d="M2 21.5c2.5-1.5 4.5-1.5 6.5 0s4.5 1.5 7 0 4.5-1.5 6.5 0"/></svg>
+        Teine her
+      </button>
+      <button type="button" class="handling hummer" data-valg="hummer">
+        <span class="emoji" aria-hidden="true">🦞</span>
+        Hummer her
+      </button>
+    </div>
+    <button type="button" class="avbryt" data-valg="avbryt">Avbryt</button>
+  </dialog>
+
+  <!-- Detaljer for én teine eller fangst (innholdet lages i markeringsark.js) -->
+  <dialog id="ark-markering" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <div class="innhold"></div>
+  </dialog>
+
+  <!-- Teiner i sjøen -->
+  <dialog id="ark-teiner" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <div class="ark-topp">
+      <h3 class="ark-tittel">Teiner i sjøen (<span data-tekst="antall">0</span>)</h3>
+      <button type="button" class="fare liten" data-handling="taOppAlle">Ta opp alle</button>
+    </div>
+    <ul class="liste"></ul>
+    <p class="kilde" data-tekst="sesong"></p>
+    <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
+  </dialog>
+
+  <input type="file" id="velg-fil" accept=".geojson,.json,application/geo+json,application/json" hidden>
+
   <!-- Ark for kartvalg og innstillinger -->
   <dialog id="lagvelger" class="ark">
     <form method="dialog">
-      <div class="handtak" aria-hidden="true"></div>
+      <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
 
       <h2>Kart</h2>
       <fieldset class="valg">
@@ -78,6 +130,13 @@
 
       <h2>Dybde (meter)</h2>
       <div id="tegnforklaring" class="tegnforklaring"></div>
+      <p class="hjelp">Dybdetall som i sjøkartet: 12<sub>3</sub> betyr 12,3 m. Fete tall er
+        grunner (grunneste punkt). Understreket tall er tørrfall over sjøkartnull.
+        Kryss med fire prikker er skjær.</p>
+
+      <h2>Vis på kartet</h2>
+      <label class="bryter"><input type="checkbox" name="visFangst"> Hummerfangst</label>
+      <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner som er tatt opp</label>
 
       <h2>Tema</h2>
       <fieldset class="segment">
@@ -86,6 +145,13 @@
         <label><input type="radio" name="tema" value="lys">Lys</label>
         <label><input type="radio" name="tema" value="mork">Mørk</label>
       </fieldset>
+
+      <h2>Sikkerhetskopi</h2>
+      <p id="datainfo" class="hjelp"></p>
+      <div class="knapperad">
+        <button type="button" id="knapp-eksporter" class="sekundar">Eksporter GeoJSON</button>
+        <button type="button" id="knapp-importer" class="sekundar">Importer</button>
+      </div>
 
       <p id="kildeinfo" class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>
       <button class="ferdig" value="lukk">Ferdig</button>

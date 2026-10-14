@@ -10,6 +10,9 @@ const STANDARD = {
   tema: 'auto',       // 'auto' | 'lys' | 'mork'
   bakgrunn: 'dybde',  // 'dybde' | 'topo' | 'sjokart'
   dybdetall: true,
+  visFangst: true,      // vis hummerfangst på kartet
+  visOpptatte: false,   // vis teiner som er tatt opp
+  sistEksportert: null, // tidspunkt (ISO) for siste GeoJSON-eksport
 };
 
 export function hentInnstillinger() {

@@ -213,9 +213,11 @@ button {
 .melding {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 72px);
-  left: 50%;
+  left: 16px;
+  right: 16px;
   z-index: 1100;
-  max-width: calc(100% - 32px);
+  width: fit-content;
+  margin: 0 auto;
   padding: 12px 18px;
   border-radius: 14px;
   background: var(--flate-tekst);
@@ -224,11 +226,11 @@ button {
   font-weight: 600;
   box-shadow: var(--skygge);
   opacity: 0;
-  transform: translate(-50%, -8px);
+  transform: translateY(-8px);
   transition: opacity 0.2s, transform 0.2s;
   pointer-events: none;
 }
-.melding.vis { opacity: 1; transform: translate(-50%, 0); }
+.melding.vis { opacity: 1; transform: none; }
 
 /* ---------- Leaflet-tilpasninger ---------- */
 
@@ -319,6 +321,7 @@ button {
   border-radius: 3px;
   background: var(--kant);
 }
+.handtak:focus { outline: none; } /* får fokus når arket åpnes, i stedet for et tekstfelt */
 
 .ark h2 {
   margin: 18px 0 8px;
@@ -411,3 +414,316 @@ button {
   font-size: 18px;
   font-weight: 700;
 }
+
+/* =====================================================================
+ * Markeringer
+ * ===================================================================== */
+
+.toppknapper { display: flex; gap: 10px; }
+.rund-knapp { position: relative; }
+
+/* Antall teiner i sjøen på listeknappen */
+.merke {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--teine);
+  color: var(--teine-tekst);
+  border: 2px solid var(--flate);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+}
+.merke[hidden] { display: none; }
+
+/* ---------- Symboler på kartet ---------- */
+
+.symbol {
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Teine i sjøen: gul firkant med nummer */
+.symbol.teine {
+  border-radius: 10px;
+  background: var(--teine);
+  color: var(--teine-tekst);
+  border: 3px solid #1c1300;
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0, 0, 0, 0.45);
+  font-size: 18px;
+}
+/* Teine tatt opp: grå og stiplet */
+.symbol.teine.opptatt {
+  background: #d9dde1;
+  color: #4b5560;
+  border: 3px dashed #6b7580;
+  box-shadow: none;
+  opacity: 0.85;
+}
+
+/* Hummer: hvit sirkel med rød kant */
+.symbol.hummer {
+  position: relative;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--hummer);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.symbol.hummer .emoji { font-size: 19px; line-height: 1; }
+.symbol.hummer.bare-satt-ut { border-style: dashed; opacity: 0.8; }
+.symbol .antall {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: var(--hummer);
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* Markering som flyttes: pulserende ring */
+.symbol.flyttes { animation: puls 1s ease-in-out infinite; }
+@keyframes puls {
+  50% { box-shadow: 0 0 0 8px rgba(10, 102, 194, 0.45), 0 2px 6px rgba(0, 0, 0, 0.45); }
+}
+
+/* Valgt sted etter langt trykk */
+.sikte {
+  border-radius: 50%;
+  border: 3px solid var(--aksent);
+  background: rgba(10, 102, 194, 0.15);
+  box-shadow: 0 0 0 3px #fff;
+}
+
+/* ---------- Melding med knapp («Angre») ---------- */
+
+.melding {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.melding.med-knapp { pointer-events: auto; padding-right: 8px; }
+.melding button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--aksent);
+  color: #fff;
+  font-weight: 800;
+}
+
+/* ---------- Knapper i arkene ---------- */
+
+.ark button.stor,
+.ark button.sekundar,
+.ark button.fare,
+.flyttelinje button {
+  min-height: 56px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.ark button.stor { border: none; font-size: 19px; font-weight: 800; }
+.teine-farge { background: var(--teine); color: var(--teine-tekst); }
+.sekundar { border: 2px solid var(--kant); background: var(--flate); color: var(--flate-tekst); }
+.fare { border: 2px solid var(--darlig); background: transparent; color: var(--darlig); }
+.ark button.liten { min-height: 44px; font-size: 15px; }
+:root[data-tema="mork"] .fare { color: #ff6b7d; border-color: #ff6b7d; }
+
+.knapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.knapper .stor,
+.knapper .ferdig,
+.knapper [data-handling="fangst"] { grid-column: 1 / -1; }
+.knapperad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ---------- Detaljark ---------- */
+
+.ark-topp {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 6px 0 12px;
+}
+.ark-topp .symbol.teine,
+.ark-topp .symbol.hummer { width: 46px; height: 46px; flex: none; }
+.ark-topp .symbol.teine { font-size: 20px; }
+.ark-topp .symbol.hummer .emoji { font-size: 24px; }
+.ark-tittel { flex: 1; min-width: 0; margin: 0; }
+.ark-tittel h3,
+h3.ark-tittel { margin: 0; font-size: 22px; }
+.ark-tittel p { margin: 2px 0 0; color: var(--dempet); font-size: 15px; }
+
+.status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--kant);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.status.i-sjoen { background: var(--teine); color: var(--teine-tekst); }
+
+.fakta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.fakta div { padding: 10px; border-radius: 12px; background: var(--valgt); }
+.fakta dt { font-size: 12px; font-weight: 700; color: var(--dempet); text-transform: uppercase; letter-spacing: 0.05em; }
+.fakta dd { margin: 2px 0 0; font-size: 16px; font-weight: 700; }
+
+.felter { display: flex; flex-wrap: wrap; gap: 10px; }
+.felt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 100%;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dempet);
+}
+.felt.smal { flex: 0 0 120px; }
+.felt input,
+.felt textarea,
+.felt select {
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 2px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+  color: var(--flate-tekst);
+  font: inherit;
+  font-size: 18px; /* minst 16px, ellers zoomer iPhone inn i feltet */
+  font-weight: 600;
+}
+.felt textarea { resize: vertical; }
+
+/* Teller med store − og + for antall hummer */
+.teller {
+  display: grid;
+  grid-template-columns: 1fr 60px 64px 60px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.teller button {
+  height: 56px;
+  border: 2px solid var(--kant);
+  border-radius: 14px;
+  background: var(--flate);
+  color: var(--flate-tekst);
+  font-size: 28px;
+  font-weight: 700;
+}
+.teller output { text-align: center; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ---------- Velg type etter langt trykk ---------- */
+
+.velg-knapper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.avbryt {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--dempet);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* ---------- Teineliste ---------- */
+
+.liste { list-style: none; margin: 0; padding: 0; }
+.liste li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--kant);
+}
+.liste li.tom { padding: 18px 4px; color: var(--dempet); border: none; }
+.liste .rad {
+  flex: 1;
+  min-width: 0;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+.liste .symbol.teine { width: 40px; height: 40px; flex: none; }
+.radtekst { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.radtekst b { font-size: 17px; }
+.radtekst small { color: var(--dempet); font-size: 14px; }
+.avstand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pil { display: inline-grid; width: 20px; height: 20px; color: var(--aksent); }
+.pil[hidden] { display: none; }
+.ta-opp {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 2px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+  color: var(--flate-tekst);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.hjelp { margin: 8px 0; font-size: 14px; line-height: 1.45; color: var(--dempet); }
+
+/* ---------- Flyttemodus ---------- */
+
+.flyttelinje {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px calc(env(safe-area-inset-bottom) + 12px);
+  border-radius: 20px 20px 0 0;
+  background: var(--flate);
+  color: var(--flate-tekst);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
+.flytteknapper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+body.flyttemodus .flyttelinje { display: flex; }
+body.flyttemodus .handlinger { visibility: hidden; }
