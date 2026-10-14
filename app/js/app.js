@@ -71,19 +71,23 @@ let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er laste
 // Fredningsområder for hummer. Trykk på et område viser regler (arkene lages lenger ned).
 const fredning = new Fredning(kart, (omrade) => ark.visFredning(omrade));
 
+// Uten nett kan ikke Kartverkets kart hentes, så da vises dybdekartet (som er lagret).
+const aktivBakgrunn = () => (navigator.onLine ? innstillinger.bakgrunn : 'dybde');
+
 function oppdaterKartlag() {
+  const bakgrunn = aktivBakgrunn();
   for (const [navn, lag] of Object.entries(bakgrunnskart)) {
-    if (navn === innstillinger.bakgrunn) lag.addTo(kart);
+    if (navn === bakgrunn) lag.addTo(kart);
     else lag.remove();
   }
   if (!dybdelag) return;
-  if (innstillinger.bakgrunn === 'sjokart') {
+  if (bakgrunn === 'sjokart') {
     dybdelag.remove(); // sjøkartet har egne dybder
     return;
   }
   dybdelag.settValg({
     tema: faktiskTema(innstillinger.tema),
-    visLand: innstillinger.bakgrunn === 'dybde',
+    visLand: bakgrunn === 'dybde',
     visDybdetall: innstillinger.dybdetall,
   });
   dybdelag.addTo(kart);
@@ -297,6 +301,32 @@ async function visKilder() {
   } catch {
     // Kildeteksten i index.html står igjen.
   }
+}
+
+// ---------- Uten nett og service worker ----------
+
+window.addEventListener('offline', () => {
+  if (innstillinger.bakgrunn !== 'dybde') visMelding('Uten nett: viser dybdekartet', { ms: 4000 });
+  oppdaterKartlag();
+});
+window.addEventListener('online', () => oppdaterKartlag());
+
+// Service workeren (sw.js) lagrer appen og dataene på telefonen, så den virker uten nett.
+if ('serviceWorker' in navigator) {
+  const haddeVersjon = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    reg.addEventListener('updatefound', () => {
+      const ny = reg.installing;
+      ny?.addEventListener('statechange', () => {
+        if (ny.state !== 'activated') return;
+        if (haddeVersjon) {
+          visMelding('Ny versjon av appen er klar', { knapp: 'Last inn', handling: () => location.reload(), ms: 15000 });
+        } else {
+          visMelding('Appen er lagret og virker nå uten nett', { ms: 4000 });
+        }
+      });
+    });
+  }).catch((feil) => console.error('Service worker:', feil));
 }
 
 // ---------- Oppstart ----------
