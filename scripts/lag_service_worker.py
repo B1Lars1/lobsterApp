@@ -23,6 +23,10 @@ UTELAT = {"sw.js"}
 UTELAT_ENDELSER = {".md", ".map"}
 UTELAT_NAVN = {"LICENSE"}
 
+# Tekstfiler: git kan sjekke dem ut med CRLF på Windows og LF ellers (.gitattributes).
+# Sjekksummen regnes med LF, så versjonen blir den samme på alle maskiner og i workflowen.
+TEKST_ENDELSER = {".html", ".css", ".js", ".json", ".geojson", ".webmanifest", ".svg"}
+
 
 def filer_i_appen() -> list[str]:
     filer = []
@@ -36,12 +40,17 @@ def filer_i_appen() -> list[str]:
     return filer
 
 
+def innhold(rel: str) -> bytes:
+    data = (APP / rel).read_bytes()
+    return data.replace(b"\r\n", b"\n") if (APP / rel).suffix in TEKST_ENDELSER else data
+
+
 def main() -> int:
     filer = filer_i_appen()
     sjekksum = hashlib.sha256()
     for rel in filer:
         sjekksum.update(rel.encode())
-        sjekksum.update((APP / rel).read_bytes())
+        sjekksum.update(innhold(rel))
     versjon = sjekksum.hexdigest()[:12]
 
     # './' er selve appen (index.html) når den åpnes fra hjemskjermen

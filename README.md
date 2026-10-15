@@ -8,7 +8,8 @@ til på hjemskjermen på telefonen og viser:
 - teiner og fangst som du markerer med ett trykk
 - hummerfredningsområder i Agder
 
-Markeringene lagres bare lokalt på telefonen. De kan eksporteres som GeoJSON og
+Markeringene lagres på telefonen og kan synkroniseres med et privat GitHub-repo
+som sikkerhetskopi og for deling. De kan også eksporteres som GeoJSON og
 analyseres i GeoPandas.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
@@ -311,6 +312,8 @@ Sjekk alltid gjeldende forskrift.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
   når «Teiner som er tatt opp» er slått på i innstillingene.
 - **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
+  Stiplet kant betyr at alle ble satt ut igjen.
+- **Ingen hummer:** hvit sirkel med grå hake, der en teine ble tatt opp tom.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
@@ -418,8 +421,8 @@ Fangst måles som **hummer per teinedøgn**: antall hummer (beholdt + satt ut) d
 på antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en
 teine som har stått i tre døgn, veier mer enn en som ble tatt opp etter en time.
 Teiner som fortsatt står i sjøen, regnes frem til nå. Fangst må være knyttet til en
-teine for å telle med. Det skjer automatisk når du trykker «Hummer her» ved teinen
-eller «Registrer fangst» i teinearket.
+teine for å telle med. Det skjer automatisk når du trykker «Hummer her» ved teinen,
+«Tatt opp» i teinearket eller «Ta opp» i teinelisten.
 
 På Mac og Linux: `.venv/bin/python scripts/analyser_fangst.py`.
 
@@ -476,7 +479,8 @@ oppdateres:
 .\.venv\Scripts\python.exe scripts\lag_service_worker.py
 ```
 
-Versjonen er en sjekksum av alle filene. Telefonen ser at versjonen er ny neste
+Versjonen er en sjekksum av alle filene. Den regnes med samme type linjeskift
+overalt, så samme kode gir samme versjon på Windows, Mac og Linux. Telefonen ser at versjonen er ny neste
 gang appen åpnes med nett, laster ned den nye versjonen i bakgrunnen og viser
 «Ny versjon av appen er klar». GitHub Actions-workflowen (fase 7) kjører skriptet
 automatisk ved publisering, så du ikke kan glemme det.

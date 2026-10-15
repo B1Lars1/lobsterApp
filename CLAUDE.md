@@ -46,6 +46,9 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
   iPhone og bruker appen fra hjemskjermen.
 - Repoets vane er å kjøre `lag_service_worker.py` og committe den oppdaterte `sw.js`
   sammen med endringer i `app/`. Workflowen gjør det også ved publisering.
+  Sjekksummen regnes med LF-linjeskift (git sjekker ut CRLF på Windows), så samme kode
+  gir samme `VERSJON` på alle maskiner. Endres `VERSJON` uten at noe i `app/` er
+  endret, er det en feil.
 
 ## Publisering
 

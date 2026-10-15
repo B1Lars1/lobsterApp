@@ -5,7 +5,7 @@
  * - Deretter hentes de alltid fra telefonen, uten nett også.
  * - Når VERSJON endres (ny versjon publisert), lastes alt ned på nytt neste gang
  *   appen åpnes med nett, og appen sier fra at den kan lastes inn på nytt.
- * - Kartverkets bakgrunnskart (topo og sjøkart) lagres IKKE, i tråd med Kartverkets
+ * - Kartverkets bakgrunnskart (topo) lagres IKKE, i tråd med Kartverkets
  *   vilkår (se README). De vises bare når du har nett.
  * - På localhost hentes filene fra serveren først, så endringer vises med en gang
  *   når du utvikler. Lagret versjon brukes bare hvis serveren ikke svarer.
