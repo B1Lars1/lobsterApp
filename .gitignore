@@ -21,6 +21,11 @@ __pycache__/
 .env.*
 *.pem
 *.key
+# Nøkler til tjenestekontoer i Google Cloud/Firebase gir adgang til alles data
+*firebase-adminsdk*.json
+lobsterapp-*.json
+*tjenestekonto*.json
+*service-account*.json
 
 # --- Editor og operativsystem ---
 .vscode/

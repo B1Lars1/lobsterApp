@@ -1,0 +1,26 @@
+Copyright © 2026 Ben Larsen. Alle rettigheter forbeholdt.
+
+Koden, skriptene, tegningene og dokumentasjonen i dette repoet, og hummerpotensialet
+og tarekanten som skriptene lager, er beskyttet av opphavsrett. Repoet er offentlig
+bare så appen kan publiseres. Det gir ingen rett til å kopiere, endre, publisere,
+selge eller bruke noe av det i andre apper eller tjenester uten skriftlig tillatelse
+fra Ben Larsen.
+
+Unntak, med egne lisenser:
+
+- app/vendor/leaflet-1.9.4/: Leaflet, BSD 2-Clause (se LICENSE i mappen).
+- app/vendor/firebase-12.19.0/: Firebase JS SDK, Apache License 2.0, © Google LLC.
+- Dybdedata og stedsnavn fra Kartverket (CC BY 4.0), fredningsområder fra
+  Fiskeridirektoratet (NLOD) og marine naturtyper fra Miljødirektoratet (NLOD 2.0).
+  Se «Kilder og kreditering» i README.md.
+
+---
+
+Copyright © 2026 Ben Larsen. All rights reserved.
+
+The code, scripts, drawings and documentation in this repository, and the lobster
+habitat estimate (hummerpotensial, tarekant) they produce, are protected by copyright.
+The repository is public only so the app can be published. No permission is granted to
+copy, modify, publish, sell or use any of it in other apps or services without written
+permission from Ben Larsen. Third-party components and open data listed above keep
+their own licenses.

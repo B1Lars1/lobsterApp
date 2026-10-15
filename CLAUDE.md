@@ -2,8 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Hummerkart Lillesand: en PWA for hummerfiske (dybdekart, GPS, teiner og fangst,
-fredningsområder) pluss Python-skript som lager kartdataene og analyserer fangst.
+Hummerkart Lillesand: en PWA for hummerfiske (dybdekart, hummerpotensial, GPS, teiner
+og fangst, fredningsområder, konto og lag i Firebase) pluss Python-skript som lager
+kartdataene og analyserer fangst.
 README.md er brukerdokumentasjonen og forklarer hver funksjon og hvert skript i
 detalj. Denne filen er det en agent trenger i tillegg.
 
@@ -30,7 +31,7 @@ Appen i `app/` er statiske filer. README viser kommandoene for Windows/PowerShel
 (`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
 
 ```bash
-python scripts/testserver.py            # appen på http://localhost:8000, uten mellomlagring
+python scripts/testserver.py [port]     # appen på http://localhost:8000 (eller porten), uten mellomlagring
 python scripts/lag_service_worker.py    # oppdater VERSJON og FILER i app/sw.js etter endringer i app/
 python scripts/lag_ikoner.py            # app-ikonene (PNG) i app/ikoner/, krever bare Pillow
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
@@ -59,7 +60,9 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
 Push til `main` som endrer `app/` starter `.github/workflows/publiser.yml`, som
 publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>.
 Telefonen får ny versjon neste gang appen åpnes med nett («Ny versjon av appen er
-klar» → «Last inn»). Følg kjøringen med `gh run list` / `gh run watch <id>`.
+klar» → «Last inn»). `gh` er ikke installert på brukerens maskin. Følg kjøringen med
+det offentlige API-et (uten innlogging):
+`curl -s "https://api.github.com/repos/B1Lars1/lobsterApp/actions/runs?per_page=3"`.
 Push publiserer altså rett til brukerens telefon: vis visuelle endringer (skjermbilde
 eller skisse) og spør før du pusher dem.
 
@@ -90,8 +93,9 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   Brukerens arbeidsflyt: å registrere fangst fra en teine i sjøen betyr at teinen er
   tatt opp i båten, så `_lagreUtkast` setter teinen til `tatt_opp` (på fangstens tid),
   også ved 0 hummer. «Tatt opp» (teinearket) og «Ta opp» (listen) åpner det samme
-  fangstarket med 0 som utgangspunkt (`_taOppMedFangst`). Den settes ut igjen med «Sett teine», og `nesteTeinenummer()`
-  gir da nummeret til teinen som sist ble tatt opp (siste 12 timer) hvis det er ledig.
+  fangstarket med 0 som utgangspunkt (`_taOppMedFangst`). Den settes ut igjen med
+  «Sett teine», og `nesteTeinenummer()` gir da nummeret til teinen som sist ble tatt opp
+  (siste 12 timer) hvis det er ledig.
   Tom teine er fangst med 0 beholdt og 0 satt ut (`erSjekk`), ikke en egen `kategori`:
   en ny kategori ville eldre versjoner av appen forkastet (`importer` godtar bare `teine`
   og `hummer`), og synkroniseringen ville ikke fått den med. Tidslinjen i
@@ -105,8 +109,9 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`.
   Endres regnemåten ett sted, skal den endres begge steder. Oversikten viser bare
   hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
-  brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG laget som
-  tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren (notater).
+  brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG
+  laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
+  (notater). Se «Sikkerhet».
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
 
@@ -126,7 +131,8 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   dokument-id-en) er invitasjonen. Hver synkronisering spør først `finnLag(uid)` og bytter
   rom hvis medlemskapet er endret (`_byttRom`). Nytt rom tømmer `kjent`, så alt på
   telefonen sendes til det nye rommet: det du har, flyttes inn i laget, og går du ut,
-  får kontoen en kopi. Én bruker er med i høyst ett lag.
+  får kontoen en kopi. Én bruker er med i høyst ett lag. Reglene krever at e-posten den
+  som oppretter eller blir med, skriver i `eposter`, er `request.auth.token.email`.
 - `registrert_av` (bruker-id, ikke e-post) sier hvem som satte en teine eller registrerte
   fangst. `sky.navnFor(uid)` slår opp e-posten i laget, så «av …» forsvinner når noen går
   ut av laget (personvern). Markeringer uten konto har `null`.
@@ -173,9 +179,10 @@ kommune, som dybdedataene for 4204 dekker) til Grimstad. Utvides det, må alle
 dataskriptene kjøres på nytt i rekkefølgen over (`lag_dybdekart.py` tar ca. 10 min), og
 appen lagrer alt for bruk uten nett (nå ca. 40 MB, ca. 120 MB minne i nettleseren). Mål
 lastetid og minne etter en utvidelse. Ligger nytt område i en annen kommune, må den legges
-til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`. Nytt valgfritt datalag: hent det i `lastDybdedata()`
-med `.catch(() => tom)`, så kartet virker uten filen, og tegn det i `_tegnFlis` i riktig
-rekkefølge (soner, hummerpotensial, kurver, bunnhint, tarekant, land, tekst).
+til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`. Nytt valgfritt
+datalag: hent det i `lastDybdedata()` med `.catch(() => tom)`, så kartet virker uten
+filen, og tegn det i `_tegnFlis` i riktig rekkefølge (soner, hummerpotensial, kurver,
+bunnhint, tarekant, land, tekst).
 
 **Hummerpotensialet** (`lag_hummerpotensial.py`) er et anslag som brukeren justerer etter
 egen fangst: vektene og grensene står øverst i skriptet, og `analyser_fangst.py` leser
@@ -183,8 +190,8 @@ egen fangst: vektene og grensene står øverst i skriptet, og `analyser_fangst.p
 `data/processed/hummerpotensial.tif` (dybde, helning, poengsum) for å vise fangst etter
 potensial, helning og avstand til tarekanten. Flater og tarekant fjernes inne i
 fredningsområdene (teiner er forbudt der), mens rutenettet beholder alle verdiene.
-Endres klassene (`hoy`/`middels`) eller
-filnavnene, må `dybdelag.js`, `dybdeoppslag.js` og `analyser_fangst.py` følge med.
+Endres klassene (`hoy`/`middels`) eller filnavnene, må `dybdelag.js`, `dybdeoppslag.js`
+og `analyser_fangst.py` følge med.
 
 **Offline.** `app/sw.js` lagrer alle filene i `FILER` (generert av
 `lag_service_worker.py`, nesten alle filer under `app/`). Lagret versjon brukes først,
@@ -226,8 +233,9 @@ bakgrunn, med nummeret som HTML oppå.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
   ved hver endring. Derfor gjelder en ny standardverdi bare nye brukere. Skal den også
   gjelde dem som har brukt appen før, øk `VERSJON` i `innstillinger.js` og flytt verdien i
-  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2). Andre moduler som husker noe i `localStorage`, bruker derfor egen
-  nøkkel (som `hummerkart.sky`), ellers blir verdien overskrevet.
+  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2). Andre moduler som
+  husker noe i `localStorage`, bruker egen nøkkel (som `hummerkart.sky`), ellers blir
+  verdien overskrevet når innstillingene lagres.
 - Veiledningen for hjemskjermen (`hjemskjerm.js`) vises hver gang siden åpnes i
   nettleseren på telefon (brukeren vil det slik, ikke «vis igjen om en uke»). På PC
   skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste
@@ -236,6 +244,10 @@ bakgrunn, med nummeret som HTML oppå.
   venstre for adressefeltet.
 - Når nettleserpanelet er skjult, bremses tidtakere. Test tidsavhengig oppførsel ved
   å simulere tid (`Date.now`) i stedet for å vente.
+- Brukeren kan være logget inn med sin ekte konto på `localhost:8000` i
+  nettleserpanelet, og alt der synkroniseres til laget og telefonene. Lag aldri testdata
+  der. Test på en annen port: `testserver.py 8001` (launch-konfigurasjonen
+  «hummerkart-8001» i `.claude/launch.json`), som har egen lagring i nettleseren.
 
 ## Personvern
 
@@ -246,3 +258,28 @@ av natur, men tjenestekontonøkler (service account) og annet som gir adgang til
 data, skal aldri inn i repoet. `app/personvern.html` må oppdateres hvis appen begynner å
 lagre eller dele noe nytt om brukerne.
 `data/raw/` og `data/processed/` lages på nytt av skriptene og ligger heller ikke i git.
+
+## Sikkerhet
+
+Brukeren vil ikke at noen skal stjele appen eller dataene. README har en oversikt over hva
+som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold den oppdatert.
+
+- `LICENSE` er «alle rettigheter forbeholdt». Repoet er offentlig bare fordi GitHub Pages
+  er gratis for offentlige repoer. Ikke legg til en åpen lisens eller noe som gir andre
+  rett til å bruke koden, uten at brukeren ber om det.
+- Alt under `app/` er offentlig når det publiseres, også `hummerpotensial.geojson`. Legg
+  aldri noe i `app/` som ikke skal kunne lastes ned av hvem som helst.
+- Data fra skyen kan komme fra andre (et lag). Tekst fra brukere og skyen settes med
+  `textContent` eller `dataset`, aldri inn i HTML. `fraMal` i `markeringsark.js`, SVG-en i
+  `oversikt.js` og `kildeinfo` i `app.js` får bare konstanter, tall og egne filer. Id-er
+  må passe `GYLDIG_ID` i `markeringer.js` (bokstaver, tall, `-`, `_`), ellers avvises de
+  ved import. Samme regel står i `firestore.rules`.
+- `firestore.rules` er det eneste som beskytter dataene i Firebase. Hold reglene strenge,
+  og si fra til brukeren at de må limes inn på nytt. Agenten har ingen emulator (verken
+  Java eller Node er installert), så be brukeren teste dem i Rules Playground i konsollen.
+- Firebase-innstillingene gjøres av brukeren i konsollen (README, «Oppsett i Firebase»).
+  Er nye kontoer stengt, gir «Opprett konto» `auth/admin-restricted-operation`
+  (`feilTekst` i `sky.js`). Er API-nøkkelen begrenset til nettsteder, må en ny adresse
+  (ny port, nytt domene) legges til der, ellers feiler innloggingen.
+- Aldri tokens, passord eller tjenestekontonøkler i repoet. `.gitignore` stopper de vanlige
+  filnavnene for nøkler. Se gjennom `git diff --cached` før commit.

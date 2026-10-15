@@ -80,6 +80,9 @@ export function feilTekst(feil) {
     'auth/network-request-failed': 'Ingen nettforbindelse.',
     'auth/requires-recent-login': 'Logg inn på nytt og prøv igjen.',
     'auth/operation-not-allowed': 'Innlogging med e-post og passord er ikke slått på i Firebase.',
+    // Nye kontoer er slått av i Firebase (Authentication → Settings → User actions)
+    'auth/admin-restricted-operation': 'Nye kontoer opprettes bare av den som driver appen. '
+      + 'Ta kontakt for å få en konto.',
   };
   return tekster[kode] ?? (feil?.message ? `Noe gikk galt (${kode || feil.message}).` : 'Noe gikk galt.');
 }

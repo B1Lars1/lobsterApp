@@ -40,6 +40,10 @@ export const FELT = [
   'nummer', 'status', 'tatt_opp', 'beholdt', 'satt_ut', 'teine_id', 'registrert_av', 'mistet',
 ];
 
+// Id-er er UUID-er fra appen. Alt annet avvises ved import: data fra skyen kan komme fra
+// andre (et lag), og id-en havner i HTML-attributter og dokumentstier i Firestore.
+const GYLDIG_ID = /^[A-Za-z0-9_-]{1,100}$/;
+
 const naa = () => new Date().toISOString();
 const nyId = () => crypto.randomUUID();
 const tallEllerNull = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -314,7 +318,7 @@ export class Markeringer {
     const resultat = { nye: 0, oppdaterte: 0, uendret: 0, ugyldige: 0, slettet: 0 };
 
     for (const { id, endret } of Array.isArray(geojson.slettet) ? geojson.slettet : []) {
-      if (!id || !endret || (this._slettinger.get(id)?.endret ?? '') >= endret) continue;
+      if (!GYLDIG_ID.test(id ?? '') || !endret || (this._slettinger.get(id)?.endret ?? '') >= endret) continue;
       const finnes = this.hent(id);
       if (finnes && finnes.endret > endret) continue; // endret her etter slettingen: behold
       if (finnes) resultat.slettet++;
@@ -327,7 +331,8 @@ export class Markeringer {
       const [lon, lat] = f?.geometry?.type === 'Point' ? f.geometry.coordinates : [];
       const kategori = p.kategori ?? p.type;
       const gyldig = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90
-        && Math.abs(lon) <= 180 && (kategori === 'teine' || kategori === 'hummer');
+        && Math.abs(lon) <= 180 && (kategori === 'teine' || kategori === 'hummer')
+        && (p.id == null || GYLDIG_ID.test(String(p.id)));
       if (!gyldig) {
         resultat.ugyldige++;
         continue;

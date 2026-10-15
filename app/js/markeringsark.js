@@ -591,13 +591,15 @@ export class Markeringsark {
     const rader = teiner.map((t) => {
       const li = fraMal(`
         <li>
-          <button type="button" class="rad" data-vis="${t.id}">
+          <button type="button" class="rad">
             <span class="symbol teine"><span data-tekst="nummer"></span></span>
             <span class="radtekst"><b data-tekst="tittel"></b><small data-tekst="info"></small></span>
             <span class="avstand"><span class="pil">${PIL}</span><span data-tekst="avstand"></span></span>
           </button>
-          <button type="button" class="ta-opp" data-ta-opp="${t.id}">Ta opp</button>
+          <button type="button" class="ta-opp">Ta opp</button>
         </li>`);
+      li.querySelector('.rad').dataset.vis = t.id;
+      li.querySelector('.ta-opp').dataset.taOpp = t.id;
       li.querySelector('[data-tekst="nummer"]').textContent = t.nummer;
       li.querySelector('[data-tekst="tittel"]').textContent = `Teine ${t.nummer}`;
       const dybde = t.dybde != null ? ` · ${formaterDybde(t.dybde)}` : '';

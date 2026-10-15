@@ -4,13 +4,14 @@ En enkel web-app (PWA) for hummerfiske i skjærgården ved Lillesand, fra Søgne
 til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 
 - dybdekart med dybdekurver, stedsnavn og hint om bunnforhold
+- hummerpotensial: et anslag over hvor hummeren trolig holder til
 - egen posisjon fra GPS
-- teiner og fangst som du markerer med ett trykk
+- teiner og fangst som du markerer med ett trykk, og en fangstoversikt for sesongen
 - hummerfredningsområder i Agder
 
 Markeringene lagres på telefonen. Med konto (e-post og passord) lagres de også i
-skyen, som sikkerhetskopi og for å bruke dem på flere telefoner. De kan også
-eksporteres som GeoJSON og analyseres i GeoPandas.
+skyen, som sikkerhetskopi og for å bruke dem på flere telefoner, og i et lag deler du
+dem med dem du fisker med. De kan også eksporteres som GeoJSON og analyseres i GeoPandas.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
 > Bruk offisielle sjøkart.
@@ -28,19 +29,27 @@ eksporteres som GeoJSON og analyseres i GeoPandas.
 | 7 | Publisering på GitHub Pages | ✅ |
 | 8 | Analyse av fangst | ✅ |
 | 9 | Finpuss: gjenoppretting av slettede markeringer, nye teinesymboler og app-ikon, dobbelttrykk for zoom, rettet plassering av symbolene | ✅ |
+| 10 | Fangstoversikt for sesongen i appen | ✅ |
+| 11 | Hummerpotensial og tarekant, og kartet utvidet vestover til Søgne | ✅ |
+| 12 | Konto i Firebase, lag for deling, mistet teine og nattlig sikkerhetskopi | ✅ |
 
 ## Mappestruktur
 
 ```
-app/              Web-appen (statiske filer, publiseres på GitHub Pages)
-  data/           Ferdige, små GeoJSON-filer som appen leser (i git)
+app/                  Web-appen (statiske filer, publiseres på GitHub Pages)
+  data/               Ferdige GeoJSON-filer som appen leser (i git)
+  vendor/             Leaflet og Firebase, så appen ikke henter kode fra andre steder
+  personvern.html     Personvernerklæringen
 data/
-  raw/            Nedlastede rådata (ikke i git)
-  processed/      Mellomprodukter i full oppløsning (ikke i git)
-  private/        Dine egne markeringer (ALDRI i git)
-scripts/          Python-skript for databehandling
-firestore.rules   Tilgangsreglene for Firestore (limes inn i Firebase-konsollen)
-CLAUDE.md         Instruksjoner for kodeagenter (Claude Code) som jobber i repoet
+  raw/                Nedlastede rådata (ikke i git)
+  processed/          Mellomprodukter i full oppløsning (ikke i git)
+  private/            Dine egne markeringer og analyser (ALDRI i git)
+    hummerkart-data/  Klone av det private repoet med sikkerhetskopien
+scripts/              Python-skript for databehandling
+.github/workflows/    Publisering på GitHub Pages
+firestore.rules       Tilgangsreglene for Firestore (limes inn i Firebase-konsollen)
+LICENSE               Opphavsrett: alle rettigheter forbeholdt
+CLAUDE.md             Instruksjoner for kodeagenter (Claude Code) som jobber i repoet
 ```
 
 `data/raw`, `data/processed` og `data/private` står i `.gitignore` og finnes
@@ -54,10 +63,48 @@ Repoet er offentlig. Egne teineplasser og fangst skal aldri inn i det:
 - Filer som heter `markeringer*.geojson` ignoreres uansett hvor i repoet de ligger.
 - Testdata i repoet skal bare inneholde oppdiktede punkter.
 
-Med konto ligger markeringene i Firebase, ikke i repoet. Firebase-konfigurasjonen i
-`app/js/firebase.js` er ikke hemmelig: tilgangsreglene i `firestore.rules` sørger for at
-hver bruker bare kan lese og skrive sine egne markeringer. Hva appen lagrer om brukerne,
-står i `app/personvern.html`.
+Med konto ligger markeringene i Firebase, ikke i repoet. Tilgangsreglene i
+`firestore.rules` sørger for at bare brukeren selv, og medlemmene i laget, kan lese og
+skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
+
+## Sikkerhet: hva er offentlig, og hva er beskyttet
+
+**Offentlig.** Alle kan se og laste ned:
+
+- Hele dette repoet med historikken: koden, skriptene og beskrivelsen av hvordan
+  hummerpotensialet regnes ut. Det gir ingen rett til å kopiere eller bruke dem
+  (se `LICENSE`), men det hindrer det ikke.
+- Alt appen laster ned til telefonen fra <https://b1lars1.github.io/lobsterApp/>, også
+  `hummerpotensial.geojson` og `tarekant.geojson`. Slik virker en nettside: det telefonen
+  kan laste ned, kan alle laste ned. Siden har `noindex`, så den vises ikke i søkemotorer,
+  men adressen er ikke hemmelig.
+- Firebase-konfigurasjonen i `app/js/firebase.js` (prosjekt-id og API-nøkkel). Den skal
+  være offentlig: den sier bare hvilket prosjekt appen bruker, og gir ikke tilgang til
+  noe. Tilgangen styres av innloggingen og tilgangsreglene.
+
+**Beskyttet:**
+
+- Teiner og fangst i Firebase: bare brukeren selv og medlemmene i laget kan lese og endre
+  dem. Ingen kan liste opp andres kontoer eller lag.
+- Lagkoden har 8 tegn (ca. 850 milliarder muligheter) og kan ikke gjettes. Den som får
+  den, kan bli med, og et medlem kan endre og slette alt i laget. Sikkerhetskopien (se
+  «Sikkerhetskopi») har det som blir slettet.
+- Sikkerhetskopien ligger i et privat repo. Tjenestekontoen som tar den, kan bare lese,
+  og nøkkelen finnes bare som hemmelighet i GitHub Actions der. Nøkler til
+  tjenestekontoer står også i `.gitignore` her.
+- Det som kommer fra skyen, vises som tekst i appen, aldri som HTML, og id-er med andre
+  tegn enn bokstaver, tall, `-` og `_` avvises (i appen og i tilgangsreglene). Et
+  lagmedlem kan derfor ikke lure inn kode hos de andre.
+
+**Utenfor koden.** Den som kommer inn på Google-kontoen som eier Firebase-prosjektet,
+eller GitHub-kontoen `B1Lars1`, får tilgang til alt. Begge bør ha totrinnsbekreftelse.
+Gratisplanen i Firebase kan ikke gi regning. Misbruk kan i verste fall bruke opp
+dagskvoten, så synkroniseringen stopper til neste dag. Anbefalte innstillinger i Firebase
+og Google Cloud står under «Oppsett i Firebase».
+
+Skal koden og metoden skjules, må repoet gjøres privat. GitHub Pages fra et privat repo
+krever GitHub Pro, ellers må appen publiseres et annet sted. Kartdataene appen bruker, er
+likevel offentlige så lenge appen er det. For å skjule dem må de legges bak innloggingen.
 
 ## Python-miljø (Windows/PowerShell)
 
@@ -158,19 +205,24 @@ PC-en har som regel ikke GPS. Bruk en simulert posisjon for å teste:
 Bruk gjerne nettleserens mobilvisning (F12 → enhetsverktøylinjen) for å se
 appen i telefonformat.
 
+Innlogging på `localhost` bruker det ekte Firebase-prosjektet, med ekte kontoer og
+data. Test med en egen testkonto, ikke kontoen du fisker med, så testmarkeringer ikke
+havner i laget. Hver port har egen lagring i nettleseren:
+`scripts\testserver.py 8001` gir en atskilt kopi av appen på <http://localhost:8001>.
+
 ## Appen
 
-Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
+Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger i
 `app/vendor/`, så appen ikke er avhengig av en ekstern CDN.
 
 | Fil | Hva den gjør |
 |---|---|
-| `index.html` | Skjermoppsett: kart, GPS-status, knapper og innstillingsark |
+| `index.html` | Skjermoppsett: kart, GPS-status, knapper og arkene |
 | `css/app.css` | Utseende, lys og mørk modus (fargevariabler øverst) |
 | `js/app.js` | Hovedfil: kart, kartlag, knapper, tema og innstillinger |
-| `js/dybdelag.js` | Tegner dybdekartet som kartfliser, med farger og tekst |
+| `js/dybdelag.js` | Tegner dybdekartet, bunnhint og hummerpotensial som kartfliser |
 | `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
-| `js/innstillinger.js` | Husker tema og kartvalg i nettleseren |
+| `js/innstillinger.js` | Husker kartvalg, hva som vises på kartet, og tema i nettleseren |
 | `js/markeringer.js` | Teiner og fangst: data, lagring og GeoJSON-eksport/-import |
 | `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
@@ -180,12 +232,12 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
 | `js/hjemskjerm.js` | Veiledning for å legge appen til på hjemskjermen (iPhone og Android) |
-| `js/sky.js` | Konto og synkronisering med skyen (Firebase) |
-| `js/konto.js` | Innlogging og kontoen i innstillingsarket |
+| `js/sky.js` | Konto, lag og synkronisering med skyen (Firebase) |
+| `js/konto.js` | Innlogging, kontoen og laget i innstillingsarket |
 | `js/firebase.js` | Kobling til Firebase (konfigurasjon, innlogging og databasen) |
-| `personvern.html` | Personvernerklæring |
-| `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
+| `js/dybdeoppslag.js` | Anslår dybde, bunnhint og hummerpotensial i et punkt |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
+| `personvern.html` | Personvernerklæringen (lenke under Konto) |
 
 **Arkene** som kommer opp nedenfra (innstillinger, teineliste, detaljer) lukkes med
 «Ferdig», ved å trykke utenfor, eller ved å dra dem ned i håndtaket øverst.
@@ -350,7 +402,7 @@ Sjekk alltid gjeldende forskrift.
   Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
-  ta opp med fangst, flytte eller slette.
+  ta opp med fangst, melde teinen mistet, flytte eller slette.
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
   Tallet på knappen er antall teiner i sjøen.
 - **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt
@@ -379,7 +431,8 @@ Sjekk alltid gjeldende forskrift.
 - **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
   med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
   og teinen tas opp (forsvinner fra kartet, men tas vare på i historikken). **Ta opp
-  alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
+  alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt.
+  **Slett** fjerner markeringen helt (for feil). Begge kan angres.
 - **Mistet teine** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
   som tatt opp, men fangsten er ukjent, så den er ikke med i fangstraten, andelen med
   hummer eller analysen. Den blir stående på kartet, grå med et rødt «?», så du kan
@@ -406,10 +459,11 @@ Sjekk alltid gjeldende forskrift.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
 der når appen åpnes igjen, også uten nett. Logger du inn (se «Konto»), får du i
-tillegg en automatisk kopi i skyen. Uten konto forsvinner de hvis nettleserdataene
-for siden slettes. På iPhone kan Safari dessuten slette data for nettsider som
-ikke er brukt på 7 dager, men det gjelder ikke apper lagt til på hjemskjermen.
-Eksporter derfor jevnlig. Tidspunktet for siste eksport står i innstillingsarket.
+tillegg en automatisk kopi i skyen. Uten konto finnes de bare på telefonen og
+forsvinner hvis nettleserdataene for siden slettes. På iPhone kan Safari dessuten
+slette data for nettsider som ikke er brukt på 7 dager, men det gjelder ikke apper
+lagt til på hjemskjermen. Uten konto bør du derfor eksportere jevnlig. Tidspunktet
+for siste eksport står i innstillingsarket.
 
 ### Eksport til GeoPandas
 
@@ -520,7 +574,29 @@ Konto). Appen bruker ikke Google Analytics eller annen sporing.
    og skrive sine egne markeringer (`brukere/{uid}/markeringer/{id}`), og bare
    medlemmene i et lag kan lese og skrive lagets (`lag/{kode}/markeringer/{id}`).
    Lagdokumentet `lag/{kode}` har navnet, medlemmene og e-postene deres. Den som kjenner
-   koden, kan bare legge seg selv til.
+   koden, kan bare legge seg selv til, med sin egen e-post. Id-en til en markering kan
+   bare ha bokstaver, tall, `-` og `_`.
+
+Anbefalt i tillegg (se «Sikkerhet»):
+
+6. **Steng for nye kontoer** når alle som skal bruke appen, har konto: Authentication →
+   Settings → User actions → slå av **Enable create (sign-up)**. Da kan ingen fremmede
+   lage konto og bruke av kvoten. Nye brukere legges til under Authentication → Users →
+   **Add user**, og «Opprett konto» i appen sier at kontoer opprettes av den som driver
+   appen. Slå det på igjen hvis andre skal kunne lage konto selv.
+7. **Email enumeration protection** (samme sted) skal være på, så ingen kan sjekke hvilke
+   e-poster som har konto. Det er på som standard i nye prosjekter.
+8. **Begrens API-nøkkelen:** Google Cloud Console → prosjektet → APIs & Services →
+   Credentials → «Browser key (auto created by Firebase)»:
+   - **Application restrictions → Websites:** `https://b1lars1.github.io/*`,
+     `https://lobsterapp-aee59.firebaseapp.com/*` (siden for nytt passord),
+     `http://localhost:8000/*` og `http://localhost:8001/*`.
+   - **API restrictions → Restrict key:** Identity Toolkit API, Token Service API og
+     Cloud Firestore API.
+
+   Da virker nøkkelen ikke fra andre nettsider. Det stopper ikke alt (et skript kan late
+   som det er appen), men det er et ekstra hinder. Virker ikke innloggingen etterpå,
+   fjern API-begrensningen igjen.
 
 Gratisplanen (Spark) krever ikke betalingskort og kan ikke gi regning. Den har blant
 annet 1 GB lagring, 50 000 lesinger og 20 000 skrivinger per dag. Appen henter og
@@ -599,7 +675,8 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
   for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
   gang den åpnes med nett, ca. 40 MB. Deretter virker appen helt uten nett:
-  dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
+  dybdekart, stedsnavn, bunnhint, hummerpotensial, fredningsområder, dybdeoppslag og
+  markeringer. Synkroniseringen med kontoen venter til du har nett.
 - Kartverkets topokart lagres ikke (se «Kilder og kreditering»). Uten
   nett bytter appen automatisk til dybdekartet.
 
@@ -611,8 +688,9 @@ oppdateres:
 ```
 
 Versjonen er en sjekksum av alle filene. Den regnes med samme type linjeskift
-overalt, så samme kode gir samme versjon på Windows, Mac og Linux. Telefonen ser at versjonen er ny neste
-gang appen åpnes med nett, laster ned den nye versjonen i bakgrunnen og viser
+overalt, så samme kode gir samme versjon på Windows, Mac og Linux. Telefonen ser at
+versjonen er ny neste gang appen åpnes med nett, laster ned den nye versjonen i
+bakgrunnen og viser
 «Ny versjon av appen er klar». GitHub Actions-workflowen (fase 7) kjører skriptet
 automatisk ved publisering, så du ikke kan glemme det.
 
@@ -722,3 +800,10 @@ versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
 - **Kartbibliotek:** [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
 - **Konto og skylagring:** [Firebase JS SDK](https://firebase.google.com/) 12.19.0
   (Apache 2.0), i `app/vendor/firebase-12.19.0/`.
+
+## Opphavsrett
+
+© 2026 Ben Larsen. Alle rettigheter forbeholdt (se `LICENSE`). Repoet er offentlig så
+appen kan publiseres gratis på GitHub Pages, men koden, skriptene og hummerpotensialet
+kan ikke kopieres eller brukes uten tillatelse. Leaflet, Firebase og de åpne dataene
+over har egne lisenser.

@@ -17,10 +17,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // En markering (teine eller fangst), eller en sletting (slettet: true)
+    // En markering (teine eller fangst), eller en sletting (slettet: true).
+    // Id-en er en UUID fra appen; andre tegn kunne blitt til HTML hos de andre i laget.
     function gyldigMarkering(id) {
       let d = request.resource.data;
       return d.id == id
+        && id.matches('^[A-Za-z0-9_-]{1,100}$')
         && d.endret is string
         && d.slettet is bool
         && d.oppdatert == request.time      // settes av serveren (serverTimestamp)
@@ -50,6 +52,7 @@ service cloud.firestore {
         && request.resource.data.navn.size() > 0 && request.resource.data.navn.size() <= 40
         && request.resource.data.medlemmer == [request.auth.uid]
         && request.resource.data.eposter.keys().hasOnly([request.auth.uid])
+        && request.resource.data.eposter[request.auth.uid] == request.auth.token.email
         && request.resource.data.opprettet == request.time;
 
       allow update: if innlogget()
@@ -58,10 +61,12 @@ service cloud.firestore {
         && request.resource.data.navn is string
         && request.resource.data.navn.size() > 0 && request.resource.data.navn.size() <= 40
         && (
-          // Bli med: legger bare til deg selv (krever at du kjenner koden)
+          // Bli med: legger bare til deg selv, med din egen e-post (krever at du kjenner koden)
           (request.resource.data.medlemmer.hasAll(resource.data.medlemmer)
             && request.resource.data.medlemmer.removeAll(resource.data.medlemmer) == [request.auth.uid]
-            && request.resource.data.eposter.diff(resource.data.eposter).affectedKeys().hasOnly([request.auth.uid]))
+            && request.resource.data.eposter.diff(resource.data.eposter).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.eposter[request.auth.uid] == request.auth.token.email
+            && request.resource.data.navn == resource.data.navn)
           // Medlem: kan endre navnet og fjerne medlemmer (også seg selv), men ikke legge til andre
           || (erMedlem() && resource.data.medlemmer.hasAll(request.resource.data.medlemmer))
         );
