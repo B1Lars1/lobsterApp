@@ -246,8 +246,9 @@ bakgrunn, med nummeret som HTML oppå.
   å simulere tid (`Date.now`) i stedet for å vente.
 - Brukeren kan være logget inn med sin ekte konto på `localhost:8000` i
   nettleserpanelet, og alt der synkroniseres til laget og telefonene. Lag aldri testdata
-  der. Test på en annen port: `testserver.py 8001` (launch-konfigurasjonen
-  «hummerkart-8001» i `.claude/launch.json`), som har egen lagring i nettleseren.
+  der. Test på `testserver.py 8001` (launch-konfigurasjonen «hummerkart-8001» i
+  `.claude/launch.json`), som har egen lagring i nettleseren. Andre porter virker for alt
+  unntatt innlogging (se «Sikkerhet»).
 
 ## Personvern
 
@@ -277,9 +278,16 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
 - `firestore.rules` er det eneste som beskytter dataene i Firebase. Hold reglene strenge,
   og si fra til brukeren at de må limes inn på nytt. Agenten har ingen emulator (verken
   Java eller Node er installert), så be brukeren teste dem i Rules Playground i konsollen.
-- Firebase-innstillingene gjøres av brukeren i konsollen (README, «Oppsett i Firebase»).
-  Er nye kontoer stengt, gir «Opprett konto» `auth/admin-restricted-operation`
-  (`feilTekst` i `sky.js`). Er API-nøkkelen begrenset til nettsteder, må en ny adresse
-  (ny port, nytt domene) legges til der, ellers feiler innloggingen.
+- Firebase-innstillingene gjøres av brukeren i konsollen (README, «Oppsett i Firebase»,
+  punkt 6–8). Alle er gjort (15. oktober 2026), og brukeren har totrinnsbekreftelse på
+  Google og GitHub:
+  - Nye kontoer er stengt. «Opprett konto» gir `auth/admin-restricted-operation`
+    (`feilTekst` i `sky.js`), og nye brukere legges til i konsollen (Add user, så
+    «Glemt passord?» i appen).
+  - API-nøkkelen virker bare fra `b1lars1.github.io`, `lobsterapp-aee59.firebaseapp.com`,
+    `localhost:8000` og `localhost:8001`. Innlogging fra en annen port eller et annet domene
+    feiler til brukeren legger adressen til på nøkkelen.
+- Brukeren valgte å beholde repoet offentlig med `LICENSE` i stedet for å gjøre det privat
+  eller legge hummerpotensialet bak innloggingen. Ikke foreslå det på nytt uten grunn.
 - Aldri tokens, passord eller tjenestekontonøkler i repoet. `.gitignore` stopper de vanlige
   filnavnene for nøkler. Se gjennom `git diff --cached` før commit.

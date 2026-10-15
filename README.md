@@ -97,10 +97,10 @@ skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
   lagmedlem kan derfor ikke lure inn kode hos de andre.
 
 **Utenfor koden.** Den som kommer inn på Google-kontoen som eier Firebase-prosjektet,
-eller GitHub-kontoen `B1Lars1`, får tilgang til alt. Begge bør ha totrinnsbekreftelse.
+eller GitHub-kontoen `B1Lars1`, får tilgang til alt. Begge har totrinnsbekreftelse.
 Gratisplanen i Firebase kan ikke gi regning. Misbruk kan i verste fall bruke opp
-dagskvoten, så synkroniseringen stopper til neste dag. Anbefalte innstillinger i Firebase
-og Google Cloud står under «Oppsett i Firebase».
+dagskvoten, så synkroniseringen stopper til neste dag. Derfor er nye kontoer stengt og
+API-nøkkelen begrenset (se «Oppsett i Firebase», punkt 6–8).
 
 Skal koden og metoden skjules, må repoet gjøres privat. GitHub Pages fra et privat repo
 krever GitHub Pro, ellers må appen publiseres et annet sted. Kartdataene appen bruker, er
@@ -577,7 +577,7 @@ Konto). Appen bruker ikke Google Analytics eller annen sporing.
    koden, kan bare legge seg selv til, med sin egen e-post. Id-en til en markering kan
    bare ha bokstaver, tall, `-` og `_`.
 
-Anbefalt i tillegg (se «Sikkerhet»):
+Gjort i tillegg 15. oktober 2026 (se «Sikkerhet»):
 
 6. **Steng for nye kontoer** når alle som skal bruke appen, har konto: Authentication →
    Settings → User actions → slå av **Enable create (sign-up)**. Da kan ingen fremmede
