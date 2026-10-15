@@ -581,9 +581,14 @@ Anbefalt i tillegg (se «Sikkerhet»):
 
 6. **Steng for nye kontoer** når alle som skal bruke appen, har konto: Authentication →
    Settings → User actions → slå av **Enable create (sign-up)**. Da kan ingen fremmede
-   lage konto og bruke av kvoten. Nye brukere legges til under Authentication → Users →
-   **Add user**, og «Opprett konto» i appen sier at kontoer opprettes av den som driver
-   appen. Slå det på igjen hvis andre skal kunne lage konto selv.
+   lage konto og bruke av kvoten. «Opprett konto» i appen sier da at kontoer opprettes
+   av den som driver appen. Slå det på igjen hvis andre skal kunne lage konto selv.
+
+   **Ny bruker når det er stengt:** Authentication → Users → **Add user**, med e-posten
+   til personen og et tilfeldig passord du ikke trenger å huske. Be personen åpne appen,
+   skrive e-posten sin i innloggingen og trykke **Glemt passord?**. Da kommer en e-post
+   med lenke for å lage sitt eget passord, så du aldri kjenner det, og ingen passord
+   sendes på melding. Etterpå logger personen inn og kan bli med i laget med koden.
 7. **Email enumeration protection** (samme sted) skal være på, så ingen kan sjekke hvilke
    e-poster som har konto. Det er på som standard i nye prosjekter.
 8. **Begrens API-nøkkelen:** Google Cloud Console → prosjektet → APIs & Services →
