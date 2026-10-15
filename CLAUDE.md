@@ -115,7 +115,12 @@ GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, f
 dataene har flere hundre tusen koordinater. `dybdeoppslag.js` anslår dybde, bunnhint
 og hummerpotensial i et punkt. Dataene lages av skriptene i `scripts/`, og
 `scripts/config.py` har felles stier og kartutsnitt. `BBOX_WGS84` der må stemme med
-`DATAOMRADE` i `app/js/app.js`. Nytt valgfritt datalag: hent det i `lastDybdedata()`
+`DATAOMRADE` i `app/js/app.js`. Kartutsnittet går fra Søgne (vestgrensen til Kristiansand
+kommune, som dybdedataene for 4204 dekker) til Grimstad. Utvides det, må alle
+dataskriptene kjøres på nytt i rekkefølgen over (`lag_dybdekart.py` tar ca. 10 min), og
+appen lagrer alt for bruk uten nett (nå ca. 40 MB, ca. 120 MB minne i nettleseren). Mål
+lastetid og minne etter en utvidelse. Ligger nytt område i en annen kommune, må den legges
+til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`. Nytt valgfritt datalag: hent det i `lastDybdedata()`
 med `.catch(() => tom)`, så kartet virker uten filen, og tegn det i `_tegnFlis` i riktig
 rekkefølge (soner, hummerpotensial, kurver, bunnhint, tarekant, land, tekst).
 

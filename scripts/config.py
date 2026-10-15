@@ -12,9 +12,10 @@ PRIVATE_DIR = ROOT / "data" / "private"      # egne markeringer – aldri i git
 # Ferdige, små filer som appen leser (ligger i git og publiseres)
 APP_DATA_DIR = ROOT / "app" / "data"
 
-# Kartutsnitt (lon_min, lat_min, lon_max, lat_max) i EPSG:4326: kysten fra østre del av
-# Kristiansand, forbi Lillesand, til Grimstad. Husk å endre DATAOMRADE i app/js/app.js også.
-BBOX_WGS84 = (8.08, 58.08, 8.70, 58.37)
+# Kartutsnitt (lon_min, lat_min, lon_max, lat_max) i EPSG:4326: kysten fra Søgne (vestre
+# grense av Kristiansand kommune, mot Lindesnes), forbi Kristiansand og Lillesand, til
+# Grimstad. Husk å endre DATAOMRADE i app/js/app.js også.
+BBOX_WGS84 = (7.65, 57.97, 8.70, 58.37)
 
 # Sjødata tas bare med så langt ut som dette fra nærmeste land, holme eller skjær (meter).
 SJO_AVSTAND_M = 3000

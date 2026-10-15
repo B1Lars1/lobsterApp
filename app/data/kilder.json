@@ -26,7 +26,7 @@
     "lisens": "CC BY 4.0",
     "lisens_url": "https://creativecommons.org/licenses/by/4.0/",
     "kilde_url": "https://api.kartverket.no/stedsnavn/v1/",
-    "lastet_ned": "2026-10-14"
+    "lastet_ned": "2026-10-15"
   },
   "bunnhint": {
     "navn": "Marine naturtyper (HB19)",
@@ -35,7 +35,7 @@
     "lisens": "NLOD 2.0",
     "lisens_url": "https://data.norge.no/nlod/no/2.0",
     "metadata_url": "https://kartkatalog.geonorge.no/metadata/e4f40b02-7a32-4163-87af-d4121de48e6d",
-    "lastet_ned": "2026-10-14"
+    "lastet_ned": "2026-10-15"
   },
   "hummerpotensial": {
     "navn": "Hummerpotensial og tarekant (anslag)",

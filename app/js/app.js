@@ -31,7 +31,7 @@ import { visMelding } from './melding.js';
 import { Synk, hentSynkOppsett } from './synk.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
-const DATAOMRADE = L.latLngBounds([58.08, 8.08], [58.37, 8.70]);
+const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]); // samme som BBOX_WGS84 i scripts/config.py
 const START = { senter: [58.235, 8.39], zoom: 12 }; // Lillesand, før GPS-en har funnet deg
 
 // Samme tekst på alle lag, så Leaflet viser krediteringen bare én gang.

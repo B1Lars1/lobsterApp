@@ -1,7 +1,7 @@
 {
   "name": "Hummerkart Lillesand",
   "short_name": "Hummerkart",
-  "description": "Dybdekart, teiner og fangst for hummerfiske i skjærgården ved Lillesand.",
+  "description": "Dybdekart, teiner og fangst for hummerfiske i skjærgården fra Søgne til Grimstad.",
   "lang": "nb",
   "start_url": "./",
   "scope": "./",

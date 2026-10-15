@@ -1,7 +1,7 @@
 # Hummerkart Lillesand
 
-En enkel web-app (PWA) for hummerfiske i skjærgården ved Lillesand. Appen legges
-til på hjemskjermen på telefonen og viser:
+En enkel web-app (PWA) for hummerfiske i skjærgården ved Lillesand, fra Søgne i vest
+til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 
 - dybdekart med dybdekurver, stedsnavn og hint om bunnforhold
 - egen posisjon fra GPS
@@ -86,17 +86,17 @@ GitHub CLI: `gh auth login` og deretter `gh auth setup-git`.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\last_ned_dybdedata.py   # ca. 55 MB til data/raw/
-.\.venv\Scripts\python.exe scripts\lag_dybdekart.py        # ca. 5 min, skriver til app/data/
+.\.venv\Scripts\python.exe scripts\lag_dybdekart.py        # ca. 10 min, skriver til app/data/
 ```
 
 `last_ned_dybdedata.py` bestiller Kartverkets «Sjøkart – Dybdedata» (File
 Geodatabase, UTM32) for Kristiansand, Lillesand og Grimstad via Geonorges
-nedlastings-API.
+nedlastings-API. Kristiansand kommune omfatter Søgne siden 2020, så Søgne er med.
 Bruk `--force` for å hente nyeste versjon (Kartverket oppdaterer ukentlig).
 
 `lag_dybdekart.py` klipper til kartområdet, forenkler, reprojiserer til
 EPSG:4326 og skriver filene under. Kartområdet er alt land innenfor utsnittet
-(lon 8,08–8,70, lat 58,08–58,37, fra østre del av Kristiansand til Grimstad) og
+(lon 7,65–8,70, lat 57,97–58,37, fra Søgne til Grimstad) og
 sjø inntil 3 km fra nærmeste land, holme eller skjær. Begge deler styres av
 `BBOX_WGS84` og `SJO_AVSTAND_M` i `scripts/config.py`. Endrer du utsnittet, må
 også `DATAOMRADE` i `app/js/app.js` endres.
@@ -114,7 +114,7 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `tarekant.geojson` | Tarekanten: der tareskog møter sand eller ålegras | |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
-Filene er til sammen ca. 22 MB, eller ca. 2,9 MB komprimert slik de sendes over
+Filene er til sammen ca. 38 MB, eller ca. 5,1 MB komprimert slik de sendes over
 nettet. Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
 så naboflatene fortsatt passer sammen uten sprekker.
 
@@ -265,13 +265,13 @@ Hva forskningen sier, og hva skriptet bruker:
   (25° og mer) gir full verdi.
 - **Der fjell møter sand:** i en studie fra Biscaya lå det beste habitatet der fjellbunn
   møter sedimentbunn. Skriptet finner **tarekanten**, der tareskog (trolig fjell) ligger
-  innenfor 50 m fra ålegras, skjellsand eller bløtbunn (trolig sand). Det gir ca. 10 km
-  med tarekant på ca. 85 steder.
+  innenfor 50 m fra ålegras, skjellsand eller bløtbunn (trolig sand). Det gir ca. 34 km
+  med tarekant på ca. 210 steder.
 - **Steinbunn med tare:** tareskog gir litt ekstra.
 
 Poengsummen er dybdeverdien ganget med en vektet sum: helning 50 %, nærhet til
 tarekanten 25 % og tareskog 25 %. Ruter på 20 × 20 m med poengsum fra 0,5 blir
-**høyt**, fra 0,3 **middels**. Det er ca. 1,7 km² høyt og 6,6 km² middels, som oftest
+**høyt**, fra 0,3 **middels**. Det er ca. 4,2 km² høyt og 12,4 km² middels, som oftest
 smale striper langs bratte skråninger. Bølgeeksponering er ikke med, siden det ikke
 finnes slike data for området (Marine grunnkart dekker foreløpig bare Stavanger og
 Sunnmøre).
@@ -542,7 +542,7 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
   dybdekurver. Teinesymbolene på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet
   for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
-  gang den åpnes med nett, ca. 24 MB. Deretter virker appen helt uten nett:
+  gang den åpnes med nett, ca. 40 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
 - Kartverkets topokart lagres ikke (se «Kilder og kreditering»). Uten
   nett bytter appen automatisk til dybdekartet.
@@ -587,7 +587,7 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 ### Legg appen til på hjemskjermen
 
 Første gang må telefonen ha nett. Vent til meldingen «Appen er lagret og virker
-nå uten nett» kommer (lagrer ca. 24 MB).
+nå uten nett» kommer (lagrer ca. 40 MB).
 
 **Appen viser selv hvordan:** åpnes lenken i nettleseren på en telefon, kommer det
 opp et ark med fremgangsmåten for telefonen som brukes. På Android (Chrome) er det
