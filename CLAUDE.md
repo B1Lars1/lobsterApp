@@ -143,6 +143,10 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   ut av laget (personvern). Markeringer uten konto har `null`.
 - I et lag slår tilgangsreglene opp i `lag/{kode}` (`get()`) for hver markering, og en
   batch tillater maks 20 slike oppslag. Derfor `BATCH_LAG = 15` i `firebase.js`.
+- Gratiskvoten (Spark) er 50 000 lesinger og 20 000 skrivinger i døgnet, og 1 GiB. Hver
+  synkronisering koster minst 2 lesinger (`finnLag` og spørringen, også når ingenting er
+  endret), og hver telefon leser tilbake sine egne endringer. Ikke synkroniser oftere, og
+  ikke les alt på nytt uten grunn. README («Hvor langt rekker gratisplanene?») har anslagene.
 - `naarEndret` overses mens en synkronisering pågår, ellers ville importen av det som
   hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
   rett etterpå.
@@ -178,7 +182,13 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
 - **Sikkerhetskopi** ligger i det private repoet `B1Lars1/hummerkart-data` (klonet til
   `data/private/hummerkart-data/`, ignorert her): `sikkerhetskopi.py` kjøres hver natt av
   GitHub Actions der og lagrer alle rom som GeoJSON, og `gjenopprett.py` gjør en gammel
-  kopi klar til import. `sikkerhetskopi.py` har sin egen kopi av `FELT`: legges et felt til
+  kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra kontoene i Auth og
+  `lag`-samlingen) etter dokumenter med `oppdatert` nyere enn rommets merke i
+  `sikkerhetskopi/tilstand.json`, og fletter dem inn i filene. Det fanger alt fordi
+  reglene krever ny `oppdatert` ved hver skriving, og appen sletter dokumenter bare rom
+  for rom (`slettAlle`, da forsvinner kontoen eller laget og filen fjernes). Begynner
+  appen å slette enkeltdokumenter, må kopien kjøres med `--full` (eller valget «Hent alt
+  på nytt» i workflowen). Test endringer med en falsk Firestore, ikke ekte data. `sikkerhetskopi.py` har sin egen kopi av `FELT`: legges et felt til
   i `markeringer.js`, må det legges til der også. Tjenestekontoen er skrivebeskyttet, og
   nøkkelen ligger bare som hemmeligheten `FIREBASE_TJENESTEKONTO` i det private repoet.
   Ingenting fra det private repoet skal inn i dette offentlige repoet.

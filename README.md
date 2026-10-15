@@ -549,7 +549,26 @@ leser kopien derfra, og **Gjenopprett fra fil** i innstillingene leser inn en fi
 Innstillingene viser hvor mye som er lagret, og om det deles i et lag.
 
 Kopien tas med en tjenestekonto som bare kan lese. Nøkkelen ligger som en hemmelighet
-i GitHub Actions i det private repoet og skal aldri inn i noe repo.
+i GitHub Actions i det private repoet og skal aldri inn i noe repo. Hver natt hentes bare
+det som er endret siden natten før, så kopien bruker lite av gratiskvoten (se under).
+
+### Hvor langt rekker gratisplanene?
+
+Firebase (Spark) og GitHub koster ingenting og kan ikke gi regning. Brukes en kvote opp,
+stopper synkroniseringen til kvoten fornyes kl. 09 norsk tid. Appen virker imens som
+vanlig, og alt lagres på telefonen til den kan sendes. Anslag, med ca. 20 teiner per
+person på en fiskedag:
+
+| Grense | Gratis | Rekker til omtrent |
+|---|---|---|
+| Lesinger i Firestore | 50 000 per døgn | 120 personer som fisker samme dag (ca. 400 lesinger hver i et lag på to) |
+| Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
+| Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
+| GitHub Pages | 100 GB per måned (mykt tak) | 1 700 brukere med 10 nye versjoner i måneden (ca. 6 MB per telefon per versjon) |
+| GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 30 |
+
+Kontoer har ingen grense, og det kan sendes 150 e-poster om nytt passord per døgn. Du
+og broren din bruker en liten brøkdel av alt dette.
 
 ### Lag (dele med dem du fisker med)
 
