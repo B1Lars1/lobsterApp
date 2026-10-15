@@ -155,6 +155,13 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   trengs), og la brukeren teste ekte innlogging.
 - Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser
   GeoJSON-eksporten fra appen i `data/private/`.
+- **Sikkerhetskopi** ligger i det private repoet `B1Lars1/hummerkart-data` (klonet til
+  `data/private/hummerkart-data/`, ignorert her): `sikkerhetskopi.py` kjøres hver natt av
+  GitHub Actions der og lagrer alle rom som GeoJSON, og `gjenopprett.py` gjør en gammel
+  kopi klar til import. `sikkerhetskopi.py` har sin egen kopi av `FELT`: legges et felt til
+  i `markeringer.js`, må det legges til der også. Tjenestekontoen er skrivebeskyttet, og
+  nøkkelen ligger bare som hemmeligheten `FIREBASE_TJENESTEKONTO` i det private repoet.
+  Ingenting fra det private repoet skal inn i dette offentlige repoet.
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi

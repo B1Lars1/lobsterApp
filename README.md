@@ -470,6 +470,18 @@ telefonen.
 - **Slett kontoen:** krever passordet. Kontoen og alt i den slettes, og du går ut av
   laget ditt. Det som ligger på telefonen, blir liggende.
 
+### Sikkerhetskopi
+
+Hver natt tas en kopi av alle markeringene i Firebase (kontoer og lag) til det private
+repoet [B1Lars1/hummerkart-data](https://github.com/B1Lars1/hummerkart-data), med én
+versjon per dag i git-historikken. Det beskytter mot feil som sletter noe i alle
+telefonene, for eksempel at noen i laget sletter teiner, og mot at Firebase forsvinner.
+Skriptet, workflowen, oppsettet og hvordan du gjenoppretter står i README-en der.
+Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet).
+
+Kopien tas med en tjenestekonto som bare kan lese. Nøkkelen ligger som en hemmelighet
+i GitHub Actions i det private repoet og skal aldri inn i noe repo.
+
 ### Lag (dele med dem du fisker med)
 
 Et lag er en **felles logg**: alle medlemmene ser og kan endre alle teiner og all fangst,
