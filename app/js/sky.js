@@ -72,17 +72,12 @@ export function feilTekst(feil) {
     'auth/invalid-credential': 'Feil e-post eller passord.',
     'auth/wrong-password': 'Feil passord.',
     'auth/user-not-found': 'Fant ingen konto med den e-posten.',
-    'auth/email-already-in-use': 'Det finnes allerede en konto med den e-posten. Logg inn i stedet.',
-    'auth/weak-password': 'Passordet må ha minst 6 tegn.',
     'auth/invalid-email': 'E-postadressen ser ikke riktig ut.',
     'auth/missing-password': 'Skriv inn passordet.',
     'auth/too-many-requests': 'For mange forsøk. Vent litt og prøv igjen.',
     'auth/network-request-failed': 'Ingen nettforbindelse.',
     'auth/requires-recent-login': 'Logg inn på nytt og prøv igjen.',
     'auth/operation-not-allowed': 'Innlogging med e-post og passord er ikke slått på i Firebase.',
-    // Nye kontoer er slått av i Firebase (Authentication → Settings → User actions)
-    'auth/admin-restricted-operation': 'Nye kontoer opprettes bare av den som driver appen. '
-      + 'Ta kontakt for å få en konto.',
   };
   return tekster[kode] ?? (feil?.message ? `Noe gikk galt (${kode || feil.message}).` : 'Noe gikk galt.');
 }
@@ -349,10 +344,6 @@ export class Sky {
 
   async loggInn(epost, passord) {
     await this.innlogging.loggInn(epost, passord);
-  }
-
-  async opprettKonto(epost, passord) {
-    await this.innlogging.opprett(epost, passord);
   }
 
   async glemtPassord(epost) {

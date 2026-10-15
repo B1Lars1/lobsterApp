@@ -281,9 +281,11 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
 - Firebase-innstillingene gjøres av brukeren i konsollen (README, «Oppsett i Firebase»,
   punkt 6–8). Alle er gjort (15. oktober 2026), og brukeren har totrinnsbekreftelse på
   Google og GitHub:
-  - Nye kontoer er stengt. «Opprett konto» gir `auth/admin-restricted-operation`
-    (`feilTekst` i `sky.js`), og nye brukere legges til i konsollen (Add user, så
-    «Glemt passord?» i appen).
+  - Nye kontoer er stengt, og appen har ikke «Opprett konto» (fjernet med `opprett()` i
+    `firebase.js` og `opprettKonto()` i `sky.js`). Nye brukere legges til i konsollen
+    (Add user, så «Glemt passord?» i appen). Skal folk kunne lage konto selv igjen, må
+    sign-up slås på og koden hentes fra git-historikken (før «Fjern Opprett konto fra
+    appen»).
   - API-nøkkelen virker bare fra `b1lars1.github.io`, `lobsterapp-aee59.firebaseapp.com`,
     `localhost:8000` og `localhost:8001`. Innlogging fra en annen port eller et annet domene
     feiler til brukeren legger adressen til på nøkkelen.

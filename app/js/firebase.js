@@ -14,7 +14,7 @@
 
 import { initializeApp } from '../vendor/firebase-12.19.0/firebase-app.js';
 import {
-  EmailAuthProvider, browserLocalPersistence, createUserWithEmailAndPassword, deleteUser,
+  EmailAuthProvider, browserLocalPersistence, deleteUser,
   indexedDBLocalPersistence, initializeAuth, onAuthStateChanged, reauthenticateWithCredential,
   sendPasswordResetEmail, signInWithEmailAndPassword, signOut,
 } from '../vendor/firebase-12.19.0/firebase-auth.js';
@@ -65,11 +65,6 @@ export class FirebaseInnlogging {
   async loggInn(epost, passord) {
     koble();
     await signInWithEmailAndPassword(auth, epost, passord);
-  }
-
-  async opprett(epost, passord) {
-    koble();
-    await createUserWithEmailAndPassword(auth, epost, passord);
   }
 
   async glemtPassord(epost) {

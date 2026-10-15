@@ -1,7 +1,8 @@
 /*
- * Kontoen i appen: delen «Konto» i innstillingsarket, og arket for å logge inn,
- * opprette konto, få nytt passord og slette kontoen. Innloggingen og
- * synkroniseringen ligger i sky.js.
+ * Kontoen i appen: delen «Konto» i innstillingsarket, og arket for å logge inn, få nytt
+ * passord og slette kontoen. Innloggingen og synkroniseringen ligger i sky.js.
+ * Kontoer kan ikke opprettes i appen: den som driver appen, legger dem til i
+ * Firebase-konsollen (se README, «Oppsett i Firebase»).
  *
  * Arkene er <dialog> med showModal(), så meldinger fra melding.js synes ikke mens et
  * ark er åpent. Svar vises derfor i arkene selv (feltet under knappene og
@@ -14,18 +15,10 @@ const MODUS = {
   inn: {
     tittel: 'Logg inn',
     knapp: 'Logg inn',
-    bytt: 'Ny her? Opprett konto',
     forklaring: 'Teiner og fangst lagres i kontoen din, og du får dem på alle telefoner du logger inn på. '
-      + 'Uten konto ligger alt bare på denne telefonen: trykk Avbryt for å bruke appen uten.',
+      + 'Kontoer lages av den som driver appen. Uten konto ligger alt bare på denne telefonen: '
+      + 'trykk Avbryt for å bruke appen uten.',
     passord: 'current-password',
-  },
-  opprett: {
-    tittel: 'Opprett konto',
-    knapp: 'Opprett konto',
-    bytt: 'Har du konto? Logg inn',
-    forklaring: 'Bruk e-posten din og et passord på minst 6 tegn. Det du har markert på denne '
-      + 'telefonen, lagres i den nye kontoen.',
-    passord: 'new-password',
   },
   slett: {
     tittel: 'Slett kontoen',
@@ -80,7 +73,6 @@ export class Konto {
     this.ark.addEventListener('click', (e) => {
       if (e.target === this.ark) this.ark.close(); // trykk på bakgrunnen
       const handling = e.target.closest('[data-handling]')?.dataset.handling;
-      if (handling === 'bytt') this._settModus(this.modus === 'inn' ? 'opprett' : 'inn');
       if (handling === 'glemt') this._glemtPassord();
       if (handling === 'lukk') this.ark.close();
     });
@@ -112,7 +104,7 @@ export class Konto {
     });
   }
 
-  /** Åpne arket for å logge inn ('inn'), opprette konto ('opprett') eller slette den ('slett'). */
+  /** Åpne arket for å logge inn ('inn') eller slette kontoen ('slett'). */
   vis(modus) {
     this.skjema.reset();
     this._settModus(modus);
@@ -126,7 +118,6 @@ export class Konto {
     const sett = (navn, tekst) => { this.ark.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
     sett('tittel', m.tittel);
     sett('forklaring', m.forklaring);
-    sett('bytt', m.bytt ?? '');
     this._visSvar('');
     const send = this.ark.querySelector('[data-handling="send"]');
     send.textContent = m.knapp;
@@ -135,7 +126,6 @@ export class Konto {
     const { epost, passord } = this.skjema.elements;
     epost.readOnly = modus === 'slett';
     passord.autocomplete = m.passord;
-    this.ark.querySelector('[data-handling="bytt"]').hidden = modus === 'slett';
     this.ark.querySelector('[data-handling="glemt"]').hidden = modus !== 'inn';
   }
 
@@ -159,7 +149,6 @@ export class Konto {
     this._visSvar(this.modus === 'slett' ? 'Sletter …' : 'Et øyeblikk …');
     try {
       if (this.modus === 'inn') await this.sky.loggInn(epost, passord);
-      if (this.modus === 'opprett') await this.sky.opprettKonto(epost, passord);
       if (this.modus === 'slett') {
         await this.sky.slettKonto(passord);
         this._melding('Kontoen er slettet. Teiner og fangst på telefonen er beholdt.');

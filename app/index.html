@@ -141,7 +141,7 @@
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
-  <!-- Konto: logg inn, opprett konto, glemt passord og slett konto (se konto.js) -->
+  <!-- Konto: logg inn, glemt passord og slett konto (se konto.js) -->
   <dialog id="ark-konto" class="ark">
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
     <form class="konto-skjema" novalidate>
@@ -157,7 +157,6 @@
         <button type="submit" class="ferdig" data-handling="send">Logg inn</button>
       </div>
       <div class="konto-lenker">
-        <button type="button" class="lenke" data-handling="bytt" data-tekst="bytt"></button>
         <button type="button" class="lenke" data-handling="glemt">Glemt passord?</button>
       </div>
       <button type="button" class="avbryt" data-handling="lukk">Avbryt</button>
@@ -337,7 +336,7 @@
           <p class="hjelp">Logg inn for å lagre teiner og fangst i en konto. Da har du en
             sikkerhetskopi, og du får dem på alle telefonene dine. Uten konto ligger de bare
             på denne telefonen.</p>
-          <button type="button" id="knapp-logg-inn" class="sekundar">Logg inn eller opprett konto</button>
+          <button type="button" id="knapp-logg-inn" class="sekundar">Logg inn</button>
         </div>
         <div data-vis="innlogget" hidden>
           <p class="hjelp">Logget inn som <b data-tekst="epost"></b>. Teiner og fangst lagres

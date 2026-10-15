@@ -496,10 +496,12 @@ hvis filen har en nyere versjon, så det er trygt å importere samme fil flere g
 
 ### Konto (sikkerhetskopi og flere telefoner)
 
-Innstillinger → **Konto** → **Logg inn eller opprett konto**, med e-post og passord.
-Da lagres teiner og fangst også i en konto i skyen (Google Firebase, i EU), og du får
-dem på alle telefonene du logger inn på. Uten konto virker appen som før, med alt på
-telefonen.
+Innstillinger → **Konto** → **Logg inn**, med e-post og passord. Da lagres teiner og
+fangst også i en konto i skyen (Google Firebase, i EU), og du får dem på alle telefonene
+du logger inn på. Uten konto virker appen som før, med alt på telefonen.
+
+Kontoer kan ikke opprettes i appen. Den som driver appen, legger dem til i Firebase (se
+«Oppsett i Firebase», punkt 6), og så lager du ditt eget passord med **Glemt passord?**.
 
 - **Innlogging når appen åpnes:** er du ikke logget inn, kommer innloggingen opp når
   appen åpnes. **Avbryt** lukker den, og appen virker uten konto. Åpnes lenken i
@@ -579,13 +581,14 @@ Konto). Appen bruker ikke Google Analytics eller annen sporing.
 
 Gjort i tillegg 15. oktober 2026 (se «Sikkerhet»):
 
-6. **Steng for nye kontoer** når alle som skal bruke appen, har konto: Authentication →
-   Settings → User actions → slå av **Enable create (sign-up)**. Da kan ingen fremmede
-   lage konto og bruke av kvoten. «Opprett konto» i appen sier da at kontoer opprettes
-   av den som driver appen. Slå det på igjen hvis andre skal kunne lage konto selv.
+6. **Nye kontoer er stengt:** Authentication → Settings → User actions → **Enable create
+   (sign-up)** er slått av, og appen har ingen knapp for å opprette konto. Da kan ingen
+   fremmede lage konto og bruke av kvoten.
 
-   **Ny bruker når det er stengt:** Authentication → Users → **Add user**, med e-posten
-   til personen og et tilfeldig passord du ikke trenger å huske. Be personen åpne appen,
+   **Ny bruker:** Authentication → Users → **Add user**, med e-posten til personen og et
+   tilfeldig passord du ikke trenger å huske. Det går også fra telefonen: bokmerk
+   <https://console.firebase.google.com/project/lobsterapp-aee59/authentication/users>
+   i Safari. Be personen åpne appen,
    skrive e-posten sin i innloggingen og trykke **Glemt passord?**. Da kommer en e-post
    med lenke for å lage sitt eget passord, så du aldri kjenner det, og ingen passord
    sendes på melding. Etterpå logger personen inn og kan bli med i laget med koden.
