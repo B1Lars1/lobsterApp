@@ -268,7 +268,9 @@ function oppdaterDatainfo() {
     `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer ` +
     `(${alle.length} markeringer i alt). Sist eksportert: ${eksport}. ` +
     (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass.') +
-    (sky.innlogget ? ' Markeringene lagres også i kontoen din.' : ' Eksporter jevnlig, eller logg inn så de lagres i en konto.');
+    (sky.lag ? ` Markeringene deles i laget «${sky.lag.navn}».`
+      : sky.innlogget ? ' Markeringene lagres også i kontoen din.'
+        : ' Eksporter jevnlig, eller logg inn så de lagres i en konto.');
 }
 
 $('knapp-eksporter').addEventListener('click', () => eksporter());
@@ -352,16 +354,32 @@ async function visKilder() {
 
 // ---------- Konto og synkronisering med skyen ----------
 
+// Første gang innloggingen er kjent etter at appen er åpnet: ikke logget inn → vis
+// innloggingen. Ikke i nettleseren på en telefon: der vises veiledningen for hjemskjermen,
+// og innloggingen skal skje i appen fra hjemskjermen (den har egen lagring).
+let forsteInnlogging = true;
+function sporOmInnlogging(bruker) {
+  if (!forsteInnlogging) return;
+  forsteInnlogging = false;
+  if (bruker || kanLeggesTil()) return;
+  setTimeout(() => {
+    if (!sky.innlogget && !document.querySelector('dialog[open]')) konto.vis('inn');
+  }, 800);
+}
+
 const sky = new Sky(markeringer, {
   naarStatus: (status) => konto.visStatus(status),
   naarBruker: (bruker) => {
     konto.visBruker(bruker);
     oppdaterDatainfo();
+    sporOmInnlogging(bruker);
   },
+  naarLag: (lag) => konto.visLag(lag),
   innlogging: new FirebaseInnlogging(),
   tjeneste: new FirestoreTjeneste(),
 });
 const konto = new Konto(sky);
+ark.hvem = (uid) => sky.navnFor(uid); // «av ola» på det andre i laget har registrert
 
 // Synkroniseringen med GitHub er erstattet av kontoen. Fjern den gamle tilgangsnøkkelen.
 try {

@@ -8,14 +8,15 @@
  * statuslinjen i innstillingene).
  */
 
-import { feilTekst } from './sky.js';
+import { feilTekst, rensKode, visKode } from './sky.js';
 
 const MODUS = {
   inn: {
     tittel: 'Logg inn',
     knapp: 'Logg inn',
     bytt: 'Ny her? Opprett konto',
-    forklaring: 'Teiner og fangst lagres i kontoen din, og du får dem på alle telefoner du logger inn på.',
+    forklaring: 'Teiner og fangst lagres i kontoen din, og du får dem på alle telefoner du logger inn på. '
+      + 'Uten konto ligger alt bare på denne telefonen: trykk Avbryt for å bruke appen uten.',
     passord: 'current-password',
   },
   opprett: {
@@ -35,7 +36,34 @@ const MODUS = {
   },
 };
 
+const LAGMODUS = {
+  opprett: {
+    tittel: 'Opprett lag',
+    etikett: 'Navn på laget',
+    plassholder: 'F.eks. Båten vår',
+    knapp: 'Opprett lag',
+    forklaring: (n) => `Alt du har (${n}) flyttes inn i laget. Etterpå får du en kode som de andre `
+      + 'skriver inn for å bli med. Alle i laget ser og kan endre alle teiner og all fangst.',
+  },
+  blimed: {
+    tittel: 'Bli med i lag',
+    etikett: 'Kode',
+    plassholder: 'ABCD-EFGH',
+    knapp: 'Bli med',
+    forklaring: (n) => `Skriv koden du har fått. Alt du har (${n}) flyttes inn i laget, og du `
+      + 'får lagets teiner og fangst.',
+  },
+};
+
 const $ = (id) => document.getElementById(id);
+
+function antallTekst(markeringer) {
+  const alle = markeringer.alle();
+  const teiner = alle.filter((m) => m.kategori === 'teine').length;
+  const fangst = alle.length - teiner;
+  return `${teiner} ${teiner === 1 ? 'teine' : 'teiner'} og ${fangst} `
+    + (fangst === 1 ? 'fangstregistrering' : 'fangstregistreringer');
+}
 
 export class Konto {
   /** @param {import('./sky.js').Sky} sky */
@@ -62,6 +90,26 @@ export class Konto {
     $('knapp-slett-konto').addEventListener('click', () => this.vis('slett'));
     $('knapp-synk').addEventListener('click', () => this._synkroniserNaa());
     $('knapp-logg-ut').addEventListener('click', () => this._loggUt());
+
+    // Lag
+    this.lagArk = $('ark-lag');
+    this.lagSkjema = this.lagArk.querySelector('form');
+    this.lagModus = 'opprett';
+    this.lagSkjema.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this._sendLag();
+    });
+    this.lagArk.addEventListener('click', (e) => {
+      if (e.target === this.lagArk || e.target.closest('[data-handling="lukk"]')) this.lagArk.close();
+    });
+    $('knapp-opprett-lag').addEventListener('click', () => this.visLagArk('opprett'));
+    $('knapp-bli-med').addEventListener('click', () => this.visLagArk('blimed'));
+    $('knapp-del-kode').addEventListener('click', () => this._delKode());
+    $('knapp-forlat-lag').addEventListener('click', () => this._forlatLag());
+    document.querySelector('.konto [data-liste="medlemmer"]').addEventListener('click', (e) => {
+      const uid = e.target.closest('[data-fjern]')?.dataset.fjern;
+      if (uid) this._fjernMedlem(uid);
+    });
   }
 
   /** Åpne arket for å logge inn ('inn'), opprette konto ('opprett') eller slette den ('slett'). */
@@ -114,7 +162,7 @@ export class Konto {
       if (this.modus === 'opprett') await this.sky.opprettKonto(epost, passord);
       if (this.modus === 'slett') {
         await this.sky.slettKonto(passord);
-        this.visStatus({ tilstand: 'av', tekst: 'Kontoen er slettet. Teiner og fangst på telefonen er beholdt.' });
+        this._melding('Kontoen er slettet. Teiner og fangst på telefonen er beholdt.');
       }
       this.ark.close();
     } catch (feil) {
@@ -151,8 +199,13 @@ export class Konto {
 
   async _loggUt() {
     if (await this.sky.loggUt()) {
-      this.visStatus({ tilstand: 'av', tekst: 'Logget ut. Teiner og fangst er fjernet fra telefonen, men ligger i kontoen.' });
+      this._melding('Logget ut. Teiner og fangst er fjernet fra telefonen, men ligger i skyen.');
     }
+  }
+
+  // Melding under kontodelen som blir stående etter at du har logget ut eller slettet kontoen
+  _melding(tekst) {
+    $('kontomelding').textContent = tekst;
   }
 
   /** Vis innlogget/utlogget i innstillingsarket. */
@@ -160,6 +213,142 @@ export class Konto {
     document.querySelector('.konto [data-vis="utlogget"]').hidden = Boolean(bruker);
     document.querySelector('.konto [data-vis="innlogget"]').hidden = !bruker;
     document.querySelector('.konto [data-tekst="epost"]').textContent = bruker?.epost ?? '';
+    if (bruker) this._melding('');
+  }
+
+  // ---------- Lag ----------
+
+  /** Vis laget du er med i (eller valgene for å opprette og bli med) i innstillingsarket. */
+  visLag(lag) {
+    const del = document.querySelector('.konto');
+    del.querySelector('[data-lag="uten"]').hidden = Boolean(lag);
+    del.querySelector('[data-lag="med"]').hidden = !lag;
+    if (!lag) return;
+    del.querySelector('[data-tekst="lagnavn"]').textContent = lag.navn;
+    del.querySelector('[data-tekst="lagkode"]').textContent = visKode(lag.id);
+    const meg = this.sky.bruker?.uid;
+    const rader = lag.medlemmer.map((uid) => {
+      const li = document.createElement('li');
+      const tekst = document.createElement('span');
+      tekst.className = 'radtekst';
+      const b = document.createElement('b');
+      b.textContent = lag.eposter?.[uid] ?? 'Ukjent';
+      tekst.append(b);
+      if (uid === meg) {
+        const small = document.createElement('small');
+        small.textContent = 'deg';
+        tekst.append(small);
+      }
+      li.append(tekst);
+      if (uid !== meg) {
+        const knapp = document.createElement('button');
+        Object.assign(knapp, { type: 'button', className: 'fjern', textContent: 'Fjern' });
+        knapp.dataset.fjern = uid;
+        li.append(knapp);
+      }
+      return li;
+    });
+    del.querySelector('[data-liste="medlemmer"]').replaceChildren(...rader);
+  }
+
+  visLagArk(modus) {
+    this.lagModus = modus;
+    const m = LAGMODUS[modus];
+    this.lagSkjema.reset();
+    const sett = (navn, tekst) => { this.lagArk.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
+    sett('tittel', m.tittel);
+    sett('etikett', m.etikett);
+    sett('forklaring', m.forklaring(antallTekst(this.sky.markeringer)));
+    this._visLagSvar('');
+    const felt = this.lagSkjema.elements.verdi;
+    felt.placeholder = m.plassholder;
+    felt.autocapitalize = modus === 'blimed' ? 'characters' : 'sentences';
+    felt.maxLength = modus === 'blimed' ? 12 : 40;
+    this.lagArk.querySelector('[data-handling="send"]').textContent = m.knapp;
+    if (!this.lagArk.open) this.lagArk.showModal();
+  }
+
+  _visLagSvar(tekst, { feil = false } = {}) {
+    const el = this.lagArk.querySelector('[data-tekst="svar"]');
+    el.textContent = tekst;
+    el.hidden = !tekst;
+    el.classList.toggle('feil', feil);
+  }
+
+  async _sendLag() {
+    const verdi = this.lagSkjema.elements.verdi.value.trim();
+    const kode = rensKode(verdi);
+    if (this.lagModus === 'opprett' && !verdi) {
+      this._visLagSvar('Gi laget et navn.', { feil: true });
+      return;
+    }
+    if (this.lagModus === 'blimed' && kode.length !== 8) {
+      this._visLagSvar('Koden har 8 tegn, for eksempel ABCD-EFGH.', { feil: true });
+      return;
+    }
+    if (!navigator.onLine) {
+      this._visLagSvar('Du må ha nett for å opprette eller bli med i et lag.', { feil: true });
+      return;
+    }
+    const knapp = this.lagArk.querySelector('[data-handling="send"]');
+    knapp.disabled = true;
+    this._visLagSvar('Et øyeblikk …');
+    try {
+      const r = this.lagModus === 'opprett'
+        ? await this.sky.opprettLag(verdi)
+        : await this.sky.blimedILag(kode);
+      if (r?.feil) throw Object.assign(new Error(r.feil), { tekst: r.feil });
+      this.lagArk.close();
+    } catch (feil) {
+      console.error(feil);
+      const ukjentKode = this.lagModus === 'blimed' && ['not-found', 'permission-denied'].includes(feil?.code);
+      this._visLagSvar(ukjentKode ? 'Fant ikke noe lag med den koden. Sjekk at den er skrevet riktig.'
+        : feil.tekst ?? feilTekst(feil), { feil: true });
+    } finally {
+      knapp.disabled = false;
+    }
+  }
+
+  async _delKode() {
+    const lag = this.sky.lag;
+    if (!lag) return;
+    const adresse = `${location.origin}${location.pathname}`;
+    const tekst = `Bli med i laget «${lag.navn}» i Hummerkart. Åpne appen (${adresse}), logg inn, `
+      + `og velg Innstillinger → Lag → Bli med i lag. Koden er ${visKode(lag.id)}.`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Hummerkart', text: tekst });
+      } else {
+        await navigator.clipboard.writeText(tekst);
+        this.visStatus({ tilstand: 'ok', tekst: 'Invitasjonen med koden er kopiert. Lim den inn i en melding.' });
+      }
+    } catch (feil) {
+      if (feil?.name !== 'AbortError') this.visStatus({ tilstand: 'feil', tekst: `Koden er ${visKode(lag.id)}.` });
+    }
+  }
+
+  async _forlatLag() {
+    const lag = this.sky.lag;
+    if (!lag) return;
+    const siste = lag.medlemmer.length <= 1;
+    if (!window.confirm(`Forlate laget «${lag.navn}»? Kontoen din får en kopi av lagets teiner og fangst.`
+      + (siste ? ' Du er den siste i laget, så laget slettes.' : ''))) return;
+    try {
+      await this.sky.forlatLag();
+    } catch (feil) {
+      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+    }
+  }
+
+  async _fjernMedlem(uid) {
+    const lag = this.sky.lag;
+    const epost = lag?.eposter?.[uid] ?? 'medlemmet';
+    if (!window.confirm(`Fjerne ${epost} fra laget? De beholder en kopi av det som ligger i laget nå.`)) return;
+    try {
+      await this.sky.fjernMedlem(uid);
+    } catch (feil) {
+      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+    }
   }
 
   /** Statuslinjen for synkroniseringen i innstillingsarket. */

@@ -1,21 +1,29 @@
 /*
- * Konto og synkronisering med skyen (Firebase, se firebase.js).
+ * Konto, lag og synkronisering med skyen (Firebase, se firebase.js).
  *
  * Telefonen er hovedkopien: markeringene ligger i IndexedDB (lager.js), og appen
- * virker uten nett og uten konto. Er du logget inn, gjør hver synkronisering dette:
- *   1. Henter det som er endret i skyen siden sist («oppdatert», satt av serveren),
+ * virker uten nett og uten konto. Er du logget inn, synkroniseres de med ett «rom»:
+ *   'bruker:{uid}'  kontoen din, eller
+ *   'lag:{kode}'    laget du er med i (felles logg, der alle medlemmene ser og endrer alt).
+ * Hver synkronisering
+ *   1. sjekker hvilket lag du er med i (du kan ha blitt fjernet fra et annet sted),
+ *   2. henter det som er endret i rommet siden sist («oppdatert», satt av serveren),
  *      og slår det sammen med markeringer.importer(): nyeste «endret» vinner, og
- *      slettinger følger med.
- *   2. Sender markeringer og slettinger som er endret her: der «endret» er en annen
- *      enn versjonen vi vet ligger i skyen (kartet «kjent»).
+ *      slettinger følger med,
+ *   3. sender markeringer og slettinger som er endret her: der «endret» er en annen
+ *      enn versjonen vi vet ligger i rommet (kartet «kjent»).
  * En sletting er et dokument med slettet: true, så den når de andre telefonene.
+ *
+ * Bytter du rom (oppretter eller blir med i et lag, forlater det), starter «kjent» på
+ * nytt. Da sendes alt som ligger på telefonen til det nye rommet: det du hadde, flyttes
+ * inn i laget, og forlater du laget, får kontoen din en kopi av lagets teiner og fangst.
  *
  * Synkroniserer når du logger inn, når appen åpnes eller kommer fram igjen, kort tid
  * etter endringer, og når telefonen får nett igjen.
  *
  * Tilstanden huskes i localStorage under egen nøkkel:
- *   { uid, sistHentet (ms, nyeste «oppdatert» vi har hentet), kjent: { id: endret }, sist, feil }
- * Logger du ut, fjernes markeringene fra telefonen (de ligger i kontoen). Logger en annen
+ *   { uid, rom, lag, sistHentet (ms), kjent: { id: endret }, sist, feil }
+ * Logger du ut, fjernes markeringene fra telefonen (de ligger i skyen). Logger en annen
  * konto inn på telefonen, spør appen før markeringene fra den forrige kontoen fjernes.
  */
 
@@ -45,6 +53,12 @@ function tilDokument(m) {
   for (const f of FELT) data[f] = m[f] ?? null;
   return data;
 }
+
+/** «ABCDEFGH» → «ABCD-EFGH», lettere å lese og skrive av. */
+export const visKode = (kode) => `${kode.slice(0, 4)}-${kode.slice(4)}`;
+
+/** Det brukeren skrev inn → koden (store bokstaver, uten mellomrom og bindestrek). */
+export const rensKode = (tekst) => tekst.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 // Feil fra Firestore og Firebase Auth med forklaring på norsk
 export function feilTekst(feil) {
@@ -76,14 +90,18 @@ export class Sky {
    * @param {object} valg
    * @param {(status: {tilstand: string, tekst: string}) => void} valg.naarStatus
    * @param {(bruker: {uid: string, epost: string} | null) => void} valg.naarBruker
+   * @param {(lag: object | null) => void} valg.naarLag  laget du er med i, når det endres
    * @param {(tekst: string) => boolean} valg.bekreft  spør brukeren (standard: window.confirm)
    * @param {object} valg.innlogging  FirebaseInnlogging eller en erstatning (tester)
    * @param {object} valg.tjeneste    FirestoreTjeneste eller en erstatning (tester)
    */
-  constructor(markeringer, { naarStatus, naarBruker, bekreft = (t) => window.confirm(t), innlogging, tjeneste }) {
+  constructor(markeringer, {
+    naarStatus, naarBruker, naarLag, bekreft = (t) => window.confirm(t), innlogging, tjeneste,
+  }) {
     this.markeringer = markeringer;
     this.naarStatus = naarStatus;
     this.naarBruker = naarBruker;
+    this.naarLag = naarLag;
     this.bekreft = bekreft;
     this.innlogging = innlogging;
     this.tjeneste = tjeneste;
@@ -114,6 +132,22 @@ export class Sky {
     return Boolean(this.bruker);
   }
 
+  get pagar() {
+    return Boolean(this._pagaende);
+  }
+
+  /** Laget du er med i ({ id, navn, medlemmer, eposter }), eller null. */
+  get lag() {
+    return this.bruker ? hentTilstand().lag ?? null : null;
+  }
+
+  /** Kort navn på den som registrerte en markering, hvis det er en annen enn deg. */
+  navnFor(uid) {
+    if (!uid || !this.bruker || uid === this.bruker.uid) return null;
+    const epost = this.lag?.eposter?.[uid];
+    return epost ? epost.split('@')[0] : 'tidligere medlem';
+  }
+
   async _brukerEndret(bruker) {
     if (bruker) {
       const tilstand = hentTilstand();
@@ -129,12 +163,14 @@ export class Sky {
         await this.markeringer.tomAlt();
         lagreTilstand({ uid: bruker.uid, kjent: {} });
       } else if (tilstand.uid !== bruker.uid) {
-        // Første innlogging på telefonen: det som ligger her, lastes opp til kontoen
+        // Første innlogging på telefonen: det som ligger her, lastes opp
         lagreTilstand({ uid: bruker.uid, kjent: {} });
       }
     }
     this.bruker = bruker;
+    this.markeringer.registrertAv = bruker?.uid ?? null; // nye markeringer får med hvem som satte dem
     this.naarBruker?.(bruker);
+    this.naarLag?.(this.lag);
     this.naarStatus(this.statusTekst());
     if (bruker) this.synkroniser();
   }
@@ -153,6 +189,30 @@ export class Sky {
     this._timer = setTimeout(() => this.synkroniser(), ms);
   }
 
+  // ---------- Rom: kontoen eller laget ----------
+
+  _rom() {
+    const t = hentTilstand();
+    return t.rom ?? `bruker:${this.bruker.uid}`; // uten «rom» (eldre versjon): kontoen
+  }
+
+  /** Bytt rom. Nytt rom: alt på telefonen sendes dit ved neste synkronisering. */
+  _byttRom(rom, lag) {
+    const t = hentTilstand();
+    const gammelt = t.rom ?? (t.uid ? `bruker:${t.uid}` : null);
+    if (gammelt !== rom) lagreTilstand({ ...t, rom, lag, sistHentet: null, kjent: {} });
+    else lagreTilstand({ ...t, rom, lag });
+    this.naarLag?.(lag);
+  }
+
+  /** Sjekk hvilket lag brukeren er med i nå, og bytt rom hvis det er endret. */
+  async _oppdaterLag() {
+    const lag = await this.tjeneste.finnLag(this.bruker.uid);
+    this._byttRom(lag ? `lag:${lag.id}` : `bruker:${this.bruker.uid}`, lag);
+  }
+
+  // ---------- Synkronisering ----------
+
   /** Markeringer og slettinger som er endret her siden de sist var i skyen. */
   _usendte() {
     const { kjent } = hentTilstand();
@@ -169,10 +229,6 @@ export class Sky {
   /** Antall endringer på telefonen som ikke er lagret i skyen ennå. */
   antallUsendte() {
     return this._usendte().length;
-  }
-
-  get pagar() {
-    return Boolean(this._pagaende);
   }
 
   /**
@@ -196,12 +252,15 @@ export class Sky {
 
   async _synkroniser() {
     this.naarStatus({ tilstand: 'pagar', tekst: 'Synkroniserer …' });
-    const uid = this.bruker.uid;
     let resultat = null;
     try {
-      // 1. Hent det som er endret i skyen siden sist
+      // 1. Hvilket lag er du med i?
+      await this._oppdaterLag();
+      const rom = this._rom();
+
+      // 2. Hent det som er endret i rommet siden sist
       const tilstand = hentTilstand();
-      const endringer = await this.tjeneste.hentEndringer(uid, tilstand.sistHentet ?? null);
+      const endringer = await this.tjeneste.hentEndringer(rom, tilstand.sistHentet ?? null);
       const features = [];
       const slettet = [];
       for (const { id, data, oppdatertMs } of endringer) {
@@ -221,10 +280,10 @@ export class Sky {
       }
       lagreTilstand(tilstand);
 
-      // 2. Send det som er endret her
+      // 3. Send det som er endret her
       const usendte = this._usendte();
       if (usendte.length) {
-        await this.tjeneste.lagre(uid, usendte);
+        await this.tjeneste.lagre(rom, usendte);
         const etter = hentTilstand();
         for (const { id, data } of usendte) etter.kjent[id] = data.endret;
         lagreTilstand(etter);
@@ -247,6 +306,44 @@ export class Sky {
     return resultat;
   }
 
+  // ---------- Lag ----------
+
+  /** Opprett et lag. Det du har, flyttes inn i laget. */
+  async opprettLag(navn) {
+    await this.synkroniser(); // få med siste endringer i kontoen først
+    const lag = await this.tjeneste.opprettLag(this.bruker.uid, this.bruker.epost, navn);
+    this._byttRom(`lag:${lag.id}`, lag);
+    return this.synkroniser();
+  }
+
+  /** Bli med i laget med koden. Det du har, flyttes inn i laget, og du får lagets. */
+  async blimedILag(kode) {
+    await this.synkroniser();
+    const lag = await this.tjeneste.blimed(kode, this.bruker.uid, this.bruker.epost);
+    this._byttRom(`lag:${lag.id}`, lag);
+    return this.synkroniser();
+  }
+
+  /** Forlat laget. Kontoen din får en kopi av lagets teiner og fangst. */
+  async forlatLag() {
+    await this.synkroniser(); // få med siste endringer i laget først
+    const lag = this.lag;
+    if (lag) await this.tjeneste.fjernMedlem(lag.id, this.bruker.uid);
+    this._byttRom(`bruker:${this.bruker.uid}`, null);
+    return this.synkroniser();
+  }
+
+  /** Fjern et annet medlem fra laget. */
+  async fjernMedlem(uid) {
+    const lag = this.lag;
+    if (!lag) return;
+    await this.tjeneste.fjernMedlem(lag.id, uid);
+    const oppdatert = await this.tjeneste.hentLag(lag.id);
+    this._byttRom(`lag:${lag.id}`, oppdatert);
+  }
+
+  // ---------- Konto ----------
+
   async loggInn(epost, passord) {
     await this.innlogging.loggInn(epost, passord);
   }
@@ -261,7 +358,7 @@ export class Sky {
 
   /**
    * Logg ut. Lagrer først det som ikke er sendt. Uten nett spør den om det skal
-   * kastes. Markeringene fjernes fra telefonen (de ligger i kontoen).
+   * kastes. Markeringene fjernes fra telefonen (de ligger i skyen).
    * Returnerer false hvis brukeren angret.
    */
   async loggUt() {
@@ -279,11 +376,16 @@ export class Sky {
     return true;
   }
 
-  /** Slett kontoen og alt i skyen. Markeringene på telefonen beholdes. */
+  /**
+   * Slett kontoen og alt i kontoen. Er du med i et lag, går du ut av det (det du har
+   * registrert der, blir liggende). Markeringene på telefonen beholdes.
+   */
   async slettKonto(passord) {
     const uid = this.bruker.uid;
     await this.innlogging.bekreftPassord(passord);
-    await this.tjeneste.slettAlle(uid);
+    const lag = this.lag;
+    if (lag) await this.tjeneste.fjernMedlem(lag.id, uid);
+    await this.tjeneste.slettAlle(`bruker:${uid}`);
     await this.innlogging.slettBruker();
     lagreTilstand({ kjent: {} });
   }

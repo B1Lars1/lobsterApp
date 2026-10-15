@@ -308,7 +308,7 @@ export const Dybdelag = L.GridLayer.extend({
     tema: 'lys',              // 'lys' | 'mork'
     visLand: true,            // false når et bakgrunnskart fra Kartverket viser land
     visDybdetall: true,
-    visBunnhint: true,        // tareskog, ålegras og skjellsand (Miljødirektoratet)
+    visBunnhint: false,       // tareskog, ålegras og skjellsand (Miljødirektoratet)
     visPotensial: true,       // hummerpotensial og tarekant (anslag)
   },
 

@@ -10,10 +10,12 @@
  *   - Fangst hører til settingen via teine_id. Fangst uten teine får egen rad nederst.
  *   - Hummer per teinedøgn: hummer fra teinene delt på døgnene teinene har stått i
  *     sjøen innenfor perioden.
+ *   - Mistede teiner er ikke med i fangstraten og andelen med hummer: fangsten er ukjent.
  *
  * Tidslinjen er SVG, med én rad per teinenummer: en stolpe per setting (blå = ga
  * hummer, grå = ingen), lysere med pil hvis den står i sjøen nå, en rød prikk med
- * antall for hver fangst og en hul ring for 0 hummer (tom teine).
+ * antall for hver fangst, en hul ring for 0 hummer (tom teine) og et rødt «?» der en
+ * teine ble meldt mistet.
  */
 
 const DAG = 24 * 60 * 60 * 1000;
@@ -54,7 +56,7 @@ function lagSettinger(alle, naa) {
     const fangstHer = fangst.filter((f) => f.teine_id === t.id);
     return {
       nummer: t.nummer, id: t.id, fra, til: Math.max(til, fra), iSjoen: t.status === 'i_sjoen',
-      fangst: fangstHer, hummer: fangstHer.reduce((s, f) => s + f.hummer, 0),
+      mistet: t.mistet === true, fangst: fangstHer, hummer: fangstHer.reduce((s, f) => s + f.hummer, 0),
     };
   });
   return { settinger, fangst, utenTeine: fangst.filter((f) => !ider.has(f.teine_id)) };
@@ -144,16 +146,19 @@ export class Fangstoversikt {
     sett('hummer', hummer);
     sett('beholdt', `${sum(fangstIPerioden, 'beholdt')} beholdt, ${sum(fangstIPerioden, 'satt_ut')} satt ut`);
 
-    // Bare tiden innenfor perioden teller, og bare fangst fra teinene
-    const teinedogn = iPerioden.reduce((s, t) =>
+    // Bare tiden innenfor perioden teller, og bare fangst fra teinene. Mistede teiner er
+    // ikke med: vi vet ikke hva de fanget.
+    const telles = iPerioden.filter((t) => !t.mistet);
+    const teinedogn = telles.reduce((s, t) =>
       s + Math.max(0, Math.min(t.til, naa, periode.til) - Math.max(t.fra, periode.fra)), 0) / DAG;
-    const ider = new Set(iPerioden.map((t) => t.id));
+    const ider = new Set(telles.map((t) => t.id));
     const fraTeiner = sum(fangstIPerioden.filter((f) => ider.has(f.teine_id)), 'hummer');
     sett('rate', teinedogn > 0 ? komma(fraTeiner / teinedogn, 2) : '–');
 
-    const med = iPerioden.filter((t) => t.hummer > 0).length;
-    sett('treff', iPerioden.length ? `${Math.round((100 * med) / iPerioden.length)} %` : '–');
-    sett('settinger', `${med} av ${iPerioden.length} settinger`);
+    const med = telles.filter((t) => t.hummer > 0).length;
+    const mistet = iPerioden.length - telles.length;
+    sett('treff', telles.length ? `${Math.round((100 * med) / telles.length)} %` : '–');
+    sett('settinger', `${med} av ${telles.length} settinger${mistet ? ` (${mistet} mistet)` : ''}`);
   }
 
   // Tidslinjen som SVG. Alt som settes inn er tall vi har regnet ut selv.
@@ -218,6 +223,7 @@ export class Fangstoversikt {
 
     // Stolper: én per teinesetting
     const prikker = [];
+    const mistede = [];
     for (const t of iPerioden) {
       const y = yFor(radFor.get(t.nummer ?? 0));
       const fra = x(Math.max(t.fra, periode.fra));
@@ -225,7 +231,13 @@ export class Fangstoversikt {
       const klasse = `${t.hummer > 0 ? 'tl-med' : 'tl-uten'}${t.iSjoen ? ' tl-isjoen' : ''}`;
       deler.push(`<rect class="${klasse}" x="${fra}" y="${y - STOLPE / 2}" width="${Math.max(4, til - fra)}" height="${STOLPE}" rx="4"/>`);
       if (t.iSjoen) deler.push(`<path class="${klasse} tl-pil" d="M${til + 1} ${y - 7}l7 7-7 7z"/>`);
+      if (t.mistet && t.til < periode.til) mistede.push({ x: til, y });
       for (const f of t.fangst) if (f.ms >= periode.fra && f.ms < periode.til) prikker.push({ f, y });
+    }
+    // Mistet teine: rødt «?» der den ble meldt mistet
+    for (const { x: xm, y } of mistede) {
+      deler.push(`<circle class="tl-mistet" cx="${xm}" cy="${y}" r="8"/>`);
+      deler.push(`<text class="tl-antall" x="${xm}" y="${y + 4}">?</text>`);
     }
     for (const f of utenTeine) prikker.push({ f, y: yFor(nummer.length) });
 

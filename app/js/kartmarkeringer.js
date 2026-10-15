@@ -2,6 +2,7 @@
  * Viser markeringene på kartet med egne symboler (utseendet ligger i app.css):
  *   teine i sjøen   svart bøyleteine sett fra siden, med nummer
  *   teine tatt opp  grå, stiplet teine (bare når «Opptatte teiner» er slått på)
+ *   mistet teine    grå, stiplet teine med rødt «?», alltid, så du kan lete etter den
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
  *   ingen hummer    hvit sirkel med grå hake: fangst med 0 hummer (teinen var tom)
  *   rødt «!»        teinen ligger i et fredningsområde
@@ -38,7 +39,7 @@ export class Kartmarkeringer {
   _synlig(m) {
     if (m.id === this.flytter) return true;
     if (m.kategori === 'hummer') return this.visFangst;
-    return m.status === 'i_sjoen' || this.visOpptatte;
+    return m.status === 'i_sjoen' || m.mistet || this.visOpptatte;
   }
 
   // Lager eller oppdaterer symbolene, og fjerner de som ikke skal vises lenger.
@@ -109,12 +110,13 @@ function ikon(html, klasse, [bredde, hoyde]) {
 function symbol(m, iFredning) {
   if (m.kategori === 'teine') {
     const iSjoen = m.status === 'i_sjoen';
-    const varsel = iSjoen && iFredning ? '<b class="varsel" title="I fredningsområde">!</b>' : '';
+    let varsel = iSjoen && iFredning ? '<b class="varsel" title="I fredningsområde">!</b>' : '';
+    if (m.mistet) varsel = '<b class="varsel" title="Mistet">?</b>';
     return {
       html: `<span>${m.nummer ?? '?'}</span>${varsel}`,
       klasse: iSjoen ? 'teine' : 'teine opptatt',
       storrelse: [58, 40], // bredere enn høy, som tegningen av teinen
-      z: iSjoen ? 500 : -200,
+      z: iSjoen ? 500 : m.mistet ? 100 : -200,
     };
   }
   const antall = m.beholdt + m.satt_ut;

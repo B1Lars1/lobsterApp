@@ -19,7 +19,8 @@ import {
   sendPasswordResetEmail, signInWithEmailAndPassword, signOut,
 } from '../vendor/firebase-12.19.0/firebase-auth.js';
 import {
-  Timestamp, collection, doc, getDocs, getFirestore, orderBy, query, serverTimestamp, where, writeBatch,
+  Timestamp, arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, getFirestore,
+  limit, orderBy, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
 } from '../vendor/firebase-12.19.0/firebase-firestore-lite.js';
 
 const KONFIGURASJON = {
@@ -31,7 +32,13 @@ const KONFIGURASJON = {
   appId: '1:801357882517:web:c8fc1e55f13257b666a79c',
 };
 
-const BATCH = 400; // Firestore tillater maks 500 skrivinger per batch
+// Skrivinger per batch. Firestore tillater 500, men i et lag slår tilgangsreglene opp
+// i lagdokumentet for hver skriving, og det er maks 20 slike oppslag per batch.
+const BATCH = 400;
+const BATCH_LAG = 15;
+
+// Lagkoder: 8 tegn uten de som er lette å forveksle (0/O, 1/I/L)
+const KODETEGN = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 let app = null;
 let auth = null;
@@ -88,19 +95,32 @@ export class FirebaseInnlogging {
   }
 }
 
+function nyKode() {
+  const tall = crypto.getRandomValues(new Uint32Array(8));
+  return [...tall].map((t) => KODETEGN[t % KODETEGN.length]).join('');
+}
+
+const lagFra = (d) => ({ id: d.id, navn: d.data().navn, medlemmer: d.data().medlemmer, eposter: d.data().eposter ?? {} });
+
 /**
- * Markeringene i skyen: brukere/{uid}/markeringer/{id}, ett dokument per markering.
+ * Markeringene i skyen, ett dokument per markering, i et «rom»:
+ *   'bruker:{uid}'  brukerens egne: brukere/{uid}/markeringer/{id}
+ *   'lag:{kode}'    et lag (felles logg): lag/{kode}/markeringer/{id}
  * Serveren setter «oppdatert» ved hver skriving, så vi kan hente bare det som er endret.
+ *
+ * Lagdokumentet lag/{kode} har { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet }.
+ * Koden er dokument-id-en og fungerer som invitasjon (se firestore.rules).
  */
 export class FirestoreTjeneste {
-  _samling(uid) {
+  _samling(rom) {
     koble();
-    return collection(db, 'brukere', uid, 'markeringer');
+    const [type, id] = rom.split(':');
+    return type === 'lag' ? collection(db, 'lag', id, 'markeringer') : collection(db, 'brukere', id, 'markeringer');
   }
 
   /** Dokumenter endret etter etterMs (millisekunder), eller alle. → [{ id, data, oppdatertMs }] */
-  async hentEndringer(uid, etterMs = null) {
-    const samling = this._samling(uid);
+  async hentEndringer(rom, etterMs = null) {
+    const samling = this._samling(rom);
     const sporring = etterMs == null
       ? query(samling, orderBy('oppdatert'))
       : query(samling, where('oppdatert', '>', Timestamp.fromMillis(etterMs)), orderBy('oppdatert'));
@@ -112,25 +132,80 @@ export class FirestoreTjeneste {
   }
 
   /** Skriv dokumentene ({ id, data }), med «oppdatert» satt av serveren. */
-  async lagre(uid, dokumenter) {
-    const samling = this._samling(uid);
-    for (let i = 0; i < dokumenter.length; i += BATCH) {
+  async lagre(rom, dokumenter) {
+    const samling = this._samling(rom);
+    const storrelse = rom.startsWith('lag:') ? BATCH_LAG : BATCH;
+    for (let i = 0; i < dokumenter.length; i += storrelse) {
       const batch = writeBatch(db);
-      for (const { id, data } of dokumenter.slice(i, i + BATCH)) {
+      for (const { id, data } of dokumenter.slice(i, i + storrelse)) {
         batch.set(doc(samling, id), { ...data, oppdatert: serverTimestamp() });
       }
       await batch.commit();
     }
   }
 
-  /** Slett alle markeringene til brukeren (når kontoen slettes). */
-  async slettAlle(uid) {
-    const samling = this._samling(uid);
+  /** Slett alle markeringene i rommet (når kontoen slettes, eller det siste medlemmet går). */
+  async slettAlle(rom) {
+    const samling = this._samling(rom);
+    const storrelse = rom.startsWith('lag:') ? BATCH_LAG : BATCH;
     const alle = (await getDocs(samling)).docs;
-    for (let i = 0; i < alle.length; i += BATCH) {
+    for (let i = 0; i < alle.length; i += storrelse) {
       const batch = writeBatch(db);
-      for (const d of alle.slice(i, i + BATCH)) batch.delete(d.ref);
+      for (const d of alle.slice(i, i + storrelse)) batch.delete(d.ref);
       await batch.commit();
+    }
+  }
+
+  // ---------- Lag ----------
+
+  /** Laget brukeren er med i, eller null. */
+  async finnLag(uid) {
+    koble();
+    const svar = await getDocs(query(collection(db, 'lag'), where('medlemmer', 'array-contains', uid), limit(1)));
+    return svar.empty ? null : lagFra(svar.docs[0]);
+  }
+
+  /** Lag et nytt lag med brukeren som eneste medlem. Prøver ny kode hvis den er tatt. */
+  async opprettLag(uid, epost, navn) {
+    koble();
+    for (let forsok = 0; forsok < 5; forsok++) {
+      const kode = nyKode();
+      try {
+        await setDoc(doc(db, 'lag', kode), {
+          navn, medlemmer: [uid], eposter: { [uid]: epost }, opprettet: serverTimestamp(),
+        });
+        return { id: kode, navn, medlemmer: [uid], eposter: { [uid]: epost } };
+      } catch (feil) {
+        if (feil?.code !== 'permission-denied') throw feil; // koden finnes fra før: prøv en ny
+      }
+    }
+    throw new Error('Fant ingen ledig lagkode');
+  }
+
+  /** Bli med i laget med koden. Feil kode gir feilen 'not-found' eller 'permission-denied'. */
+  async blimed(kode, uid, epost) {
+    koble();
+    const ref = doc(db, 'lag', kode);
+    await updateDoc(ref, { medlemmer: arrayUnion(uid), [`eposter.${uid}`]: epost });
+    return lagFra(await getDoc(ref));
+  }
+
+  async hentLag(kode) {
+    koble();
+    const d = await getDoc(doc(db, 'lag', kode));
+    return d.exists() ? lagFra(d) : null;
+  }
+
+  /** Fjern et medlem (også deg selv). Er det siste medlemmet, slettes laget og alt i det. */
+  async fjernMedlem(kode, uid) {
+    koble();
+    const lag = await this.hentLag(kode);
+    if (!lag) return;
+    if (lag.medlemmer.length === 1 && lag.medlemmer[0] === uid) {
+      await this.slettAlle(`lag:${kode}`);
+      await deleteDoc(doc(db, 'lag', kode));
+    } else {
+      await updateDoc(doc(db, 'lag', kode), { medlemmer: arrayRemove(uid), [`eposter.${uid}`]: deleteField() });
     }
   }
 }

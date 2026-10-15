@@ -96,6 +96,11 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   en ny kategori ville eldre versjoner av appen forkastet (`importer` godtar bare `teine`
   og `hummer`), og synkroniseringen ville ikke fått den med. Tidslinjen i
   `analyser_fangst.py` viser dem som hule ringer.
+- Mistet teine: `merkMistet()` setter `status: 'tatt_opp'`, `tatt_opp` (når den ble meldt
+  mistet) og `mistet: true`, ikke en ny status (eldre versjoner av appen gjør ukjente
+  statuser om til `i_sjoen`). `funnetIgjen()` setter den i sjøen igjen. Mistede teiner
+  vises alltid på kartet (rødt «?»), og `oversikt.js` og `analyser_fangst.py` holder dem
+  utenfor fangstraten og andelen med hummer.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`.
   Endres regnemåten ett sted, skal den endres begge steder. Oversikten viser bare
@@ -105,23 +110,42 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
 
-**Konto og synkronisering** (`sky.js`, `konto.js`, `firebase.js`) bruker Firebase:
-innlogging med e-post og passord, og Firestore med ett dokument per markering i
-`brukere/{uid}/markeringer/{id}` (feltene i `FELT` pluss `lat`, `lon`, `slettet` og
-`oppdatert`). En sletting er et dokument `{ id, endret, slettet: true }`.
+**Konto, lag og synkronisering** (`sky.js`, `konto.js`, `firebase.js`) bruker Firebase:
+innlogging med e-post og passord, og Firestore med ett dokument per markering (feltene i
+`FELT` pluss `lat`, `lon`, `slettet` og `oppdatert`) i et «rom»: `bruker:{uid}` →
+`brukere/{uid}/markeringer/{id}`, eller `lag:{kode}` → `lag/{kode}/markeringer/{id}`.
+En sletting er et dokument `{ id, endret, slettet: true }`.
 - Telefonen er hovedkopien. `Sky` henter dokumenter med `oppdatert` (serverens tid)
   nyere enn `sistHentet`, slår dem sammen med `Markeringer.importer()` (nyeste `endret`
   vinner, slettinger følger med) og sender så det som er endret lokalt: der `endret`
-  avviker fra kartet `kjent` (id → `endret` som ligger i skyen). Tilstanden ligger i
-  `localStorage` under `hummerkart.sky`. Gjenoppretting gir ny `endret`, så den vinner
-  over slettingen.
+  avviker fra kartet `kjent` (id → `endret` som ligger i rommet). Tilstanden ligger i
+  `localStorage` under `hummerkart.sky` (`uid`, `rom`, `lag`, `sistHentet`, `kjent`).
+  Gjenoppretting gir ny `endret`, så den vinner over slettingen.
+- **Lag** er en felles logg: alle medlemmene leser og skriver alt. `lag/{kode}` har
+  `{ navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet }`, og koden (8 tegn,
+  dokument-id-en) er invitasjonen. Hver synkronisering spør først `finnLag(uid)` og bytter
+  rom hvis medlemskapet er endret (`_byttRom`). Nytt rom tømmer `kjent`, så alt på
+  telefonen sendes til det nye rommet: det du har, flyttes inn i laget, og går du ut,
+  får kontoen en kopi. Én bruker er med i høyst ett lag.
+- `registrert_av` (bruker-id, ikke e-post) sier hvem som satte en teine eller registrerte
+  fangst. `sky.navnFor(uid)` slår opp e-posten i laget, så «av …» forsvinner når noen går
+  ut av laget (personvern). Markeringer uten konto har `null`.
+- I et lag slår tilgangsreglene opp i `lag/{kode}` (`get()`) for hver markering, og en
+  batch tillater maks 20 slike oppslag. Derfor `BATCH_LAG = 15` i `firebase.js`.
 - `naarEndret` overses mens en synkronisering pågår, ellers ville importen av det som
   hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
   rett etterpå.
 - Flere telefoner og eldre versjoner av appen deler dataene, så dokumentformatet må
-  forbli bakoverkompatibelt. Nye felt må også tillates i `firestore.rules` (maks 20 felt).
+  forbli bakoverkompatibelt. Et dokument har nå 20 felt (`FELT` + `lat`, `lon`, `slettet`,
+  `oppdatert`), som er grensen `d.size() <= 20` i `firestore.rules`. Et nytt felt krever at
+  grensen økes og at brukeren publiserer reglene på nytt før appen pushes.
+- Er man ikke logget inn, åpner `app.js` innloggingsarket når appen åpnes (første svar fra
+  `sky`, se `sporOmInnlogging`), men ikke i nettleseren på telefon (`kanLeggesTil()`):
+  der vises veiledningen for hjemskjermen, og innloggingen skal skje i appen derfra.
 - `firestore.rules` i roten er tilgangsreglene. De publiseres ikke automatisk: brukeren
-  limer dem inn i Firebase-konsollen (Firestore → Rules). Si fra når de endres.
+  limer dem inn i Firebase-konsollen (Firestore → Rules). Si fra når de endres, og gi
+  brukeren hele filen å lime inn. Appen må ikke publiseres før reglene er oppdatert, ellers
+  får brukerne «Ingen tilgang til lagringen» (`permission-denied`).
 - Firebase-SDK-et ligger i `app/vendor/firebase-12.19.0/` med importene endret til
   relative stier (se README der), så det virker uten nett. Bruk `firestore-lite`, ikke full
   Firestore: appen har egen lagring, og den fulle utgaven ville lagret alt en gang til.
@@ -193,7 +217,9 @@ bakgrunn, med nummeret som HTML oppå.
   apper på hjemskjermen, og en nettside kan ikke slå den av. Alt som skal være skarpt
   øverst, plasseres med `var(--topp)` i `app.css` (statuslinjen + 36 px), ikke høyere.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
-  ved hver endring. Andre moduler som husker noe i `localStorage`, bruker derfor egen
+  ved hver endring. Derfor gjelder en ny standardverdi bare nye brukere. Skal den også
+  gjelde dem som har brukt appen før, øk `VERSJON` i `innstillinger.js` og flytt verdien i
+  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2). Andre moduler som husker noe i `localStorage`, bruker derfor egen
   nøkkel (som `hummerkart.sky`), ellers blir verdien overskrevet.
 - Veiledningen for hjemskjermen (`hjemskjerm.js`) vises hver gang siden åpnes i
   nettleseren på telefon (brukeren vil det slik, ikke «vis igjen om en uke»). På PC

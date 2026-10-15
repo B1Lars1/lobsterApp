@@ -13,6 +13,9 @@ fortsatt står i sjøen, regnes frem til nå.
 Tidslinjen viser hver teinesetting fra den ble satt til den ble tatt opp (sjekket),
 eller til nå hvis den står i sjøen, med hver fangstregistrering som en prikk.
 
+Mistede teiner (meldt mistet i appen) vises i tidslinjen med et rødt kryss, men er ikke
+med i beregningene, siden vi ikke vet hva de fanget.
+
 Fangsten sammenlignes også med hummerpotensialet, helningen og avstanden til
 tarekanten fra lag_hummerpotensial.py, så du kan se om anslaget treffer (og justere
 vektene der). Helningen krever rutenettet i data/processed/ (kjør skriptet først).
@@ -66,6 +69,7 @@ FAA_TEINEDOGN = 30  # under dette: si tydelig fra at tallene er usikre
 FLATE, TEKST, TEKST2, RUTENETT = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 BLAA, ORANSJE = "#2a78d6", "#eb6834"
 GRAA = "#b4b2a9"  # teinesettinger uten hummer
+MISTET = "#d0213a"  # mistet teine (samme røde som i appen)
 
 
 def finn_fil(oppgitt: str | None) -> Path | None:
@@ -90,6 +94,9 @@ def lag_teinesettinger(m: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame, pd.DataFr
     fangst["hummer"] = fangst["beholdt"].fillna(0) + fangst["satt_ut"].fillna(0)
 
     teiner = m[m["kategori"] == "teine"].copy()
+    # Mistede teiner (fra appen, eldre eksporter har ikke feltet): fangsten er ukjent
+    teiner["mistet"] = (teiner["mistet"] if "mistet" in teiner else pd.Series(False, index=teiner.index))
+    teiner["mistet"] = teiner["mistet"].fillna(False).astype(bool)
     slutt = teiner["tatt_opp"].fillna(pd.Timestamp.now(tz="UTC"))
     teiner["doegn"] = ((slutt - teiner["tid"]).dt.total_seconds() / 86400).clip(lower=0)
 
@@ -188,8 +195,9 @@ def hummertekst(hummer: float, beholdt: float, satt_ut: float) -> str:
     return f"{int(hummer)} hummer ({int(beholdt)} beholdt, {int(satt_ut)} satt ut)"
 
 
-def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: pd.DataFrame) -> list:
-    """Summeringer som (etikett, verdi), til terminalen og figuren."""
+def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: pd.DataFrame,
+                   mistet: int = 0) -> list:
+    """Summeringer som (etikett, verdi), til terminalen og figuren. teiner er uten de mistede."""
     n = len(teiner)
     i_sjoen = teiner["tatt_opp"].isna()
     med = teiner["hummer"] > 0
@@ -209,6 +217,8 @@ def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: 
         ("Hummer per teinedøgn", komma(teiner["hummer"].sum() / teinedoegn) if teinedoegn > 0 else "–"),
         ("Døgn per setting (snitt)", komma(teinedoegn / n, 1)),
     ]
+    if mistet:
+        linjer.append(("Mistede teiner", f"{mistet} (ikke med i tallene over)"))
     if len(uten_teine):
         linjer.append(("Fangst uten teine", f"{int(uten_teine['hummer'].sum())} hummer (ikke med i snittet)"))
     if med.any():
@@ -222,7 +232,8 @@ def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: 
 def skriv_tidslinje(teiner: pd.DataFrame, fangst_alle: pd.DataFrame) -> None:
     print("\nTidslinje:")
     for _, t in teiner.sort_values("tid").iterrows():
-        slutt = f"tatt opp {klokke(t['tatt_opp'])}" if pd.notna(t["tatt_opp"]) else "i sjøen nå"
+        slutt = (f"{'MISTET' if t['mistet'] else 'tatt opp'} {klokke(t['tatt_opp'])}"
+                 if pd.notna(t["tatt_opp"]) else "i sjøen nå")
         print(f"  Teine {t['nummer']:>2.0f}  satt {klokke(t['tid'])} → {slutt} ({komma(t['doegn'], 1)} døgn): "
               f"{hummertekst(t['hummer'], t['beholdt'], t['satt_ut'])}")
         for f in fangst_alle[fangst_alle["teine_id"] == t["id"]].sort_values("tid").itertuples():
@@ -337,7 +348,9 @@ def tegn_tidslinje(ax, teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_tei
         ax.barh(y, (slutt - start) / pd.Timedelta(days=1), left=dnum(start), height=0.42,
                 color=farge, alpha=1 if tatt_opp else 0.45, edgecolor=farge, linewidth=1.2, zorder=2)
         ax.plot(dnum(start), y, marker="|", color=TEKST, markersize=16, mew=2.2, zorder=3)  # satt
-        if tatt_opp:
+        if t.mistet:
+            ax.plot(dnum(slutt), y, marker="X", color=MISTET, markersize=11, zorder=4)  # meldt mistet
+        elif tatt_opp:
             ax.plot(dnum(slutt), y, marker="s", color=TEKST, markersize=7, zorder=3)  # tatt opp (sjekket)
         else:
             ax.plot(dnum(slutt), y, marker=">", color=farge, markersize=9, zorder=3)  # står i sjøen
@@ -385,7 +398,8 @@ def tegn_tidslinje(ax, teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_tei
         Line2D([], [], color=ORANSJE, marker="o", markersize=10, linestyle="", label="fangst (antall hummer)"),
         Line2D([], [], color=TEKST2, marker="o", markerfacecolor=FLATE, mew=2, markersize=9, linestyle="",
                label="0 hummer (tom)"),
-    ], frameon=False, labelcolor=TEKST, fontsize=9, ncol=7, loc="upper left", bbox_to_anchor=(0, -0.12))
+        Line2D([], [], color=MISTET, marker="X", markersize=9, linestyle="", label="mistet"),
+    ], frameon=False, labelcolor=TEKST, fontsize=9, ncol=8, loc="upper left", bbox_to_anchor=(0, -0.12))
 
 
 def tegn_statistikk(ax, statistikk: list) -> None:
@@ -423,10 +437,12 @@ def tegn_med_og_uten(ax, teiner: pd.DataFrame) -> None:
     ax.set_axisbelow(True)
 
 
-def lag_tidslinje(teiner, fangst_alle, uten_teine, statistikk: list, fil: Path, ut: Path) -> Path:
+def lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk: list, fil: Path, ut: Path) -> Path:
+    """Tidslinjen viser alle teinesettinger. Diagrammet og teinedøgn er uten de mistede."""
+    teiner = alle_teiner[~alle_teiner["mistet"]]
     fig = plt.figure(figsize=(13, 9.5), facecolor=FLATE)
     rutenett = fig.add_gridspec(2, 2, height_ratios=[3, 2], width_ratios=[1.45, 1], hspace=0.45, wspace=0.32)
-    tegn_tidslinje(fig.add_subplot(rutenett[0, :]), teiner, fangst_alle, uten_teine)
+    tegn_tidslinje(fig.add_subplot(rutenett[0, :]), alle_teiner, fangst_alle, uten_teine)
     tegn_statistikk(fig.add_subplot(rutenett[1, 0]), statistikk)
     tegn_med_og_uten(fig.add_subplot(rutenett[1, 1]), teiner)
     tekst = (f"Kilde: {fil.name} · Tidene er norsk tid. Registreres fangst fra en teine (også 0), "
@@ -455,18 +471,22 @@ def main() -> int:
         return 1
     print(f"Leser {fil}")
     m = les_markeringer(fil)
-    teiner, uten_teine = lag_teinesettinger(m)
+    alle_teiner, uten_teine = lag_teinesettinger(m)
     fangst_alle = m[m["kategori"] == "hummer"].assign(
         hummer=lambda f: f["beholdt"].fillna(0) + f["satt_ut"].fillna(0))
+    # Mistede teiner vises i tidslinjen og CSV-en, men er ikke med i beregningene:
+    # vi vet ikke hva de fanget.
+    teiner = alle_teiner[~alle_teiner["mistet"]]
     if teiner.empty:
-        print("Ingen teiner registrert ennå, så det er ingenting å regne fangst per teinedøgn på.")
+        print("Ingen teiner registrert ennå (som ikke er mistet), så det er ingenting å regne "
+              "fangst per teinedøgn på.")
         return 0
 
-    statistikk = lag_statistikk(teiner, fangst_alle, uten_teine)
+    statistikk = lag_statistikk(teiner, fangst_alle, uten_teine, mistet=int(alle_teiner["mistet"].sum()))
     print("\nStatistikk:")
     for etikett, verdi in statistikk:
         print(f"  {etikett + ':':<27}{verdi}")
-    skriv_tidslinje(teiner, fangst_alle)
+    skriv_tidslinje(alle_teiner, fangst_alle)
 
     bunntabell = oppsummer(teiner, "bunn").reindex([*BUNNHINT.values(), UKJENT_BUNN]).dropna(how="all")
     heltall = ["settinger", "hummer", "beholdt", "satt_ut", "med_fangst"]
@@ -491,20 +511,22 @@ def main() -> int:
 
     ut = Path(args.ut)
     ut.mkdir(parents=True, exist_ok=True)
-    tidslinje = lag_tidslinje(teiner, fangst_alle, uten_teine, statistikk, fil, ut)
+    tidslinje = lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk, fil, ut)
     figur = lag_figur(teiner, fangst_alle, tabeller, fil, ut)
 
-    csv = teiner.assign(
-        lat=teiner.geometry.y.round(6), lon=teiner.geometry.x.round(6),
-        bunn=teiner["bunn"].str.replace("\n", " "),
-        nummer=teiner["nummer"].astype("Int64"),
-        doegn=teiner["doegn"].round(2), per_doegn=teiner["per_doegn"].round(3),
-        hummer=teiner["hummer"].astype(int), beholdt=teiner["beholdt"].astype(int),
-        satt_ut=teiner["satt_ut"].astype(int),
+    csv = alle_teiner.assign(
+        lat=alle_teiner.geometry.y.round(6), lon=alle_teiner.geometry.x.round(6),
+        bunn=alle_teiner["bunn"].str.replace("\n", " "),
+        nummer=alle_teiner["nummer"].astype("Int64"),
+        doegn=alle_teiner["doegn"].round(2), per_doegn=alle_teiner["per_doegn"].round(3),
+        hummer=alle_teiner["hummer"].astype(int), beholdt=alle_teiner["beholdt"].astype(int),
+        satt_ut=alle_teiner["satt_ut"].astype(int),
     )
-    kolonner = ["nummer", "tid", "tatt_opp", "status", "doegn", "dybde", "dybdeintervall", "bunn",
+    if "registrert_av" not in csv:  # eksporter fra før lag fantes
+        csv["registrert_av"] = None
+    kolonner = ["nummer", "tid", "tatt_opp", "status", "mistet", "doegn", "dybde", "dybdeintervall", "bunn",
                 "helning", "potensial", "poeng", "avstand_kant",
-                "hummer", "beholdt", "satt_ut", "per_doegn", "lat", "lon", "notat"]
+                "hummer", "beholdt", "satt_ut", "per_doegn", "registrert_av", "lat", "lon", "notat"]
     csv[kolonner].sort_values("tid").to_csv(ut / "teinesettinger.csv", index=False, encoding="utf-8")
     print(f"\nSkrev {tidslinje}, {figur} og {ut / 'teinesettinger.csv'}")
     return 0

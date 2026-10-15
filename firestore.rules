@@ -3,12 +3,19 @@
 // Legges inn for hånd: Firebase-konsollen → Firestore Database → Rules → lim inn hele
 // filen → Publish. Endres de her, må de limes inn på nytt.
 //
-// Hver bruker har sine markeringer i brukere/{uid}/markeringer/{id} (se app/js/sky.js),
-// og bare brukeren selv kan lese og skrive dem. Alt annet er stengt.
+// brukere/{uid}/markeringer/{id}   brukerens egne markeringer. Bare brukeren selv.
+// lag/{kode}                       et lag: { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet }
+// lag/{kode}/markeringer/{id}      lagets felles markeringer. Alle medlemmene.
+// Koden (8 tegn) er dokument-id-en og fungerer som invitasjon: den som kjenner den,
+// kan legge seg selv til som medlem. Alt annet er stengt. Se app/js/sky.js og firebase.js.
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function innlogget() {
+      return request.auth != null;
+    }
 
     // En markering (teine eller fangst), eller en sletting (slettet: true)
     function gyldigMarkering(id) {
@@ -24,8 +31,52 @@ service cloud.firestore {
     }
 
     match /brukere/{uid}/markeringer/{id} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid && gyldigMarkering(id);
+      allow read, delete: if innlogget() && request.auth.uid == uid;
+      allow create, update: if innlogget() && request.auth.uid == uid && gyldigMarkering(id);
+    }
+
+    match /lag/{kode} {
+      function erMedlem() {
+        return innlogget() && request.auth.uid in resource.data.medlemmer;
+      }
+
+      allow read: if erMedlem();
+
+      // Opprett: du er eneste medlem
+      allow create: if innlogget()
+        && kode.size() == 8
+        && request.resource.data.keys().hasOnly(['navn', 'medlemmer', 'eposter', 'opprettet'])
+        && request.resource.data.navn is string
+        && request.resource.data.navn.size() > 0 && request.resource.data.navn.size() <= 40
+        && request.resource.data.medlemmer == [request.auth.uid]
+        && request.resource.data.eposter.keys().hasOnly([request.auth.uid])
+        && request.resource.data.opprettet == request.time;
+
+      allow update: if innlogget()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['navn', 'medlemmer', 'eposter'])
+        && request.resource.data.medlemmer.size() <= 20
+        && request.resource.data.navn is string
+        && request.resource.data.navn.size() > 0 && request.resource.data.navn.size() <= 40
+        && (
+          // Bli med: legger bare til deg selv (krever at du kjenner koden)
+          (request.resource.data.medlemmer.hasAll(resource.data.medlemmer)
+            && request.resource.data.medlemmer.removeAll(resource.data.medlemmer) == [request.auth.uid]
+            && request.resource.data.eposter.diff(resource.data.eposter).affectedKeys().hasOnly([request.auth.uid]))
+          // Medlem: kan endre navnet og fjerne medlemmer (også seg selv), men ikke legge til andre
+          || (erMedlem() && resource.data.medlemmer.hasAll(request.resource.data.medlemmer))
+        );
+
+      // Slett laget: bare når du er det siste medlemmet
+      allow delete: if innlogget() && resource.data.medlemmer == [request.auth.uid];
+
+      match /markeringer/{id} {
+        function medlemILaget() {
+          return innlogget()
+            && request.auth.uid in get(/databases/$(database)/documents/lag/$(kode)).data.medlemmer;
+        }
+        allow read, delete: if medlemILaget();
+        allow create, update: if medlemILaget() && gyldigMarkering(id);
+      }
     }
   }
 }

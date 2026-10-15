@@ -631,7 +631,8 @@ button {
   margin-top: 16px;
 }
 .knapper .stor,
-.knapper .ferdig { grid-column: 1 / -1; }
+.knapper .ferdig,
+.knapper .bred { grid-column: 1 / -1; }
 /* Ny fangst: Avbryt og Ferdig på samme rad, så arket får plass uten å scrolle */
 .knapper.avbryt-ferdig { grid-template-columns: 1fr 2fr; }
 .knapper.avbryt-ferdig .ferdig { grid-column: auto; }
@@ -663,6 +664,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   white-space: nowrap;
 }
 .status.i-sjoen { background: var(--teine); color: var(--teine-tekst); }
+.status.mistet { background: var(--darlig); color: #fff; }
 
 .fakta {
   display: grid;
@@ -885,6 +887,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .tl-antall { fill: #fff; font-size: 12px; font-weight: 800; text-anchor: middle; }
 .tl-antall.smal { font-size: 10px; }
 .tl-tom { fill: var(--flate); stroke: var(--dempet); stroke-width: 2; }
+.tl-mistet { fill: var(--darlig); stroke: var(--flate); stroke-width: 1.5; }
 
 .tl-forklaring {
   display: flex;
@@ -905,7 +908,33 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 
 /* ---------- Konto (konto.js) ---------- */
 
-#skystatus:empty { display: none; }
+#skystatus:empty,
+#kontomelding:empty { display: none; }
+.lagkode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--valgt);
+}
+.lagkode span { color: var(--dempet); font-size: 14px; font-weight: 700; }
+.lagkode b { flex: 1; font-size: 22px; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.ark .lagkode button.liten { min-height: 40px; }
+.medlemmer { margin-bottom: 10px; }
+.medlemmer li { min-height: 52px; }
+.medlemmer .radtekst b { font-size: 16px; overflow-wrap: anywhere; }
+#knapp-forlat-lag { width: 100%; }
+.fjern {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 2px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+  color: var(--darlig);
+  font-weight: 800;
+}
 #skystatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }
 #skystatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
 #knapp-logg-inn,

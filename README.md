@@ -251,8 +251,8 @@ mudder (gult med stiplet kant). Tareskog og skjellsand er for det meste modeller
 ålegras er kartlagt i felt.
 
 Trykk i kartet for å se hva som er der (for eksempel «Tareskog (modellert):
-trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Laget kan slås
-av i innstillingsarket.
+trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Laget er av som
+standard. Slå det på i innstillingsarket (**Bunnhint: tare, ålegras og skjellsand**).
 
 ## Hummerpotensial
 
@@ -360,10 +360,12 @@ Sjekk alltid gjeldende forskrift.
     teinedøgn) og hvor mange av teinesettingene som ga hummer
   - en tidslinje med én rad per teine: en stolpe for hver gang teinen har stått i
     sjøen (blå hvis den ga hummer, grå hvis ikke, lysere med pil hvis den står der
-    nå), en rød prikk med antall hummer der fangst er registrert, og en hul ring der
-    teinen ble tatt opp tom. Fangst uten teine står på raden «Uten».
+    nå), en rød prikk med antall hummer der fangst er registrert, en hul ring der
+    teinen ble tatt opp tom, og et rødt «?» der en teine ble meldt mistet. Fangst uten
+    teine står på raden «Uten».
 
   Den regner på samme måte som analysen (se «Analyse av fangst»), som har flere detaljer.
+  Mistede teiner er ikke med i fangstraten eller andelen som ga hummer.
 - **Rette fangst:** fangst registrert fra en teine ligger på samme sted som teinen, og
   er derfor gjemt under teinesymbolet på kartet. Du finner den i teinearket (under
   faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert
@@ -375,6 +377,11 @@ Sjekk alltid gjeldende forskrift.
   med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
   og teinen tas opp (forsvinner fra kartet, men tas vare på i historikken). **Ta opp
   alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt. **Slett** fjerner markeringen helt (for feil). Begge kan angres.
+- **Mistet teine** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
+  som tatt opp, men fangsten er ukjent, så den er ikke med i fangstraten, andelen med
+  hummer eller analysen. Den blir stående på kartet, grå med et rødt «?», så du kan
+  lete etter den. Finner du den, trykker du på den og **Funnet igjen**: da står den i
+  sjøen igjen. Begge kan angres.
 - **Slettede markeringer** nederst i listen viser alt du har slettet, sist slettet
   først. Trykk **Gjenopprett** for å få en markering tilbake, også lenge etter at
   «Angre» er borte. En teine du angrer rett etter at du satte den, havner ikke her.
@@ -387,6 +394,7 @@ Sjekk alltid gjeldende forskrift.
   kant rundt. Tegningen er `app/ikoner/teine.svg`.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
   når «Teiner som er tatt opp» er slått på i innstillingene.
+- **Mistet teine:** samme grå teine med et rødt «?». Vises alltid, til den er funnet.
 - **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
   Stiplet kant betyr at alle ble satt ut igjen.
 - **Ingen hummer:** hvit sirkel med grå hake, der en teine ble tatt opp tom.
@@ -423,6 +431,8 @@ fangst = m[m["kategori"] == "hummer"]
 | `kilde` | `gps` eller `kart` |
 | `nummer`, `status`, `tatt_opp` | Teinenummer, `i_sjoen`/`tatt_opp`, tidspunkt tatt opp (teiner) |
 | `beholdt`, `satt_ut`, `teine_id` | Antall hummer og hvilken teine fangsten kom fra (fangst) |
+| `registrert_av` | Intern bruker-id til den som satte teinen eller registrerte fangsten (tom uten konto) |
+| `mistet` | `true` hvis teinen er meldt mistet (teiner) |
 
 **Importer** leser en slik fil tilbake. Markeringer med samme id oppdateres bare
 hvis filen har en nyere versjon, så det er trygt å importere samme fil flere ganger.
@@ -434,7 +444,14 @@ Da lagres teiner og fangst også i en konto i skyen (Google Firebase, i EU), og 
 dem på alle telefonene du logger inn på. Uten konto virker appen som før, med alt på
 telefonen.
 
+- **Innlogging når appen åpnes:** er du ikke logget inn, kommer innloggingen opp når
+  appen åpnes. **Avbryt** lukker den, og appen virker uten konto. Åpnes lenken i
+  nettleseren på en telefon, kommer veiledningen for hjemskjermen i stedet, siden
+  innloggingen skal skje i appen fra hjemskjermen (den har egen lagring).
 - **Første innlogging:** det som ligger på telefonen, lastes opp til kontoen.
+- **Hvor lenge:** du er logget inn til du logger ut, bytter passord (da må du logge inn
+  på nytt på de andre telefonene) eller kontoen slettes. Uten nett er du fortsatt logget
+  inn, og synkroniseringen venter til du har nett.
 - **Synkronisering:** når appen åpnes eller kommer fram igjen, kort tid etter hver
   endring og når telefonen får nett igjen. **Synkroniser nå** gjør det med en gang.
   Telefonen er hovedkopien, så alt virker uten nett, og endringene sendes når du får
@@ -447,8 +464,30 @@ telefonen.
   fjernes fra telefonen, så de ikke havner i feil konto.
 - **Glemt passord:** skriv e-posten og trykk **Glemt passord?**. Det kommer en e-post
   med lenke for å lage nytt passord.
-- **Slett kontoen:** krever passordet. Kontoen og alt i skyen slettes. Det som ligger
-  på telefonen, blir liggende.
+- **Slett kontoen:** krever passordet. Kontoen og alt i den slettes, og du går ut av
+  laget ditt. Det som ligger på telefonen, blir liggende.
+
+### Lag (dele med dem du fisker med)
+
+Et lag er en **felles logg**: alle medlemmene ser og kan endre alle teiner og all fangst,
+som om dere har én felles app. Den ene kan ta opp teinen den andre satte, og teinenumrene
+er felles, så nye teiner får alltid et ledig nummer.
+
+1. **Opprett lag** (Innstillinger → Konto → Lag) og gi det et navn. Det du har, flyttes
+   inn i laget. Du får en kode på 8 tegn, for eksempel `ABCD-EFGH`.
+2. **Del koden** sender en invitasjon med koden (melding, e-post osv.).
+3. Den andre logger inn i sin app og velger **Bli med i lag** og skriver koden. Det hen
+   har, flyttes også inn, og hen får lagets teiner og fangst.
+
+- Teinearket, fangstarket og listene viser «av …» på det en annen i laget har registrert.
+- Hadde dere teiner med samme nummer før dere slo dere sammen, får begge beholde
+  nummeret sitt. Endre nummeret i teinearket hvis det blir forvirrende.
+- Under Lag står medlemmene. **Fjern** tar noen ut av laget. **Forlat laget** tar deg
+  ut. Den som går ut eller blir fjernet, får en kopi av lagets teiner og fangst i sin
+  egen konto. Går det siste medlemmet, slettes laget og alt i det.
+- Koden er nøkkelen til laget: den som kjenner den, kan bli med. Del den bare med dem
+  du vil ha med, og fjern dem som ikke skal være der.
+- Du kan være med i ett lag om gangen.
 
 Hva som lagres, og hvor, står i `app/personvern.html` (lenken **Personvern** under
 Konto). Appen bruker ikke Google Analytics eller annen sporing.
@@ -462,12 +501,16 @@ Konto). Appen bruker ikke Google Analytics eller annen sporing.
    `localhost`, som er der fra før).
 4. **Firestore Database** opprettet i en EU-region, i «production mode».
 5. **Firestore Database → Rules:** innholdet i `firestore.rules` limt inn og publisert.
-   Må gjøres på nytt hvis filen endres. Bare den innloggede brukeren kan lese og skrive
-   sine egne markeringer (`brukere/{uid}/markeringer/{id}`).
+   Må gjøres på nytt hver gang filen endres. Reglene sier at bare brukeren selv kan lese
+   og skrive sine egne markeringer (`brukere/{uid}/markeringer/{id}`), og bare
+   medlemmene i et lag kan lese og skrive lagets (`lag/{kode}/markeringer/{id}`).
+   Lagdokumentet `lag/{kode}` har navnet, medlemmene og e-postene deres. Den som kjenner
+   koden, kan bare legge seg selv til.
 
 Gratisplanen (Spark) krever ikke betalingskort og kan ikke gi regning. Den har blant
 annet 1 GB lagring, 50 000 lesinger og 20 000 skrivinger per dag. Appen henter og
-sender bare det som er endret.
+sender bare det som er endret. I et lag sendes maks 15 markeringer om gangen, fordi
+tilgangsreglene slår opp i lagdokumentet for hver av dem.
 
 ## Analyse av fangst
 
@@ -495,15 +538,17 @@ Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
 |---|---|
 | `tidslinje.png` | Tidslinje, statistikk og teinesettinger med og uten hummer (se under) |
 | `dybde_og_bunn.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint, hummerpotensial og helning, og fangst per dag (beholdt og satt ut) |
-| `teinesettinger.csv` | Én rad per teinesetting: tid, døgn i sjøen, dybde, bunnhint, helning, hummerpotensial (klasse og poengsum), avstand til tarekanten, antall hummer og posisjon |
+| `teinesettinger.csv` | Én rad per teinesetting: tid, om den er mistet, døgn i sjøen, dybde, bunnhint, helning, hummerpotensial (klasse og poengsum), avstand til tarekanten, antall hummer, hvem som satte den og posisjon |
 
 **Tidslinjen** har én rad per teinenummer. Hver gang teinen er satt, vises en stolpe
 fra den ble satt til den ble tatt opp, eller frem til nå hvis den står i sjøen (lysere
 farge og en pil). Blå stolpe betyr at settingen ga hummer, grå at den ikke gjorde det.
 Hver fangstregistrering er en oransje prikk med antall hummer, der den ble registrert.
 En hul grå ring er registrert 0 hummer (teinen var tom). En svart firkant er der
-teinen ble tatt opp. Fangst som ikke er knyttet
-til en teine, står på en egen rad nederst. Tidene er norsk tid.
+teinen ble tatt opp, og et rødt kryss der den ble meldt mistet. Mistede teiner er ikke
+med i statistikken, tabellene eller figurene, siden fangsten deres er ukjent, men antallet
+står i statistikken. Fangst som ikke er knyttet til en teine, står på en egen rad
+nederst. Tidene er norsk tid.
 
 **Statistikken** summerer perioden, antall teinesettinger (og hvor mange som står i
 sjøen), hvor mange som ga hummer og hvor mange som ikke gjorde det (tatt opp tomme og

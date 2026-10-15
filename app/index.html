@@ -163,6 +163,24 @@
     </form>
   </dialog>
 
+  <!-- Lag: opprett et lag eller bli med i et med en kode (se konto.js) -->
+  <dialog id="ark-lag" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <form class="konto-skjema" novalidate>
+      <h3 class="ark-tittel" data-tekst="tittel"></h3>
+      <p class="hjelp" data-tekst="forklaring"></p>
+      <div class="felter">
+        <label class="felt"><span data-tekst="etikett"></span><input name="verdi" autocomplete="off"
+          spellcheck="false"></label>
+      </div>
+      <p class="hjelp svar" data-tekst="svar" role="status" hidden></p>
+      <div class="knapper">
+        <button type="submit" class="ferdig" data-handling="send"></button>
+      </div>
+      <button type="button" class="avbryt" data-handling="lukk">Avbryt</button>
+    </form>
+  </dialog>
+
   <!-- Fangstoversikt: nøkkeltall og tidslinje for en periode (se oversikt.js) -->
   <dialog id="ark-oversikt" class="ark">
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
@@ -188,6 +206,7 @@
       <li><svg viewBox="0 0 26 14" width="26" height="14" aria-hidden="true"><rect class="tl-uten tl-isjoen" x="1" y="2" width="17" height="10" rx="3"/><path class="tl-uten tl-pil" d="M19 2l6 5-6 5z"/></svg>I sjøen nå</li>
       <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle class="tl-fangst" cx="10" cy="10" r="9"/><text class="tl-antall" x="10" y="14">2</text></svg>Fangst (antall)</li>
       <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle class="tl-tom" cx="10" cy="10" r="5.5"/></svg>Tom teine</li>
+      <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle class="tl-mistet" cx="10" cy="10" r="8"/><text class="tl-antall" x="10" y="14">?</text></svg>Mistet</li>
     </ul>
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
@@ -321,14 +340,36 @@
         </div>
         <div data-vis="innlogget" hidden>
           <p class="hjelp">Logget inn som <b data-tekst="epost"></b>. Teiner og fangst lagres
-            i kontoen og synkroniseres med de andre telefonene dine.</p>
+            i skyen og synkroniseres med de andre telefonene dine.</p>
           <div class="knapperad">
             <button type="button" id="knapp-synk" class="sekundar">Synkroniser nå</button>
             <button type="button" id="knapp-logg-ut" class="sekundar">Logg ut</button>
           </div>
+          <p id="skystatus" class="hjelp" data-tilstand="av"></p>
+
+          <h2>Lag</h2>
+          <div data-lag="uten">
+            <p class="hjelp">Del teiner og fangst med dem du fisker med. Alle i laget ser og kan
+              endre alt, som én felles logg. Det du har, flyttes inn i laget.</p>
+            <div class="knapperad">
+              <button type="button" id="knapp-opprett-lag" class="sekundar">Opprett lag</button>
+              <button type="button" id="knapp-bli-med" class="sekundar">Bli med i lag</button>
+            </div>
+          </div>
+          <div data-lag="med" hidden>
+            <p class="hjelp">Du er med i <b data-tekst="lagnavn"></b>. Alle i laget ser og kan endre
+              alle teiner og all fangst. Del koden med dem som skal bli med.</p>
+            <div class="lagkode">
+              <span>Kode</span><b data-tekst="lagkode"></b>
+              <button type="button" id="knapp-del-kode" class="sekundar liten">Del koden</button>
+            </div>
+            <ul class="liste medlemmer" data-liste="medlemmer"></ul>
+            <button type="button" id="knapp-forlat-lag" class="sekundar">Forlat laget</button>
+          </div>
+
           <button type="button" id="knapp-slett-konto" class="fare liten">Slett kontoen</button>
         </div>
-        <p id="skystatus" class="hjelp" data-tilstand="av"></p>
+        <p id="kontomelding" class="hjelp"></p>
         <p class="hjelp"><a href="personvern.html" target="_blank" rel="noopener">Personvern</a>:
           hva som lagres, og hvor.</p>
       </div>

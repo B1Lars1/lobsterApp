@@ -17,9 +17,14 @@
  *   nummer       teinenummer                                   (teine)
  *   status       'i_sjoen' | 'tatt_opp'                         (teine)
  *   tatt_opp     når teinen ble tatt opp (ISO 8601) eller null  (teine)
+ *   mistet       true hvis teinen er mistet (da er status 'tatt_opp', og tatt_opp er
+ *                når den ble meldt mistet). Fangsten er ukjent, så settingen holdes
+ *                utenfor fangstberegningene.                    (teine)
  *   beholdt      antall hummer beholdt                          (hummer)
  *   satt_ut      antall hummer satt ut igjen                    (hummer)
  *   teine_id     id til teinen fangsten kom fra, eller null     (hummer)
+ *   registrert_av  bruker-id (Firebase) til den som satte teinen eller registrerte
+ *                fangsten, eller null (uten konto). Brukes i lag (sky.js).
  * Posisjonen lagres som lat/lon og blir geometrien i GeoJSON.
  *
  * Slettede markeringer huskes (id og tidspunkt), så en sletting også gjelder for
@@ -32,7 +37,7 @@ import * as lager from './lager.js';
 // Feltene i GeoJSON-eksporten og i skyen. En kontrakt med analyser_fangst.py: ikke gi dem nye navn.
 export const FELT = [
   'id', 'kategori', 'tid', 'endret', 'notat', 'dybde', 'noyaktighet', 'kilde',
-  'nummer', 'status', 'tatt_opp', 'beholdt', 'satt_ut', 'teine_id',
+  'nummer', 'status', 'tatt_opp', 'beholdt', 'satt_ut', 'teine_id', 'registrert_av', 'mistet',
 ];
 
 const naa = () => new Date().toISOString();
@@ -59,6 +64,8 @@ function normaliser(m) {
     beholdt: teine ? null : Math.max(0, Math.round(tallEllerNull(m.beholdt) ?? 0)),
     satt_ut: teine ? null : Math.max(0, Math.round(tallEllerNull(m.satt_ut) ?? 0)),
     teine_id: teine ? null : m.teine_id || null,
+    registrert_av: m.registrert_av ? String(m.registrert_av) : null,
+    mistet: teine ? m.mistet === true && m.status === 'tatt_opp' : null,
   };
 }
 
@@ -70,6 +77,7 @@ export class Markeringer {
     this._lyttere = new Set();
     this._dybdeI = null; // (lat, lon) => dybde, settes når dybdedataene er lastet
     this.lagringVirker = true;
+    this.registrertAv = null; // bruker-id når du er logget inn (settes av sky.js)
   }
 
   /** Ta i bruk dybdeoppslag, og fyll inn dybde på markeringer som mangler det. */
@@ -183,6 +191,7 @@ export class Markeringer {
   nyTeine({ lat, lon, noyaktighet = null, kilde = 'gps', nummer = this.nesteTeinenummer() }) {
     return this._lagre(normaliser({
       kategori: 'teine', lat, lon, noyaktighet, kilde, nummer, dybde: this._dybde(lat, lon),
+      registrert_av: this.registrertAv,
     }));
   }
 
@@ -192,7 +201,7 @@ export class Markeringer {
   }) {
     return this._lagre(normaliser({
       kategori: 'hummer', lat, lon, noyaktighet, kilde, teine_id, beholdt, satt_ut, notat, tid,
-      endret: naa(), dybde: this._dybde(lat, lon),
+      endret: naa(), dybde: this._dybde(lat, lon), registrert_av: this.registrertAv,
     }));
   }
 
@@ -204,6 +213,16 @@ export class Markeringer {
 
   taOpp(id) {
     return this.oppdater(id, { status: 'tatt_opp', tatt_opp: naa() });
+  }
+
+  /** Teinen er mistet: den regnes som tatt opp nå, men med ukjent fangst. */
+  merkMistet(id) {
+    return this.oppdater(id, { status: 'tatt_opp', tatt_opp: naa(), mistet: true });
+  }
+
+  /** En mistet teine er funnet igjen: den står i sjøen igjen, der den var. */
+  funnetIgjen(id) {
+    return this.oppdater(id, { status: 'i_sjoen', tatt_opp: null, mistet: false });
   }
 
   /**

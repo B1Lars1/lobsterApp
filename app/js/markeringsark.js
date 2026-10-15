@@ -79,6 +79,9 @@ export class Markeringsark {
     this.aapenId = null;
     this._utkast = null; // ny fangst som ikke er lagret ennå (se registrerFangst)
     this._utkastTittel = ''; // overskriften i arket for utkastet
+    // Kort navn på den som registrerte en markering, hvis det er en annen i laget enn deg
+    // (settes av app.js til sky.navnFor). Uten lag: null.
+    this.hvem = () => null;
     this._sikte = null;
     this._aapnetTid = 0;
 
@@ -300,11 +303,19 @@ export class Markeringsark {
     const beholdt = fangst.reduce((s, f) => s + f.beholdt, 0);
     const sattUt = fangst.reduce((s, f) => s + f.satt_ut, 0);
 
+    // Hovedknappen: tatt opp (i sjøen), funnet igjen (mistet) eller sett ut igjen (tatt opp)
+    const hovedknapp = iSjoen
+      ? '<button type="button" class="stor teine-farge" data-handling="taOpp">Tatt opp</button>'
+      : m.mistet
+        ? '<button type="button" class="stor teine-farge" data-handling="funnet">Funnet igjen</button>'
+        : '<button type="button" class="stor teine-farge" data-handling="settUtIgjen">Sett ut igjen her</button>';
+    const status = iSjoen ? ['i-sjoen', 'I sjøen'] : m.mistet ? ['mistet', 'Mistet'] : ['', 'Tatt opp'];
+
     const el = fraMal(`
       <div class="ark-topp">
         <div class="symbol teine ${iSjoen ? '' : 'opptatt'}"><span data-tekst="nummer"></span></div>
         <div class="ark-tittel"><h3 data-tekst="tittel"></h3><p data-tekst="undertekst"></p></div>
-        <span class="status ${iSjoen ? 'i-sjoen' : ''}">${iSjoen ? 'I sjøen' : 'Tatt opp'}</span>
+        <span class="status ${status[0]}">${status[1]}</span>
       </div>
       <button type="button" class="fredningsvarsel" data-handling="visFredning" hidden>
         <b>Ligger i et fredningsområde</b><span data-tekst="fredning"></span>
@@ -320,20 +331,19 @@ export class Markeringsark {
         <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
       </div>
       <div class="knapper">
-        ${iSjoen
-          ? '<button type="button" class="stor teine-farge" data-handling="taOpp">Tatt opp</button>'
-          : '<button type="button" class="stor teine-farge" data-handling="settUtIgjen">Sett ut igjen her</button>'}
+        ${hovedknapp}
         <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
         <button type="button" class="fare" data-handling="slett">Slett</button>
+        ${iSjoen ? '<button type="button" class="sekundar bred" data-handling="mistet">Mistet teine</button>' : ''}
         <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
       </div>`);
 
     const sett = (navn, tekst) => { el.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
     sett('nummer', m.nummer ?? '?');
     sett('tittel', `Teine ${m.nummer ?? '?'}`);
-    sett('undertekst', iSjoen
+    sett('undertekst', (iSjoen
       ? `Satt ${formaterTid(m.tid)} · ${formaterSiden(m.tid)}`
-      : `Tatt opp ${formaterTid(m.tatt_opp)}`);
+      : `${m.mistet ? 'Mistet' : 'Tatt opp'} ${formaterTid(m.tatt_opp)}`) + this._avTekst(m));
     sett('avstand', this._avstandTekst(m));
     sett('dybde', m.dybde != null ? formaterDybde(m.dybde) : '–');
     sett('fangst', beholdt + sattUt ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
@@ -354,6 +364,12 @@ export class Markeringsark {
     return el;
   }
 
+  // « · av ola» når en annen i laget har registrert markeringen, ellers ingenting
+  _avTekst(m) {
+    const navn = this.hvem(m.registrert_av);
+    return navn ? ` · av ${navn}` : '';
+  }
+
   // Rad for én fangstregistrering: antall, tidspunkt og teine. Den som bruker raden,
   // bestemmer hva et trykk gjør (data-vis i teinelisten, data-handling i teinearket).
   _fangstRad(f) {
@@ -370,7 +386,7 @@ export class Markeringsark {
     li.querySelector('[data-tekst="tittel"]').textContent =
       sjekk ? 'Ingen hummer' : `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
     li.querySelector('[data-tekst="info"]').textContent =
-      `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}` : 'ingen teine'}`;
+      `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}` : 'ingen teine'}${this._avTekst(f)}`;
     return li;
   }
 
@@ -413,7 +429,7 @@ export class Markeringsark {
           </div>`}`);
 
     // For ny fangst fylles underteksten inn av _visUtkastUndertekst()
-    if (!ny) el.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(m.tid);
+    if (!ny) el.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(m.tid) + this._avTekst(m);
     el.querySelector('[data-tekst="beholdt"]').textContent = m.beholdt;
     el.querySelector('[data-tekst="satt_ut"]').textContent = m.satt_ut;
     el.querySelector('[data-felt="tid"]').value = tilLokalTid(m.tid);
@@ -450,6 +466,22 @@ export class Markeringsark {
       case 'taOpp':
         this._taOppMedFangst(m);
         break;
+      case 'mistet':
+      case 'funnet': {
+        // Teinen er mistet (regnes som tatt opp, med ukjent fangst), eller funnet igjen
+        this.arkMarkering.close();
+        const for_ = { status: m.status, tatt_opp: m.tatt_opp, mistet: m.mistet ?? false };
+        if (navn === 'mistet') await this.markeringer.merkMistet(id);
+        else await this.markeringer.funnetIgjen(id);
+        visMelding(navn === 'mistet'
+          ? `Teine ${m.nummer} er meldt mistet. Den står med «?» på kartet til du finner den.`
+          : `Teine ${m.nummer} er funnet og står i sjøen igjen`, {
+          knapp: 'Angre',
+          handling: () => this.markeringer.oppdater(id, for_),
+          ms: 6000,
+        });
+        break;
+      }
       case 'settUtIgjen': {
         // Ny utsetting med samme nummer. Den gamle beholdes som historikk.
         const pos = this._gpsPosisjon();
@@ -516,7 +548,7 @@ export class Markeringsark {
       const tid = new Date(el.value).toISOString(); // feltets verdi tolkes som lokal tid
       this._endre(m, { tid });
       if (m !== this._utkast) {
-        this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(tid);
+        this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(tid) + this._avTekst(m);
       }
     }
   }
@@ -569,7 +601,7 @@ export class Markeringsark {
       li.querySelector('[data-tekst="nummer"]').textContent = t.nummer;
       li.querySelector('[data-tekst="tittel"]').textContent = `Teine ${t.nummer}`;
       const dybde = t.dybde != null ? ` · ${formaterDybde(t.dybde)}` : '';
-      li.querySelector('[data-tekst="info"]').textContent = `Satt ${formaterSiden(t.tid)}${dybde}`;
+      li.querySelector('[data-tekst="info"]').textContent = `Satt ${formaterSiden(t.tid)}${dybde}${this._avTekst(t)}`;
       const der = L.latLng(t.lat, t.lon);
       const avstand = her?.distanceTo(der);
       if (avstand >= 10) {

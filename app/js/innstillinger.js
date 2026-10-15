@@ -6,22 +6,33 @@
 
 const NOKKEL = 'hummerkart.innstillinger';
 
+// Øk når en standardverdi endres for dem som har brukt appen før (se hentInnstillinger)
+const VERSJON = 2;
+
 const STANDARD = {
+  versjon: VERSJON,
   tema: 'auto',       // 'auto' | 'lys' | 'mork'
   bakgrunn: 'dybde',  // 'dybde' | 'topo'
   dybdetall: true,
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
   visFredning: true,    // vis fredningsområder for hummer
-  visBunnhint: true,    // tareskog, ålegras og skjellsand
+  visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
   sistEksportert: null, // tidspunkt (ISO) for siste GeoJSON-eksport
 };
 
 export function hentInnstillinger() {
   try {
-    const lagret = { ...STANDARD, ...JSON.parse(localStorage.getItem(NOKKEL) || '{}') };
+    const raa = JSON.parse(localStorage.getItem(NOKKEL) || '{}');
+    const lagret = { ...STANDARD, ...raa };
     if (!['dybde', 'topo'].includes(lagret.bakgrunn)) lagret.bakgrunn = 'dybde'; // sjøkart er fjernet
+    if (Object.keys(raa).length && (raa.versjon ?? 1) < 2) {
+      // Versjon 2: bunnhint er av som standard, også for dem som har brukt appen før
+      lagret.visBunnhint = false;
+      lagret.versjon = VERSJON;
+      lagreInnstillinger(lagret);
+    }
     return lagret;
   } catch {
     return { ...STANDARD };
