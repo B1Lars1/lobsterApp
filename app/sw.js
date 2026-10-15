@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '86bff109932e';
+const VERSJON = '4f6388567901';
 const FILER = [
   './',
   'css/app.css',
@@ -49,6 +49,7 @@ const FILER = [
   'js/markeringer.js',
   'js/markeringsark.js',
   'js/melding.js',
+  'js/oversikt.js',
   'js/synk.js',
   'manifest.webmanifest',
   'vendor/leaflet-1.9.4/images/layers-2x.png',

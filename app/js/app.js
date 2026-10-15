@@ -9,6 +9,7 @@
  *   fredning.js        fredningsområder for hummer
  *   synk.js            synkronisering med et privat GitHub-repo
  *   hjemskjerm.js      veiledning for å legge appen til på hjemskjermen
+ *   oversikt.js        fangstoversikten: nøkkeltall og tidslinje
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -25,6 +26,7 @@ import { Kartmarkeringer } from './kartmarkeringer.js';
 import { beOmVarigLagring } from './lager.js';
 import { markeringer } from './markeringer.js';
 import { Markeringsark, formaterDybde } from './markeringsark.js';
+import { Fangstoversikt } from './oversikt.js';
 import { visMelding } from './melding.js';
 import { Synk, hentSynkOppsett } from './synk.js';
 
@@ -180,6 +182,13 @@ kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: in
 $('knapp-teine').addEventListener('click', () => ark.settTeine());
 $('knapp-hummer').addEventListener('click', () => ark.registrerFangst());
 $('knapp-teiner').addEventListener('click', () => ark.visTeineliste());
+
+// Fangstoversikten åpnes fra teinelisten
+const oversikt = new Fangstoversikt(markeringer);
+$('knapp-oversikt').addEventListener('click', () => {
+  $('ark-teiner').close();
+  oversikt.vis();
+});
 
 // Trykk i kartet når du er zoomet langt inn: forklar bunnhintet der.
 kart.on('click', (e) => {

@@ -72,8 +72,9 @@ sammen modulene. README har en tabell over hva hver fil gjør.
 **Markeringer (teiner og fangst) er sentrum.** `markeringer.js` eksporterer én instans
 `markeringer` som holder alle markeringer i minnet, lagrer hver endring i IndexedDB via
 `lager.js` og varsler lyttere med `naarEndret()`. Lytterne er `kartmarkeringer.js`
-(symbolene på kartet), `markeringsark.js` (arkene og listene), `synk.js`
-(synkronisering kort tid etter endringer) og merket på listeknappen i `app.js`.
+(symbolene på kartet), `markeringsark.js` (arkene og listene), `oversikt.js`
+(fangstoversikten, når den er åpen), `synk.js` (synkronisering kort tid etter
+endringer) og merket på listeknappen i `app.js`.
 Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
 
 - IndexedDB `hummerkart`, versjon 2: tabellene `markeringer` og `slettinger`
@@ -90,6 +91,10 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   Tom teine er fangst med 0 beholdt og 0 satt ut (`erSjekk`), ikke en egen `kategori`:
   en ny kategori ville eldre versjoner av appen forkastet og så slettet fra GitHub ved
   neste synkronisering. Tidslinjen i `analyser_fangst.py` viser dem som hule ringer.
+- Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
+  teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`.
+  Endres regnemåten ett sted, skal den endres begge steder. Tidslinjen er SVG laget som
+  tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren (notater).
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
 

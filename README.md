@@ -167,6 +167,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
+| `js/oversikt.js` | Fangstoversikten: nøkkeltall og tidslinje for teinene |
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
@@ -288,6 +289,16 @@ Sjekk alltid gjeldende forskrift.
   ta opp med fangst, flytte eller slette.
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
   Tallet på knappen er antall teiner i sjøen.
+- **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt
+  for de siste 7 eller 30 dagene eller hele sesongen (fra første teine i år):
+  - tre nøkkeltall: antall hummer (beholdt og satt ut), fangstrate (hummer per
+    teinedøgn) og hvor mange av teinesettingene som ga hummer
+  - en tidslinje med én rad per teine: en stolpe for hver gang teinen har stått i
+    sjøen (blå hvis den ga hummer, grå hvis ikke, lysere med pil hvis den står der
+    nå), en rød prikk med antall hummer der fangst er registrert, og en hul ring der
+    teinen ble tatt opp tom. Fangst uten teine står på raden «Uten».
+
+  Den regner på samme måte som analysen (se «Analyse av fangst»), som har flere detaljer.
 - **Rette fangst:** fangst registrert fra en teine ligger på samme sted som teinen, og
   er derfor gjemt under teinesymbolet på kartet. Du finner den i teinearket (under
   faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert

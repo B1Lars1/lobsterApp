@@ -124,7 +124,11 @@
       <button type="button" class="fare liten" data-handling="taOppAlle">Ta opp alle</button>
     </div>
     <ul class="liste" data-liste="teiner"></ul>
-    <p class="kilde" data-tekst="sesong"></p>
+    <button type="button" id="knapp-oversikt" class="oversikt-knapp">
+      <svg class="oversikt-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M3 5h10M8 12h11M5 19h7"/></svg>
+      <span class="radtekst"><b>Fangstoversikt</b><small data-tekst="sesong"></small></span>
+      <svg class="oversikt-pil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+    </button>
     <details class="utvidbar" data-del="fangst" hidden>
       <summary><span>Fangstregistreringer (<span data-tekst="antallFangst">0</span>)</span></summary>
       <ul class="liste" data-liste="fangst"></ul>
@@ -133,6 +137,35 @@
       <summary><span>Slettede markeringer (<span data-tekst="antallSlettede">0</span>)</span></summary>
       <ul class="liste" data-liste="slettede"></ul>
     </details>
+    <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
+  </dialog>
+
+  <!-- Fangstoversikt: nøkkeltall og tidslinje for en periode (se oversikt.js) -->
+  <dialog id="ark-oversikt" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <div class="ark-topp">
+      <div class="ark-tittel"><h3>Fangstoversikt</h3><p data-tekst="periode"></p></div>
+    </div>
+    <fieldset class="segment">
+      <legend class="skjult">Periode</legend>
+      <label><input type="radio" name="periode" value="7" checked>7 dager</label>
+      <label><input type="radio" name="periode" value="30">30 dager</label>
+      <label><input type="radio" name="periode" value="sesong">Sesong</label>
+    </fieldset>
+    <dl class="fakta nokkeltall">
+      <div><dt>Hummer</dt><dd><b data-tekst="hummer"></b><small data-tekst="beholdt"></small></dd></div>
+      <div><dt>Fangstrate</dt><dd><b data-tekst="rate"></b><small>hummer per teinedøgn</small></dd></div>
+      <div><dt>Ga hummer</dt><dd><b data-tekst="treff"></b><small data-tekst="settinger"></small></dd></div>
+    </dl>
+    <h2>Tidslinje</h2>
+    <div class="tidslinje" data-tidslinje></div>
+    <ul class="tl-forklaring">
+      <li><svg viewBox="0 0 26 14" width="26" height="14" aria-hidden="true"><rect class="tl-med" x="1" y="2" width="24" height="10" rx="3"/></svg>Ga hummer</li>
+      <li><svg viewBox="0 0 26 14" width="26" height="14" aria-hidden="true"><rect class="tl-uten" x="1" y="2" width="24" height="10" rx="3"/></svg>Ingen hummer</li>
+      <li><svg viewBox="0 0 26 14" width="26" height="14" aria-hidden="true"><rect class="tl-uten tl-isjoen" x="1" y="2" width="17" height="10" rx="3"/><path class="tl-uten tl-pil" d="M19 2l6 5-6 5z"/></svg>I sjøen nå</li>
+      <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle class="tl-fangst" cx="10" cy="10" r="9"/><text class="tl-antall" x="10" y="14">2</text></svg>Fangst (antall)</li>
+      <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle class="tl-tom" cx="10" cy="10" r="5.5"/></svg>Tom teine</li>
+    </ul>
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
