@@ -91,7 +91,9 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   Ny tabell eller indeks: øk `DB_VERSJON` og la eksisterende data stå urørt i
   `onupgradeneeded`.
 - En teinesetting går fra `tid` til `tatt_opp` (eller er i sjøen). «Sett ut igjen her»
-  lager en ny teine med samme nummer. Fangst er egne markeringer med `teine_id`.
+  lager en ny teine med samme nummer. `tid` kan endres i teinearket mens teinen står i
+  sjøen (feltet «Satt», samme `tid`-gren i `_feltEndret` som fangstens tidspunkt), og
+  tidspunkter frem i tid avvises der. Fangst er egne markeringer med `teine_id`.
   Brukerens arbeidsflyt: å registrere fangst fra en teine i sjøen betyr at teinen er
   tatt opp i båten, så `_lagreUtkast` setter teinen til `tatt_opp` (på fangstens tid),
   også ved 0 hummer. «Tatt opp» (teinearket) og «Ta opp» (listen) åpner det samme

@@ -409,6 +409,10 @@ Sjekk alltid gjeldende forskrift.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
   ta opp med fangst, melde teinen mistet, flytte eller slette.
+- **Endre når teinen ble satt:** mens teinen står i sjøen, har teinearket feltet
+  **Satt** ved siden av nummeret. Endre det hvis du satte teinen uten å registrere den
+  med en gang. Teinedøgn, fangstoversikten og analysen regnes fra dette tidspunktet.
+  Et tidspunkt frem i tid godtas ikke (det gjelder også tidspunktet for fangst).
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
   Tallet på knappen er antall teiner i sjøen.
 - **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt

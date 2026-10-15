@@ -669,6 +669,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   color: var(--dempet);
 }
 .felt.smal { flex: 0 0 120px; }
+.felt.ved-siden { flex: 1 1 0; } /* deler raden med et smalt felt (Satt ved siden av Nummer) */
 .felt input,
 .felt textarea,
 .felt select {

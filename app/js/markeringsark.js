@@ -328,6 +328,7 @@ export class Markeringsark {
       <ul class="liste fangst-i-teine" data-liste="fangst"></ul>
       <div class="felter">
         <label class="felt smal">Nummer<input type="number" inputmode="numeric" min="1" data-felt="nummer"></label>
+        ${iSjoen ? '<label class="felt ved-siden">Satt<input type="datetime-local" data-felt="tid"></label>' : ''}
         <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
       </div>
       <div class="knapper">
@@ -342,7 +343,7 @@ export class Markeringsark {
     sett('nummer', m.nummer ?? '?');
     sett('tittel', `Teine ${m.nummer ?? '?'}`);
     sett('undertekst', (iSjoen
-      ? `Satt ${formaterTid(m.tid)} · ${formaterSiden(m.tid)}`
+      ? this._sattTekst(m.tid)
       : `${m.mistet ? 'Mistet' : 'Tatt opp'} ${formaterTid(m.tatt_opp)}`) + this._avTekst(m));
     sett('avstand', this._avstandTekst(m));
     sett('dybde', m.dybde != null ? formaterDybde(m.dybde) : '–');
@@ -355,6 +356,7 @@ export class Markeringsark {
       el.querySelector('[data-liste="fangst"]').append(rad);
     }
     el.querySelector('[data-felt="nummer"]').value = m.nummer ?? '';
+    if (iSjoen) el.querySelector('[data-felt="tid"]').value = tilLokalTid(m.tid);
     el.querySelector('[data-felt="notat"]').value = m.notat;
     const omrade = this._fredningFor(m);
     if (omrade) {
@@ -362,6 +364,11 @@ export class Markeringsark {
       sett('fredning', `${omrade.navn}. Teiner er forbudt her. Trykk for regler.`);
     }
     return el;
+  }
+
+  // «Satt tir. 14. okt. 19:37 · 3 t siden» for en teine i sjøen
+  _sattTekst(tid) {
+    return `Satt ${formaterTid(tid)} · ${formaterSiden(tid)}`;
   }
 
   // « · av ola» når en annen i laget har registrert markeringen, ellers ingenting
@@ -546,9 +553,16 @@ export class Markeringsark {
       this._visUtkastUndertekst();
     } else if (felt === 'tid' && el.value && el.value !== tilLokalTid(m.tid)) {
       const tid = new Date(el.value).toISOString(); // feltets verdi tolkes som lokal tid
+      if (tid > new Date(Date.now() + 60000).toISOString()) { // litt slingringsmonn for klokka
+        visMelding('Tidspunktet kan ikke være frem i tid', { fare: true });
+        el.value = tilLokalTid(m.tid);
+        return;
+      }
       this._endre(m, { tid });
       if (m !== this._utkast) {
-        this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(tid) + this._avTekst(m);
+        // Teine: når den ble satt (teinedøgn og tidslinje regnes fra dette). Fangst: når den ble tatt.
+        const tekst = m.kategori === 'teine' ? this._sattTekst(tid) : formaterTid(tid);
+        this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = tekst + this._avTekst(m);
       }
     }
   }
