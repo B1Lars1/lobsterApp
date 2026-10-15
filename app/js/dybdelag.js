@@ -306,7 +306,6 @@ export const Dybdelag = L.GridLayer.extend({
     updateWhenZooming: false, // ikke tegn fliser for mellomliggende zoom under knipe-zoom
     keepBuffer: 3,
     tema: 'lys',              // 'lys' | 'mork'
-    visLand: true,            // false når et bakgrunnskart fra Kartverket viser land
     visDybdetall: true,
     visBunnhint: false,       // tareskog, ålegras og skjellsand (Miljødirektoratet)
     visPotensial: true,       // hummerpotensial og tarekant (anslag)
@@ -349,7 +348,6 @@ export const Dybdelag = L.GridLayer.extend({
     };
     const margin = 40 / t.skala; // tekst kan stikke inn fra nabofliser
     const utvidet = [t.bbox[0] - margin, t.bbox[1] - margin, t.bbox[2] + margin, t.bbox[3] + margin];
-    const visLand = this.options.visLand;
     const tegnSti = (objekter, lukk) => {
       ctx.beginPath();
       for (const o of objekter) leggTilRinger(ctx, o, t, lukk);
@@ -357,26 +355,20 @@ export const Dybdelag = L.GridLayer.extend({
     ctx.lineJoin = 'round';
 
     // 1. Bakgrunn (sjø uten data)
-    if (visLand) {
-      ctx.fillStyle = p.bakgrunn;
-      ctx.fillRect(0, 0, FLIS, FLIS);
-    }
+    ctx.fillStyle = p.bakgrunn;
+    ctx.fillRect(0, 0, FLIS, FLIS);
 
     // 2. Dybdesoner, én sti per farge
     const soner = this._data.soner.sok(t.bbox);
-    ctx.globalAlpha = visLand ? 1 : 0.7; // la Kartverkets kart skinne gjennom
     for (let i = 0; i < p.soner.length; i++) {
       const utvalg = soner.filter((o) => o.sone === i);
       if (!utvalg.length) continue;
       tegnSti(utvalg, true);
       ctx.fillStyle = ctx.strokeStyle = p.soner[i];
       ctx.fill('evenodd');
-      if (visLand) {
-        ctx.lineWidth = 1; // samme farge rundt kanten skjuler tynne sømmer mellom naboflater
-        ctx.stroke();
-      }
+      ctx.lineWidth = 1; // samme farge rundt kanten skjuler tynne sømmer mellom naboflater
+      ctx.stroke();
     }
-    ctx.globalAlpha = 1;
 
     // 2b. Hummerpotensial (anslag): lilla flater under kurvene, sterkest der det er høyt
     if (this.options.visPotensial && z >= POTENSIAL_ZOOM) {
@@ -448,18 +440,16 @@ export const Dybdelag = L.GridLayer.extend({
     }
 
     // 4. Land og tørrfall
-    if (visLand) {
-      const land = this._data.land.sok(t.bbox);
-      for (const torrfall of [true, false]) {
-        const utvalg = land.filter((o) => o.torrfall === torrfall);
-        if (!utvalg.length) continue;
-        tegnSti(utvalg, true);
-        ctx.fillStyle = torrfall ? p.torrfall : p.land;
-        ctx.fill('evenodd');
-        ctx.strokeStyle = p.kyst;
-        ctx.lineWidth = torrfall ? 0.5 : z < 13 ? 0.6 : 1;
-        ctx.stroke();
-      }
+    const land = this._data.land.sok(t.bbox);
+    for (const torrfall of [true, false]) {
+      const utvalg = land.filter((o) => o.torrfall === torrfall);
+      if (!utvalg.length) continue;
+      tegnSti(utvalg, true);
+      ctx.fillStyle = torrfall ? p.torrfall : p.land;
+      ctx.fill('evenodd');
+      ctx.strokeStyle = p.kyst;
+      ctx.lineWidth = torrfall ? 0.5 : z < 13 ? 0.6 : 1;
+      ctx.stroke();
     }
 
     // Felles tekstoppsett: lys/mørk kant («halo») rundt teksten gjør den lesbar på alle farger
@@ -467,21 +457,19 @@ export const Dybdelag = L.GridLayer.extend({
     ctx.strokeStyle = p.halo;
     ctx.textBaseline = 'middle';
 
-    // Stedsnavn som skal vises (bare på dybdekartet; Kartverkets kart har egne navn).
+    // Stedsnavn som skal vises.
     // «zoom» er beregnet på forhånd i lag_stedsnavn.py, så navnene ikke overlapper hverandre.
     const navn = [];
-    if (visLand) {
-      const navnMargin = 150 / t.skala; // lange navn kan stikke langt inn fra nabofliser
-      const navnSok = [t.bbox[0] - navnMargin, t.bbox[1] - margin, t.bbox[2] + navnMargin, t.bbox[3] + margin];
-      for (const n of this._data.stedsnavn.sok(navnSok)) {
-        if (n.zoom > z) continue;
-        const stil = NAVNESTIL[n.stil];
-        ctx.font = stil.font;
-        const bredde = ctx.measureText(n.tekst).width;
-        const x = n.x * t.skala - t.ox;
-        const y = n.y * t.skala - t.oy + stil.dy;
-        navn.push({ n, stil, x, y, boks: [x - bredde / 2 - 2, y - 9, x + bredde / 2 + 2, y + 9] });
-      }
+    const navnMargin = 150 / t.skala; // lange navn kan stikke langt inn fra nabofliser
+    const navnSok = [t.bbox[0] - navnMargin, t.bbox[1] - margin, t.bbox[2] + navnMargin, t.bbox[3] + margin];
+    for (const n of this._data.stedsnavn.sok(navnSok)) {
+      if (n.zoom > z) continue;
+      const stil = NAVNESTIL[n.stil];
+      ctx.font = stil.font;
+      const bredde = ctx.measureText(n.tekst).width;
+      const x = n.x * t.skala - t.ox;
+      const y = n.y * t.skala - t.oy + stil.dy;
+      navn.push({ n, stil, x, y, boks: [x - bredde / 2 - 2, y - 9, x + bredde / 2 + 2, y + 9] });
     }
     const navneBokser = navn.map((v) => v.boks);
 

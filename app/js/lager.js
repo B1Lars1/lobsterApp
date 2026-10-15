@@ -2,8 +2,8 @@
  * Lagring av markeringer i nettleserens database (IndexedDB) på telefonen.
  *
  * Dataene blir liggende til neste gang appen åpnes, også uten nett. De forsvinner
- * bare hvis nettleserdataene for siden slettes. Logg inn, så lagres de også i kontoen
- * (sky.js), eller eksporter til GeoJSON som sikkerhetskopi.
+ * bare hvis nettleserdataene for siden slettes. De lagres også i kontoen (sky.js), og
+ * kontoen kopieres hver natt til en sikkerhetskopi.
  *
  * To tabeller:
  *   markeringer  teiner og fangst

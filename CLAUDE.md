@@ -114,8 +114,11 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
   (notater). Se «Sikkerhet».
-- Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
-  `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
+- Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
+  `scripts/analyser_fangst.py`, `sikkerhetskopi.py` og brukerens analyser i GeoPandas.
+  Ikke gi dem nye navn. Appen har ingen eksport lenger (fjernet sammen med Kartverkets
+  topokart): analysen leser den nattlige sikkerhetskopien, og «Gjenopprett fra fil» i
+  innstillingene (`importer`, sperret med `medKonto`) er bare for nødsfall.
 
 **Konto, lag og synkronisering** (`sky.js`, `konto.js`, `firebase.js`) bruker Firebase:
 innlogging med e-post og passord, og Firestore med ett dokument per markering (feltene i
@@ -152,7 +155,7 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   der vises veiledningen for hjemskjermen, og innloggingen skal skje i appen derfra.
 - Teiner og fangst kan bare lagres når man er logget inn (brukerens ønske). `medKonto` i
   `app.js` sperrer inngangene: «Sett teine», «Hummer her», langt trykk i kartet og
-  «Importer» åpner innloggingen i stedet. Nye innganger som lager markeringer, må pakkes
+  «Gjenopprett fra fil» åpner innloggingen i stedet. Nye innganger som lager markeringer, må pakkes
   inn i `medKonto`. Før det første svaret fra `sky` (`innloggingKjent`) vises «Et øyeblikk».
   Sperren er ikke sikkerhet (dataene i skyen beskyttes av reglene), men gjør at alt havner
   i kontoen. Telefoner som er logget inn, husker det uten nett. Forsvinner Firebase, må
@@ -168,8 +171,10 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   logikken med erstatninger: `Sky` tar `innlogging` og `tjeneste` som parametre
   (se `FirebaseInnlogging`/`FirestoreTjeneste` i `firebase.js` for hvilke metoder som
   trengs), og la brukeren teste ekte innlogging.
-- Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser
-  GeoJSON-eksporten fra appen i `data/private/`.
+- Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser den
+  nattlige sikkerhetskopien i `data/private/hummerkart-data/sikkerhetskopi/` (lagets fil
+  hvis det er nøyaktig ett lag, ellers oppgir brukeren filen) etter `git pull`. Test den
+  med oppdiktede data i samme format og `--ut` til en mappe utenfor repoet.
 - **Sikkerhetskopi** ligger i det private repoet `B1Lars1/hummerkart-data` (klonet til
   `data/private/hummerkart-data/`, ignorert her): `sikkerhetskopi.py` kjøres hver natt av
   GitHub Actions der og lagrer alle rom som GeoJSON, og `gjenopprett.py` gjør en gammel

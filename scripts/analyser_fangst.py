@@ -1,9 +1,10 @@
 """Analyse av hummerfangst: tidslinje, statistikk, og fangst mot dybde og bunnhint.
 
-Leser markeringene dine fra, i denne rekkefølgen:
-  1. filen du oppgir:            python scripts/analyser_fangst.py sti/til/fil.geojson
-  2. nyeste eksport fra appen:   data/private/markeringer-*.geojson
-     (Innstillinger → Eksporter GeoJSON, lagret i data/private/)
+Leser markeringene fra den nattlige sikkerhetskopien i det private repoet, klonet til
+data/private/hummerkart-data/ (henter nyeste versjon med git pull først). Er du med i
+et lag, brukes lagets fil. Finnes det flere lag, eller ingen, viser skriptet filene, og
+du oppgir den du vil ha:
+  python scripts/analyser_fangst.py data/private/hummerkart-data/sikkerhetskopi/lag/KODE.geojson
 
 Fangst måles som hummer per teinedøgn: antall hummer (beholdt + satt ut) delt på
 antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en teine
@@ -31,6 +32,8 @@ Kjør fra roten av repoet:  python scripts/analyser_fangst.py [fil] [--ut mappe]
 """
 
 import argparse
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -47,7 +50,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
 
-from config import APP_DATA_DIR, CRS_UTM32, PRIVATE_DIR, PROCESSED_DIR  # noqa: E402
+from config import APP_DATA_DIR, CRS_UTM32, PRIVATE_DIR, PROCESSED_DIR, ROOT  # noqa: E402
 
 DYBDEGRENSER = [0, 5, 10, 15, 20, 30, np.inf]
 DYBDENAVN = ["0–5", "5–10", "10–15", "15–20", "20–30", "30+"]
@@ -62,6 +65,8 @@ HELNINGSNAVN = ["0–5°", "5–10°", "10–20°", "20°+"]
 KANTGRENSER = [0, 50, 150, np.inf]
 KANTNAVN = ["Under 50 m", "50–150 m", "Over 150 m"]
 TERRENG_TIF = PROCESSED_DIR / "hummerpotensial.tif"
+# Klonen av det private repoet med den nattlige sikkerhetskopien (se README, «Sikkerhetskopi»)
+SIKKERHETSKOPI = PRIVATE_DIR / "hummerkart-data"
 TIDSSONE = "Europe/Oslo"
 FAA_TEINEDOGN = 30  # under dette: si tydelig fra at tallene er usikre
 
@@ -72,11 +77,42 @@ GRAA = "#b4b2a9"  # teinesettinger uten hummer
 MISTET = "#d0213a"  # mistet teine (samme røde som i appen)
 
 
+def hent_sikkerhetskopi() -> None:
+    """Hent nyeste sikkerhetskopi (git pull) og si fra hvor gammel den er."""
+    git = ["git", "-C", str(SIKKERHETSKOPI)]
+    if subprocess.run([*git, "pull", "--quiet"], capture_output=True).returncode:
+        print("Fikk ikke hentet nyeste sikkerhetskopi (uten nett?). Bruker den som ligger her.")
+    sist = subprocess.run([*git, "log", "-1", "--format=%cd", "--date=format:%d.%m.%Y %H:%M",
+                           "--", "sikkerhetskopi"], capture_output=True, text=True).stdout.strip()
+    if sist:
+        print(f"Sikkerhetskopien er fra {sist}. Nyere endringer kommer med etter neste natt.")
+
+
 def finn_fil(oppgitt: str | None) -> Path | None:
+    """Filen du oppga, eller lagets fil i sikkerhetskopien hvis det finnes nøyaktig ett lag."""
     if oppgitt:
         return Path(oppgitt)
-    eksporter = sorted(PRIVATE_DIR.glob("markeringer-*.geojson"))
-    return eksporter[-1] if eksporter else None
+    if not (SIKKERHETSKOPI / ".git").exists():
+        return None
+    hent_sikkerhetskopi()
+    mappe = SIKKERHETSKOPI / "sikkerhetskopi"
+    lagfiler = sorted((mappe / "lag").glob("*.geojson"))
+    if len(lagfiler) == 1:
+        return lagfiler[0]
+    # Flere lag eller ingen: vis hvilke filer som finnes, så du kan velge
+    def les(navn: str) -> dict:
+        try:
+            return json.loads((mappe / navn).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+    lag, brukere = les("lag.json"), les("brukere.json")
+    print("Velg hvilken fil som skal analyseres, og oppgi den slik:")
+    print("  python scripts/analyser_fangst.py <fil>\n")
+    for f in lagfiler:
+        print(f"  {f.relative_to(ROOT)}   lag «{lag.get(f.stem, {}).get('navn', '?')}»")
+    for f in sorted((mappe / "brukere").glob("*.geojson")):
+        print(f"  {f.relative_to(ROOT)}   {brukere.get(f.stem, '?')}")
+    return None
 
 
 def les_markeringer(fil: Path) -> gpd.GeoDataFrame:
@@ -465,9 +501,13 @@ def main() -> int:
     args = parser.parse_args()
 
     fil = finn_fil(args.fil)
-    if fil is None or not fil.exists():
-        print("Fant ingen markeringer. Eksporter dem i appen (Innstillinger → Eksporter GeoJSON) "
-              "og legg filen (markeringer-*.geojson) i data/private/. Se README.")
+    if fil is None:
+        if not (SIKKERHETSKOPI / ".git").exists():
+            print("Fant ikke sikkerhetskopien. Klon det private repoet til "
+                  "data/private/hummerkart-data/ (se README, «Sikkerhetskopi»).")
+        return 1
+    if not fil.exists():
+        print(f"Fant ikke {fil}.")
         return 1
     print(f"Leser {fil}")
     m = les_markeringer(fil)

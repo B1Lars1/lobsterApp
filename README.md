@@ -12,7 +12,7 @@ til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 For å sette teiner og registrere fangst må du være logget inn (e-post og passord).
 Markeringene lagres på telefonen og i skyen, som sikkerhetskopi og for å bruke dem på
 flere telefoner, og i et lag deler du dem med dem du fisker med. Uten innlogging kan du
-bare se på kartet. Markeringene kan også eksporteres som GeoJSON og analyseres i GeoPandas.
+bare se på kartet. Fangsten kan analyseres i GeoPandas fra den nattlige sikkerhetskopien.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
 > Bruk offisielle sjøkart.
@@ -33,6 +33,7 @@ bare se på kartet. Markeringene kan også eksporteres som GeoJSON og analyseres
 | 10 | Fangstoversikt for sesongen i appen | ✅ |
 | 11 | Hummerpotensial og tarekant, og kartet utvidet vestover til Søgne | ✅ |
 | 12 | Konto i Firebase, lag for deling, mistet teine og nattlig sikkerhetskopi | ✅ |
+| 13 | Sikkerhet og rydding: innlogging kreves for å lagre, uten «Opprett konto», topokartet og eksporten fjernet | ✅ |
 
 ## Mappestruktur
 
@@ -60,7 +61,8 @@ derfor ikke på GitHub. Skriptet `scripts/sjekk_miljo.py` oppretter dem.
 
 Repoet er offentlig. Egne teineplasser og fangst skal aldri inn i det:
 
-- Lagre eksporterte markeringer i `data/private/`. Hele mappen ignoreres av git.
+- Sikkerhetskopien (klonen av det private repoet) og analysene ligger i `data/private/`.
+  Hele mappen ignoreres av git.
 - Filer som heter `markeringer*.geojson` ignoreres uansett hvor i repoet de ligger.
 - Testdata i repoet skal bare inneholde oppdiktede punkter.
 
@@ -228,8 +230,8 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/app.js` | Hovedfil: kart, kartlag, knapper, tema og innstillinger |
 | `js/dybdelag.js` | Tegner dybdekartet, bunnhint og hummerpotensial som kartfliser |
 | `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
-| `js/innstillinger.js` | Husker kartvalg, hva som vises på kartet, og tema i nettleseren |
-| `js/markeringer.js` | Teiner og fangst: data, lagring og GeoJSON-eksport/-import |
+| `js/innstillinger.js` | Husker hva som vises på kartet, og tema i nettleseren |
+| `js/markeringer.js` | Teiner og fangst: data, lagring og innlesing av GeoJSON (skyen og «Gjenopprett fra fil») |
 | `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
@@ -254,13 +256,12 @@ hånd om av `js/dobbelttrykk.js`, siden Safari ikke sender det videre til Leafle
 trykk markerer et sted (se «Markeringer»). Tekst på kartet og knappene kan ikke merkes,
 så et langt trykk ikke merker for eksempel målestokken på iPhone.
 
-**Innstillinger** (tannhjulet øverst til høyre) har kartvalg, hva som vises på kartet,
-tema, sikkerhetskopi, konto og lag.
+**Innstillinger** (tannhjulet øverst til høyre) har hva som vises på kartet, tema,
+sikkerhetskopi, konto og lag.
 
-**Kartvalg** (under Innstillinger):
-
-- **Dybdekart:** bare våre egne data. Fungerer uten nett.
-- **Topo + dybde:** Kartverkets gråtone-topokart med dybdesoner og kurver oppå.
+**Kartet** er appens eget dybdekart, laget av Kartverkets dybdedata, med land, stedsnavn
+og dybder. Det er lagret på telefonen og virker uten nett. (Kartverkets topokart var med
+tidligere, men ga lite på sjøen og krevde nett, så det er fjernet.)
 
 **Ytelse:** dybdekartet tegnes som kartfliser på `<canvas>`. Hver flis tegnes
 én gang og gjenbrukes når du panorerer. Et rutenett (romlig indeks) gjør at hver
@@ -291,8 +292,7 @@ For at kartet ikke skal bli støyete, får hvert navn et laveste zoomnivå:
 - Tall langs kurvene og dybdetall som ville overlappet et navn, utelates.
 
 Øynavn står i mørk, rett skrift. Grunner og båer står i blå kursiv litt under
-punktet, som i sjøkartet. Navnene vises bare på «Dybdekart», siden Kartverkets
-kart har egne navn. Avstand og zoomnivåer kan justeres øverst i skriptet
+punktet, som i sjøkartet. Avstand og zoomnivåer kan justeres øverst i skriptet
 (`TYPER`, `LUFT_X`, `LUFT_Y`).
 
 ## Bunnforhold
@@ -466,20 +466,24 @@ Sjekk alltid gjeldende forskrift.
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
 der når appen åpnes igjen, også uten nett, og i kontoen din i skyen (se «Konto»).
 Uten innlogging åpner **Sett teine**, **Hummer her**, langt trykk i kartet og
-**Importer** innloggingen i stedet for å lagre noe. Tidspunktet for siste eksport står
-i innstillingsarket.
+**Gjenopprett fra fil** innloggingen i stedet for å lagre noe.
 
-### Eksport til GeoPandas
+### Data i GeoPandas
 
-Innstillingsarket → **Eksporter GeoJSON** gir filen `markeringer-ÅÅÅÅ-MM-DD.geojson`.
-På telefonen åpnes delingsmenyen (lagre i Filer, send på e-post), og på PC lastes
-filen ned. Legg filen i `data/private/`, som aldri kommer med i git:
+Den nattlige sikkerhetskopien (se «Sikkerhetskopi») har alle markeringene som GeoJSON,
+én fil per lag eller konto. Hent nyeste versjon og les den inn:
+
+```powershell
+git -C data/private/hummerkart-data pull
+```
 
 ```python
 import geopandas as gpd
-m = gpd.read_file("data/private/markeringer-2026-10-14.geojson")
+m = gpd.read_file("data/private/hummerkart-data/sikkerhetskopi/lag/KODE.geojson")
 fangst = m[m["kategori"] == "hummer"]
 ```
+
+Lagkoden står i `sikkerhetskopi/lag.json`. Filene har disse feltene:
 
 | Felt | Innhold |
 |---|---|
@@ -495,8 +499,10 @@ fangst = m[m["kategori"] == "hummer"]
 | `registrert_av` | Intern bruker-id til den som satte teinen eller registrerte fangsten (tom uten konto) |
 | `mistet` | `true` hvis teinen er meldt mistet (teiner) |
 
-**Importer** leser en slik fil tilbake. Markeringer med samme id oppdateres bare
-hvis filen har en nyere versjon, så det er trygt å importere samme fil flere ganger.
+**Gjenopprett fra fil** (nederst under Sikkerhetskopi i innstillingene) leser inn en
+slik fil, for nødsfall. Markeringer med samme id oppdateres bare hvis filen har en nyere
+versjon, så det er trygt å lese inn samme fil flere ganger. For å få tilbake noe som er
+slettet, gjør du filen klar med `gjenopprett.py` i det private repoet først (README der).
 
 ### Konto (sikkerhetskopi og flere telefoner)
 
@@ -538,7 +544,9 @@ repoet [B1Lars1/hummerkart-data](https://github.com/B1Lars1/hummerkart-data), me
 versjon per dag i git-historikken. Det beskytter mot feil som sletter noe i alle
 telefonene, for eksempel at noen i laget sletter teiner, og mot at Firebase forsvinner.
 Skriptet, workflowen, oppsettet og hvordan du gjenoppretter står i README-en der.
-Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet).
+Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet). Fangstanalysen
+leser kopien derfra, og **Gjenopprett fra fil** i innstillingene leser inn en fil fra den.
+Innstillingene viser hvor mye som er lagret, og om det deles i et lag.
 
 Kopien tas med en tjenestekonto som bare kan lese. Nøkkelen ligger som en hemmelighet
 i GitHub Actions i det private repoet og skal aldri inn i noe repo.
@@ -622,10 +630,12 @@ tilgangsreglene slår opp i lagdokumentet for hver av dem.
 .\.venv\Scripts\python.exe scripts\analyser_fangst.py
 ```
 
-Skriptet leser nyeste eksport fra appen: Innstillinger → **Eksporter GeoJSON**, og
-legg filen (`markeringer-ÅÅÅÅ-MM-DD.geojson`) i `data/private/`. Er du logget inn,
-inneholder eksporten alt i kontoen. Du kan også oppgi en fil:
-`python scripts/analyser_fangst.py sti/til/fil.geojson`.
+Skriptet leser den nattlige sikkerhetskopien i `data/private/hummerkart-data/` og
+henter nyeste versjon med `git pull` først. Er du med i ett lag, brukes lagets fil, og
+skriptet sier hvor gammel kopien er. Det som er registrert etter natten, kommer med
+neste natt (eller start kopien for hånd: Actions → Sikkerhetskopi → Run workflow i det
+private repoet). Finnes det flere lag eller ingen, viser skriptet filene, og du oppgir
+den du vil ha: `python scripts/analyser_fangst.py sti/til/fil.geojson`.
 
 Fangst måles som **hummer per teinedøgn**: antall hummer (beholdt + satt ut) delt
 på antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en
@@ -690,8 +700,6 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
   gang den åpnes med nett, ca. 40 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, bunnhint, hummerpotensial, fredningsområder, dybdeoppslag og
   markeringer. Synkroniseringen med kontoen venter til du har nett.
-- Kartverkets topokart lagres ikke (se «Kilder og kreditering»). Uten
-  nett bytter appen automatisk til dybdekartet.
 
 **Etter endringer i appen eller dataene** må fillisten og versjonen i `sw.js`
 oppdateres:
@@ -781,13 +789,6 @@ versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
   [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a).
   Dataene er forenklet og klippet. De er ikke godkjent for navigasjon, og
   dybdene er referert til sjøkartnull.
-- **Bakgrunnskart:** © Kartverket, lisens CC BY 4.0. WMTS-tjenesten
-  `cache.kartverket.no` (laget `topograatone`, fra
-  [GetCapabilities](https://cache.kartverket.no/v1/wmts/1.0.0/WMTSCapabilities.xml)).
-  Flisene vises direkte fra tjenesten og lagres ikke av appen for bruk uten nett.
-  Ifølge [Kartverkets vilkår](https://www.kartverket.no/api-og-data/vilkar-for-bruk)
-  inneholder kartene Geovekst-data på zoomnivå 12–20, og kopiering krever særskilt
-  tillatelse. Uten nett brukes derfor bare dybdedataene over.
 - **Hummerfredningsområder:** «Hummer – fredningsområder», Fiskeridirektoratet.
   Inneholder data under Norsk lisens for offentlige data
   ([NLOD](https://data.norge.no/nlod/no/1.0)) tilgjengeliggjort av

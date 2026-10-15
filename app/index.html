@@ -270,7 +270,7 @@
 
   <input type="file" id="velg-fil" accept=".geojson,.json,application/geo+json,application/json" hidden>
 
-  <!-- Ark for kartvalg og innstillinger -->
+  <!-- Innstillingsarket -->
   <dialog id="lagvelger" class="ark">
     <form method="dialog">
       <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
@@ -279,13 +279,6 @@
       <button type="button" id="knapp-hjemskjerm" class="sekundar" hidden>Legg appen til på hjemskjermen</button>
 
       <h2>Kart</h2>
-      <fieldset class="valg">
-        <legend class="skjult">Bakgrunnskart</legend>
-        <label><input type="radio" name="bakgrunn" value="dybde">
-          <span><b>Dybdekart</b><small>Fungerer uten nett</small></span></label>
-        <label><input type="radio" name="bakgrunn" value="topo">
-          <span><b>Topo + dybde</b><small>Stedsnavn og veier. Krever nett</small></span></label>
-      </fieldset>
       <label class="bryter"><input type="checkbox" name="dybdetall"> Vis dybdetall og skjær</label>
 
       <h2>Dybde (meter)</h2>
@@ -325,10 +318,8 @@
 
       <h2>Sikkerhetskopi</h2>
       <p id="datainfo" class="hjelp"></p>
-      <div class="knapperad">
-        <button type="button" id="knapp-eksporter" class="sekundar">Eksporter GeoJSON</button>
-        <button type="button" id="knapp-importer" class="sekundar">Importer</button>
-      </div>
+      <!-- Bare for nødsfall: leser inn en fil fra sikkerhetskopien (se README) -->
+      <button type="button" id="knapp-importer" class="lenke">Gjenopprett fra fil</button>
 
       <h2>Konto</h2>
       <div class="konto">

@@ -1,5 +1,5 @@
 /*
- * Innstillinger som huskes mellom gangene (tema, bakgrunnskart, dybdetall).
+ * Innstillinger som huskes mellom gangene (tema, dybdetall, hva som vises på kartet).
  * Lagres i nettleserens localStorage. Hvis det ikke er tilgjengelig (f.eks. privat
  * nettlesing), brukes standardverdiene.
  */
@@ -12,21 +12,21 @@ const VERSJON = 2;
 const STANDARD = {
   versjon: VERSJON,
   tema: 'auto',       // 'auto' | 'lys' | 'mork'
-  bakgrunn: 'dybde',  // 'dybde' | 'topo'
   dybdetall: true,
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
-  sistEksportert: null, // tidspunkt (ISO) for siste GeoJSON-eksport
 };
 
 export function hentInnstillinger() {
   try {
     const raa = JSON.parse(localStorage.getItem(NOKKEL) || '{}');
     const lagret = { ...STANDARD, ...raa };
-    if (!['dybde', 'topo'].includes(lagret.bakgrunn)) lagret.bakgrunn = 'dybde'; // sjøkart er fjernet
+    // Fjernet: Kartverkets topokart (bakgrunn) og GeoJSON-eksporten (sistEksportert)
+    delete lagret.bakgrunn;
+    delete lagret.sistEksportert;
     if (Object.keys(raa).length && (raa.versjon ?? 1) < 2) {
       // Versjon 2: bunnhint er av som standard, også for dem som har brukt appen før
       lagret.visBunnhint = false;

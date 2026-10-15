@@ -149,7 +149,7 @@ export class Markeringsark {
 
   _sjekkLagring() {
     if (!this.markeringer.lagringVirker) {
-      visMelding('Advarsel: nettleseren lagrer ikke markeringene. Eksporter før du lukker appen.', { ms: 6000 });
+      visMelding('Advarsel: telefonen lagrer ikke markeringene. Hold appen åpen til de er synkronisert.', { ms: 6000 });
     }
   }
 

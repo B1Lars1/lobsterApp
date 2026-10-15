@@ -5,8 +5,6 @@
  * - Deretter hentes de alltid fra telefonen, uten nett også.
  * - Når VERSJON endres (ny versjon publisert), lastes alt ned på nytt neste gang
  *   appen åpnes med nett, og appen sier fra at den kan lastes inn på nytt.
- * - Kartverkets bakgrunnskart (topo) lagres IKKE, i tråd med Kartverkets
- *   vilkår (se README). De vises bare når du har nett.
  * - På localhost hentes filene fra serveren først, så endringer vises med en gang
  *   når du utvikler. Lagret versjon brukes bare hvis serveren ikke svarer.
  *
@@ -14,7 +12,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '6638bf71e872';
+const VERSJON = '8eeb84de378a';
 const FILER = [
   './',
   'css/app.css',
@@ -95,7 +93,7 @@ self.addEventListener('activate', (hendelse) => {
 self.addEventListener('fetch', (hendelse) => {
   const foresporsel = hendelse.request;
   const url = new URL(foresporsel.url);
-  // Bare appens egne filer. Kartverkets kartfliser og lignende går rett til nettet.
+  // Bare appens egne filer. Firebase og lignende går rett til nettet.
   if (foresporsel.method !== 'GET' || url.origin !== self.location.origin) return;
 
   hendelse.respondWith((async () => {

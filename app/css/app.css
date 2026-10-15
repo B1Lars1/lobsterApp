@@ -294,11 +294,6 @@ button {
   border-color: var(--flate-tekst);
 }
 
-/* Mørk modus for Kartverkets kart: snu fargene så de ikke blender */
-:root[data-tema="mork"] .raster-fliser {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
-}
-
 /* ---------- GPS-prikk ---------- */
 
 /* Merk: symbolene på kartet (GPS-prikken, teiner og fangst) plasseres av Leaflet med
@@ -398,21 +393,7 @@ button {
 
 .ark fieldset { margin: 0; padding: 0; border: none; }
 
-.valg label {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 60px;
-  margin-bottom: 8px;
-  padding: 10px 14px;
-  border: 2px solid var(--kant);
-  border-radius: 14px;
-}
-.valg label:has(input:checked) { border-color: var(--aksent); background: var(--valgt); }
-.valg input,
 .bryter input { width: 24px; height: 24px; margin: 0; accent-color: var(--aksent); flex: none; }
-.valg b { display: block; font-size: 17px; }
-.valg small { display: block; font-size: 14px; color: var(--dempet); }
 
 .bryter {
   display: flex;

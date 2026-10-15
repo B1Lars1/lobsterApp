@@ -37,7 +37,7 @@ import { Sky } from './sky.js';
 const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]); // samme som BBOX_WGS84 i scripts/config.py
 const START = { senter: [58.235, 8.39], zoom: 12 }; // Lillesand, før GPS-en har funnet deg
 
-// Samme tekst på alle lag, så Leaflet viser krediteringen bare én gang.
+// Kreditering for dybdedataene, nede til høyre i kartet.
 const KREDITERING = '© <a href="https://www.kartverket.no/">Kartverket</a> · <strong>Ikke for navigasjon</strong>';
 
 const innstillinger = hentInnstillinger();
@@ -60,23 +60,6 @@ L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(kart);
 // Kreditering helt nederst, under knappene (se app.css). Leaflet er kreditert i README.
 L.control.attribution({ position: 'bottomright', prefix: false }).addTo(kart);
 
-// Bakgrunnskart fra Kartverket (krever nett). Lagnavnene er hentet fra
-// https://cache.kartverket.no/v1/wmts/1.0.0/WMTSCapabilities.xml
-function kartverketLag(lag, maxNativeZoom) {
-  return L.tileLayer(
-    `https://cache.kartverket.no/v1/wmts/1.0.0/${lag}/default/webmercator/{z}/{y}/{x}.png`,
-    {
-      maxNativeZoom,
-      maxZoom: 19,
-      className: 'raster-fliser',
-      attribution: KREDITERING,
-    },
-  );
-}
-const bakgrunnskart = {
-  topo: kartverketLag('topograatone', 18),
-};
-
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
 let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint
@@ -84,19 +67,10 @@ let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint
 // Fredningsområder for hummer. Trykk på et område viser regler (arkene lages lenger ned).
 const fredning = new Fredning(kart, (omrade) => ark.visFredning(omrade));
 
-// Uten nett kan ikke Kartverkets kart hentes, så da vises dybdekartet (som er lagret).
-const aktivBakgrunn = () => (navigator.onLine ? innstillinger.bakgrunn : 'dybde');
-
 function oppdaterKartlag() {
-  const bakgrunn = aktivBakgrunn();
-  for (const [navn, lag] of Object.entries(bakgrunnskart)) {
-    if (navn === bakgrunn) lag.addTo(kart);
-    else lag.remove();
-  }
   if (!dybdelag) return;
   dybdelag.settValg({
     tema: faktiskTema(innstillinger.tema),
-    visLand: bakgrunn === 'dybde',
     visDybdetall: innstillinger.dybdetall,
     visBunnhint: innstillinger.visBunnhint,
     visPotensial: innstillinger.visPotensial,
@@ -232,33 +206,10 @@ markeringer.naarEndret(() => {
   $('teine-antall').hidden = antall === 0;
 });
 
-// ---------- Sikkerhetskopi: eksport og import av GeoJSON ----------
+// ---------- Sikkerhetskopi ----------
 
-let varigLagring = false;
-
-async function eksporter() {
-  const navn = `markeringer-${new Date().toISOString().slice(0, 10)}.geojson`;
-  const fil = new File([JSON.stringify(markeringer.tilGeoJSON(), null, 1)], navn, { type: 'application/geo+json' });
-  let delt = false;
-  // På telefonen: «Del» (lagre i Filer, send på e-post osv.). På PC: vanlig nedlasting.
-  if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fil] })) {
-    try {
-      await navigator.share({ files: [fil], title: navn });
-      delt = true;
-    } catch (feil) {
-      if (feil.name === 'AbortError') return; // avbrutt av brukeren
-    }
-  }
-  if (!delt) {
-    const url = URL.createObjectURL(fil);
-    Object.assign(document.createElement('a'), { href: url, download: navn }).click();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-  }
-  innstillinger.sistEksportert = new Date().toISOString();
-  lagreInnstillinger(innstillinger);
-  oppdaterDatainfo();
-}
-
+// Alt lagres i kontoen og kopieres hver natt (README, «Sikkerhetskopi»). «Gjenopprett fra
+// fil» leser inn en fil fra sikkerhetskopien (gjør den klar med gjenopprett.py først).
 async function importer(fil) {
   try {
     const r = await markeringer.importer(JSON.parse(await fil.text()));
@@ -271,20 +222,17 @@ async function importer(fil) {
 }
 
 function oppdaterDatainfo() {
-  const alle = markeringer.alle();
-  const fangst = alle.filter((m) => m.kategori === 'hummer').length;
-  const eksport = innstillinger.sistEksportert
-    ? new Date(innstillinger.sistEksportert).toLocaleDateString('nb-NO') : 'aldri';
+  if (!sky.innlogget) {
+    $('datainfo').textContent = 'Logg inn for å lagre teiner og fangst.';
+    return;
+  }
+  const fangst = markeringer.alle().filter((m) => m.kategori === 'hummer').length;
   $('datainfo').textContent =
-    `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer ` +
-    `(${alle.length} markeringer i alt). Sist eksportert: ${eksport}. ` +
-    (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass.') +
-    (sky.lag ? ` Markeringene deles i laget «${sky.lag.navn}».`
-      : sky.innlogget ? ' Markeringene lagres også i kontoen din.'
-        : ' Logg inn for å lagre teiner og fangst.');
+    `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer. ` +
+    (sky.lag ? `Alt deles i laget «${sky.lag.navn}»` : 'Alt lagres i kontoen din') +
+    ' og kopieres hver natt til en sikkerhetskopi.';
 }
 
-$('knapp-eksporter').addEventListener('click', () => eksporter());
 $('knapp-importer').addEventListener('click', medKonto(() => $('velg-fil').click()));
 $('velg-fil').addEventListener('change', (e) => {
   const fil = e.target.files[0];
@@ -298,7 +246,6 @@ const innstillingsark = $('lagvelger');
 const skjema = innstillingsark.querySelector('form');
 
 $('knapp-innstillinger').addEventListener('click', () => {
-  skjema.elements.bakgrunn.value = innstillinger.bakgrunn;
   skjema.elements.tema.value = innstillinger.tema;
   skjema.elements.dybdetall.checked = innstillinger.dybdetall;
   skjema.elements.visFangst.checked = innstillinger.visFangst;
@@ -318,7 +265,6 @@ $('knapp-hjemskjerm').addEventListener('click', () => {
 });
 
 skjema.addEventListener('change', () => {
-  innstillinger.bakgrunn = skjema.elements.bakgrunn.value;
   innstillinger.tema = skjema.elements.tema.value;
   innstillinger.dybdetall = skjema.elements.dybdetall.checked;
   innstillinger.visFangst = skjema.elements.visFangst.checked;
@@ -402,12 +348,6 @@ try {
 
 // ---------- Uten nett og service worker ----------
 
-window.addEventListener('offline', () => {
-  if (innstillinger.bakgrunn !== 'dybde') visMelding('Uten nett: viser dybdekartet', { ms: 4000 });
-  oppdaterKartlag();
-});
-window.addEventListener('online', () => oppdaterKartlag());
-
 // Service workeren (sw.js) lagrer appen og dataene på telefonen, så den virker uten nett.
 if ('serviceWorker' in navigator) {
   const haddeVersjon = Boolean(navigator.serviceWorker.controller);
@@ -445,15 +385,12 @@ fredning.last()
     visDybdeHer();
   })
   .catch((feil) => console.error(feil));
-beOmVarigLagring().then((varig) => {
-  varigLagring = varig;
-});
+beOmVarigLagring(); // be nettleseren ikke slette appen og dataene ved lite plass
 
 lastDybdedata()
   .then((data) => {
     dybdelag = new Dybdelag(data, {
       bounds: DATAOMRADE,
-      zIndex: 5, // over Kartverkets bakgrunnskart
       attribution: KREDITERING,
     });
     oppdaterKartlag();

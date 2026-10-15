@@ -2,10 +2,10 @@
  * Markeringer: teiner og hummerfangst.
  *
  * Holder alle markeringer i minnet, lagrer hver endring i IndexedDB (lager.js) og
- * lager/leser GeoJSON for eksport og import. Andre deler av appen kan lytte på
- * endringer med naarEndret().
+ * leser GeoJSON fra skyen (sky.js) og fra en fil i sikkerhetskopien («Gjenopprett fra
+ * fil»). Andre deler av appen kan lytte på endringer med naarEndret().
  *
- * Feltene (de samme som i GeoJSON-eksporten, så du kjenner dem igjen i GeoPandas):
+ * Feltene (de samme som i skyen og sikkerhetskopien, så du kjenner dem igjen i GeoPandas):
  *   id           unik id
  *   kategori     'teine' | 'hummer'
  *   tid          når teinen ble satt / fangsten registrert (ISO 8601, UTC)
@@ -34,7 +34,8 @@
 
 import * as lager from './lager.js';
 
-// Feltene i GeoJSON-eksporten og i skyen. En kontrakt med analyser_fangst.py: ikke gi dem nye navn.
+// Feltene i skyen og i sikkerhetskopien (sikkerhetskopi.py har en kopi). En kontrakt med
+// analyser_fangst.py og brukerens analyser i GeoPandas: ikke gi dem nye navn.
 export const FELT = [
   'id', 'kategori', 'tid', 'endret', 'notat', 'dybde', 'noyaktighet', 'kilde',
   'nummer', 'status', 'tatt_opp', 'beholdt', 'satt_ut', 'teine_id', 'registrert_av', 'mistet',
@@ -273,21 +274,7 @@ export class Markeringer {
     return this._lagre({ ...m, endret: naa() });
   }
 
-  // ---------- GeoJSON ----------
-
-  tilGeoJSON() {
-    const runde = (v) => Math.round(v * 1e6) / 1e6; // ca. 0,1 m
-    return {
-      type: 'FeatureCollection',
-      features: this.alle()
-        .sort((a, b) => a.tid.localeCompare(b.tid))
-        .map((m) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [runde(m.lon), runde(m.lat)] },
-          properties: Object.fromEntries(FELT.map((f) => [f, m[f] ?? null])),
-        })),
-    };
-  }
+  // ---------- GeoJSON (skyen og sikkerhetskopien) ----------
 
   /** Alle slettinger ({ id, endret }) som skal med til skyen, også de uten kopi. */
   slettinger() {
