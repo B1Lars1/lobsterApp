@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '6ba265c8059d';
+const VERSJON = 'ad556e5dca07';
 const FILER = [
   './',
   'css/app.css',
@@ -23,10 +23,12 @@ const FILER = [
   'data/dybdekurver.geojson',
   'data/dybdetall.geojson',
   'data/fredningsomrader.geojson',
+  'data/hummerpotensial.geojson',
   'data/kilder.json',
   'data/kurveetiketter.geojson',
   'data/land.geojson',
   'data/stedsnavn.geojson',
+  'data/tarekant.geojson',
   'ikoner/apple-touch-icon.png',
   'ikoner/favicon-32.png',
   'ikoner/ikon-192.png',

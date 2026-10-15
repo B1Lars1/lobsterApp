@@ -28,6 +28,8 @@ export const PALETTER = {
     navnLand: '#3a2e1c', navnSjo: '#174a78',
     hardFyll: 'rgba(74, 112, 30, 0.16)', hardPrikk: 'rgba(60, 92, 20, 0.8)',
     blotFyll: 'rgba(240, 196, 40, 0.28)', blotKant: 'rgba(170, 125, 0, 0.9)',
+    potHoy: 'rgba(156, 39, 176, 0.32)', potMiddels: 'rgba(156, 39, 176, 0.14)', potKant: 'rgba(120, 20, 140, 0.7)',
+    tarekant: '#e8590c', tarekantHalo: 'rgba(255, 255, 255, 0.85)',
   },
   mork: {
     bakgrunn: '#07111a',
@@ -39,12 +41,17 @@ export const PALETTER = {
     navnLand: '#ece4cf', navnSjo: '#9fd2f7',
     hardFyll: 'rgba(130, 180, 80, 0.14)', hardPrikk: 'rgba(160, 205, 110, 0.75)',
     blotFyll: 'rgba(240, 200, 60, 0.18)', blotKant: 'rgba(240, 200, 80, 0.85)',
+    potHoy: 'rgba(214, 120, 235, 0.34)', potMiddels: 'rgba(214, 120, 235, 0.15)', potKant: 'rgba(225, 150, 245, 0.8)',
+    tarekant: '#ff8a3d', tarekantHalo: 'rgba(7, 17, 26, 0.85)',
   },
 };
 
 // Nedre grense (m) for hver fargesone etter den første: 0–2, 2–5, 5–10, 10–20, 20–30, 30–50, 50+
 export const SONEGRENSER = [2, 5, 10, 20, 30, 50];
 const VIKTIGE_KURVER = new Set([10, 20, 50]); // tegnes litt tykkere
+// Hummerpotensialet og tarekanten vises fra denne zoomen. Flatene er ofte smale striper
+// langs bratte skråninger, så lenger ute synes de ikke.
+const POTENSIAL_ZOOM = 14;
 const HOVEDKURVER = new Set([5, 10, 20, 50]); // de eneste som vises på zoom 12
 
 function soneIndeks(minDybde) {
@@ -167,7 +174,7 @@ export async function lastDybdedata(mappe = 'data/') {
     return svar.json();
   };
   const tom = { features: [] }; // valgfrie lag: kartet virker også uten dem
-  const [areal, land, kurver, etiketter, dybdetall, stedsnavn, bunnhint] = await Promise.all([
+  const [areal, land, kurver, etiketter, dybdetall, stedsnavn, bunnhint, potensial, tarekant] = await Promise.all([
     hent('dybdeareal.geojson'),
     hent('land.geojson'),
     hent('dybdekurver.geojson'),
@@ -175,6 +182,8 @@ export async function lastDybdedata(mappe = 'data/') {
     hent('dybdetall.geojson'),
     hent('stedsnavn.geojson').catch(() => tom),
     hent('bunnhint.geojson').catch(() => tom),
+    hent('hummerpotensial.geojson').catch(() => tom),
+    hent('tarekant.geojson').catch(() => tom),
   ]);
   return {
     soner: new Rutenett(lagObjekter(areal, (p) => ({ sone: soneIndeks(p.min), min: p.min, maks: p.maks }))),
@@ -190,6 +199,9 @@ export async function lastDybdedata(mappe = 'data/') {
     bunnhint: new Rutenett(lagObjekter(bunnhint, (p) => ({
       hard: p.kategori === 'hard', navn: p.navn, modellert: p.modellert, aar: p.aar,
     }))),
+    // Hummerpotensial og tarekant (anslag fra scripts/lag_hummerpotensial.py)
+    potensial: new Rutenett(lagObjekter(potensial, (p) => ({ hoy: p.klasse === 'hoy' }))),
+    tarekant: new Rutenett(lagObjekter(tarekant, () => ({}))),
   };
 }
 
@@ -297,6 +309,7 @@ export const Dybdelag = L.GridLayer.extend({
     visLand: true,            // false når et bakgrunnskart fra Kartverket viser land
     visDybdetall: true,
     visBunnhint: true,        // tareskog, ålegras og skjellsand (Miljødirektoratet)
+    visPotensial: true,       // hummerpotensial og tarekant (anslag)
   },
 
   initialize(data, options) {
@@ -365,6 +378,23 @@ export const Dybdelag = L.GridLayer.extend({
     }
     ctx.globalAlpha = 1;
 
+    // 2b. Hummerpotensial (anslag): lilla flater under kurvene, sterkest der det er høyt
+    if (this.options.visPotensial && z >= POTENSIAL_ZOOM) {
+      const flater = this._data.potensial.sok(t.bbox);
+      for (const hoy of [false, true]) {
+        const utvalg = flater.filter((o) => o.hoy === hoy);
+        if (!utvalg.length) continue;
+        tegnSti(utvalg, true);
+        ctx.fillStyle = hoy ? p.potHoy : p.potMiddels;
+        ctx.fill('evenodd');
+        if (hoy) {
+          ctx.strokeStyle = p.potKant;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+
     // 3. Dybdekurver
     let kurver = this._data.kurver.sok(t.bbox);
     if (z <= 12) kurver = kurver.filter((o) => o.hoved); // færre streker når kartet er zoomet ut
@@ -398,6 +428,22 @@ export const Dybdelag = L.GridLayer.extend({
           ctx.stroke();
           ctx.setLineDash([]);
         }
+      }
+    }
+
+    // 3c. Tarekanten: der tareskog møter sand eller ålegras (oransje strek med kant rundt)
+    if (this.options.visPotensial && z >= POTENSIAL_ZOOM) {
+      const kanter = this._data.tarekant.sok(t.bbox);
+      if (kanter.length) {
+        tegnSti(kanter, false);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = p.tarekantHalo;
+        ctx.lineWidth = z >= 15 ? 5 : 4;
+        ctx.stroke();
+        ctx.strokeStyle = p.tarekant;
+        ctx.lineWidth = z >= 15 ? 2.6 : 2;
+        ctx.stroke();
+        ctx.lineCap = 'butt';
       }
     }
 

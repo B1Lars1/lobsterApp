@@ -14,6 +14,7 @@ const STANDARD = {
   visOpptatte: false,   // vis teiner som er tatt opp
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: true,    // tareskog, ålegras og skjellsand
+  visPotensial: true,   // hummerpotensial og tarekant (anslag)
   sistEksportert: null, // tidspunkt (ISO) for siste GeoJSON-eksport
 };
 

@@ -110,9 +110,11 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
 | `bunnhint.geojson` | Tareskog, ålegras og skjellsand som hint om bunnen (se under) | `kategori`, `navn`, `modellert`, `aar` |
+| `hummerpotensial.geojson` | Steder med høyt eller middels hummerpotensial, et anslag (se «Hummerpotensial») | `klasse` (`hoy`/`middels`) |
+| `tarekant.geojson` | Tarekanten: der tareskog møter sand eller ålegras | |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
-Filene er til sammen ca. 21 MB, eller ca. 2,7 MB komprimert slik de sendes over
+Filene er til sammen ca. 22 MB, eller ca. 2,9 MB komprimert slik de sendes over
 nettet. Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
 så naboflatene fortsatt passer sammen uten sprekker.
 
@@ -242,6 +244,50 @@ mudder (gult med stiplet kant). Tareskog og skjellsand er for det meste modeller
 Trykk i kartet for å se hva som er der (for eksempel «Tareskog (modellert):
 trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Laget kan slås
 av i innstillingsarket.
+
+## Hummerpotensial
+
+```powershell
+.\.venv\Scripts\python.exe scripts\lag_hummerpotensial.py   # ca. 25 s
+```
+
+Det finnes ikke noe åpent kart over hvor hummeren holder til ved Lillesand. Skriptet
+lager derfor et anslag ut fra det forskningen sier om europeisk hummer, og dataene vi
+allerede har. Det krever at `lag_dybdekart.py` og `lag_bunnhint.py` er kjørt først.
+
+Hva forskningen sier, og hva skriptet bruker:
+
+- **Dybde:** hummeren er mest på 10–25 m i Oslofjorden og generelt på 5–40 m. Skriptet
+  gir full verdi på 10–30 m, og ingen grunnere enn 5 m eller dypere enn 40 m.
+- **Helning:** i en studie fra Tvedestrand forklarte helning, dybde og eksponering
+  hvor hummeren ble fanget. Helningen regnes ut fra dybdedataene, og bratt bunn
+  (25° og mer) gir full verdi.
+- **Der fjell møter sand:** i en studie fra Biscaya lå det beste habitatet der fjellbunn
+  møter sedimentbunn. Skriptet finner **tarekanten**, der tareskog (trolig fjell) ligger
+  innenfor 50 m fra ålegras, skjellsand eller bløtbunn (trolig sand). Det gir ca. 10 km
+  med tarekant på ca. 85 steder.
+- **Steinbunn med tare:** tareskog gir litt ekstra.
+
+Poengsummen er dybdeverdien ganget med en vektet sum: helning 50 %, nærhet til
+tarekanten 25 % og tareskog 25 %. Ruter på 20 × 20 m med poengsum fra 0,5 blir
+**høyt**, fra 0,3 **middels**. Det er ca. 1,8 km² høyt og 6,8 km² middels, som oftest
+smale striper langs bratte skråninger. Bølgeeksponering er ikke med, siden det ikke
+finnes slike data for området (Marine grunnkart dekker foreløpig bare Stavanger og
+Sunnmøre).
+
+I appen (bryteren **Hummerpotensial** i innstillingsarket, fra zoom 14):
+
+- Lilla flater: høyt (sterkere, med kant) og middels (svakere).
+- Oransje strek: tarekanten.
+- Trykk i kartet (zoom 15 og mer) for å se potensialet der.
+
+Dette er et anslag, ikke en fasit. Dybdedataene har ca. 50 m mellom målingene, så små
+fjellnabber og steiner kommer ikke med. Grensene og vektene står øverst i skriptet
+(`DYBDE_M`, `HELNING_GRADER`, `VEKT`, `GRENSER`). Fangstanalysen (se under) viser om
+anslaget treffer for din fangst, og kan brukes til å justere dem.
+
+Skriptet skriver også rutenettet med dybde, helning og poengsum til
+`data/processed/hummerpotensial.tif`. Det brukes av fangstanalysen.
 
 ## Fredningsområder og dybde
 
@@ -446,8 +492,8 @@ Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
 | Fil | Innhold |
 |---|---|
 | `tidslinje.png` | Tidslinje, statistikk og teinesettinger med og uten hummer (se under) |
-| `dybde_og_bunn.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint og fangst per dag (beholdt og satt ut) |
-| `teinesettinger.csv` | Én rad per teinesetting: tid, døgn i sjøen, dybde, bunnhint, antall hummer og posisjon |
+| `dybde_og_bunn.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint, hummerpotensial og helning, og fangst per dag (beholdt og satt ut) |
+| `teinesettinger.csv` | Én rad per teinesetting: tid, døgn i sjøen, dybde, bunnhint, helning, hummerpotensial (klasse og poengsum), avstand til tarekanten, antall hummer og posisjon |
 
 **Tidslinjen** har én rad per teinenummer. Hver gang teinen er satt, vises en stolpe
 fra den ble satt til den ble tatt opp, eller frem til nå hvis den står i sjøen (lysere
@@ -466,6 +512,14 @@ tidslinjen skrives også i terminalen.
 Siden fangst fra en teine betyr at den er tatt opp, slutter settingen der fangsten er
 registrert. Settes teinen ut igjen, starter en ny setting på samme rad.
 
+**Treffer hummerpotensialet?** Skriptet sammenligner fangsten med anslaget fra
+`lag_hummerpotensial.py`: hummer per teinedøgn der potensialet er høyt, middels og lavt,
+etter helning, og etter avstand til tarekanten (under 50 m, 50–150 m, over 150 m).
+Tabellene skrives i terminalen, og de to første er også med i `dybde_og_bunn.png`. Gir
+for eksempel bratt bunn ikke mer fangst etter en sesong eller to, kan vekten for helning
+settes ned i `lag_hummerpotensial.py`. Helningen krever at skriptet er kjørt på samme
+maskin (rutenettet i `data/processed/`). Ellers blir den kolonnen tom.
+
 Dybden er anslått fra Kartverkets dybdedata (se «Fredningsområder og dybde»), og
 bunnhint kommer fra Miljødirektoratet. Med få teinedøgn (under 30) sier skriptet
 fra om at forskjellene er usikre. Se på antall døgn under hver stolpe før du trekker
@@ -482,7 +536,7 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
   dybdekurver. Teinesymbolene på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet
   for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
-  gang den åpnes med nett, ca. 22 MB. Deretter virker appen helt uten nett:
+  gang den åpnes med nett, ca. 24 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, fredningsområder, dybdeoppslag og markeringer.
 - Kartverkets topokart lagres ikke (se «Kilder og kreditering»). Uten
   nett bytter appen automatisk til dybdekartet.
@@ -527,7 +581,7 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 ### Legg appen til på hjemskjermen
 
 Første gang må telefonen ha nett. Vent til meldingen «Appen er lagret og virker
-nå uten nett» kommer (lagrer ca. 22 MB).
+nå uten nett» kommer (lagrer ca. 24 MB).
 
 **Appen viser selv hvordan:** åpnes lenken i nettleseren på en telefon, kommer det
 opp et ark med fremgangsmåten for telefonen som brukes. På Android (Chrome) er det
@@ -589,6 +643,17 @@ versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
   under Norsk lisens for offentlige data
   ([NLOD 2.0](https://data.norge.no/nlod/no/2.0)) tilgjengeliggjort av
   Miljødirektoratet. [Metadata i Geonorge](https://kartkatalog.geonorge.no/metadata/e4f40b02-7a32-4163-87af-d4121de48e6d).
+- **Hummerpotensial og tarekant:** beregnet av `lag_hummerpotensial.py` fra dybdedataene
+  og bunnhintene over. Forskningen det bygger på:
+  - [Store norske leksikon: hummer](https://snl.no/hummer) (steinbunn med tare, 5–40 m)
+  - [Moland mfl. 2011](https://int-res.com/abstracts/meps/v429/p197-207), merket hummer i
+    Skagerrak: 1–57 m dyp, flyttet seg 15–580 m
+  - [Haugland 2012](https://www.duo.uio.no/handle/10852/11622), masteroppgave (UiO),
+    Tvedestrand: helning, dybde og eksponering forklarte fangsten
+  - [Galparsoro mfl. 2009](https://ideas.repec.org/a/eee/ecomod/v220y2009i4p556-567.html),
+    Biscaya: beste habitat der fjell møter sedimentbunn, i bratte senkninger
+  - [Masteroppgave NMBU 2022](https://nmbu.brage.unit.no/nmbu-xmlui/handle/11250/3040850),
+    indre Oslofjord: mest på 10–25 m
 - **Stedsnavn:** Sentralt stedsnavnregister, © Kartverket, lisens
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), hentet fra
   [Kartverkets stedsnavn-API](https://api.kartverket.no/stedsnavn/v1/).

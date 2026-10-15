@@ -96,6 +96,7 @@ function oppdaterKartlag() {
     visLand: bakgrunn === 'dybde',
     visDybdetall: innstillinger.dybdetall,
     visBunnhint: innstillinger.visBunnhint,
+    visPotensial: innstillinger.visPotensial,
   });
   dybdelag.addTo(kart);
 }
@@ -190,13 +191,19 @@ $('knapp-oversikt').addEventListener('click', () => {
   oversikt.vis();
 });
 
-// Trykk i kartet når du er zoomet langt inn: forklar bunnhintet der.
+// Trykk i kartet når du er zoomet langt inn: forklar bunnhintet og hummerpotensialet der.
 kart.on('click', (e) => {
-  if (!bunnI || !innstillinger.visBunnhint || kart.getZoom() < 15) return;
-  const { hint } = bunnI(e.latlng.lat, e.latlng.lng);
-  if (!hint) return;
-  const hvordan = hint.modellert ? 'modellert' : `kartlagt${hint.aar ? ` ${hint.aar}` : ''}`;
-  visMelding(`${hint.navn} (${hvordan}): trolig ${hint.hard ? 'fjell og stein' : 'sand eller mudder'}`, { ms: 5000 });
+  if (!bunnI || kart.getZoom() < 15) return;
+  const { hint, potensial } = bunnI(e.latlng.lat, e.latlng.lng);
+  const deler = [];
+  if (hint && innstillinger.visBunnhint) {
+    const hvordan = hint.modellert ? 'modellert' : `kartlagt${hint.aar ? ` ${hint.aar}` : ''}`;
+    deler.push(`${hint.navn} (${hvordan}): trolig ${hint.hard ? 'fjell og stein' : 'sand eller mudder'}`);
+  }
+  if (potensial && innstillinger.visPotensial) {
+    deler.push(`${potensial === 'hoy' ? 'Høyt' : 'Middels'} hummerpotensial (anslag ut fra dybde, helning og tare)`);
+  }
+  if (deler.length) visMelding(deler.join('. '), { ms: 5000 });
 });
 
 // Langt trykk (eller høyreklikk på PC) i kartet: marker et valgfritt sted.
@@ -282,6 +289,7 @@ $('knapp-lag').addEventListener('click', () => {
   skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
   skjema.elements.visFredning.checked = innstillinger.visFredning;
   skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
+  skjema.elements.visPotensial.checked = innstillinger.visPotensial;
   const synkOppsett = hentSynkOppsett();
   skjema.elements.synkRepo.value = synkOppsett.repo || '';
   skjema.elements.synkToken.value = synkOppsett.token || '';
@@ -305,6 +313,7 @@ skjema.addEventListener('change', (e) => {
   innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
   innstillinger.visFredning = skjema.elements.visFredning.checked;
   innstillinger.visBunnhint = skjema.elements.visBunnhint.checked;
+  innstillinger.visPotensial = skjema.elements.visPotensial.checked;
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
@@ -335,7 +344,8 @@ async function visKilder() {
     $('kildeinfo').innerHTML =
       `Dybdedata: ${d.kreditering}, <a href="${d.lisens_url}">${d.lisens}</a>, lastet ned ${dato(d.lastet_ned)}. ` +
       `${d.merknad}<br>Fredningsområder: ${f.kreditering}. Hentet ${dato(f.lastet_ned)}. ${f.merknad}` +
-      (kilder.bunnhint ? `<br>Bunnhint: ${kilder.bunnhint.kreditering}.` : '');
+      (kilder.bunnhint ? `<br>Bunnhint: ${kilder.bunnhint.kreditering}.` : '') +
+      (kilder.hummerpotensial ? `<br>Hummerpotensial: ${kilder.hummerpotensial.kreditering}.` : '');
   } catch {
     // Kildeteksten i index.html står igjen.
   }

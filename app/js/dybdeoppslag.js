@@ -42,14 +42,16 @@ export function iFlate(x, y, objekt) {
 
 /**
  * Lag en funksjon bunnI(lat, lon) som forteller hva vi vet om bunnen i punktet:
- * { hint: bunnhint-objektet (tareskog, ålegras …) eller null }
+ * { hint: bunnhint-objektet (tareskog, ålegras …) eller null,
+ *   potensial: 'hoy' | 'middels' | null (hummerpotensialet, et anslag) }
  */
 export function lagBunnoppslag(data) {
   return function bunnI(lat, lon) {
     const [x, y] = tilVerden(lon, lat);
     const punkt = [x, y, x, y];
     const hint = data.bunnhint.sok(punkt).find((o) => iFlate(x, y, o)) ?? null;
-    return { hint };
+    const flate = data.potensial.sok(punkt).find((o) => iFlate(x, y, o));
+    return { hint, potensial: flate ? (flate.hoy ? 'hoy' : 'middels') : null };
   };
 }
 

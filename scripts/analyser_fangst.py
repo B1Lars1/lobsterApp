@@ -13,10 +13,16 @@ fortsatt står i sjøen, regnes frem til nå.
 Tidslinjen viser hver teinesetting fra den ble satt til den ble tatt opp (sjekket),
 eller til nå hvis den står i sjøen, med hver fangstregistrering som en prikk.
 
+Fangsten sammenlignes også med hummerpotensialet, helningen og avstanden til
+tarekanten fra lag_hummerpotensial.py, så du kan se om anslaget treffer (og justere
+vektene der). Helningen krever rutenettet i data/processed/ (kjør skriptet først).
+
 Skriver tabeller i terminalen og filer til data/private/analyse/ (aldri i git):
   tidslinje.png         tidslinje for teinene, statistikk og teinesettinger med og uten hummer
-  dybde_og_bunn.png     figurer: dybde, hver teinesetting, bunnhint og fangst per dag
-  teinesettinger.csv    én rad per teinesetting (dybde, døgn, hummer, bunnhint, posisjon)
+  dybde_og_bunn.png     figurer: dybde, hver teinesetting, bunnhint, hummerpotensial,
+                        helning og fangst per dag
+  teinesettinger.csv    én rad per teinesetting (dybde, døgn, hummer, bunnhint, helning,
+                        hummerpotensial, avstand til tarekanten, posisjon)
 
 Kjør fra roten av repoet:  python scripts/analyser_fangst.py [fil] [--ut mappe]
 """
@@ -29,6 +35,7 @@ import geopandas as gpd
 import matplotlib
 import numpy as np
 import pandas as pd
+import rasterio
 
 matplotlib.use("Agg")  # lag bildefiler uten å åpne vinduer
 import matplotlib.dates as mdates  # noqa: E402
@@ -37,12 +44,21 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
 
-from config import APP_DATA_DIR, PRIVATE_DIR  # noqa: E402
+from config import APP_DATA_DIR, CRS_UTM32, PRIVATE_DIR, PROCESSED_DIR  # noqa: E402
 
 DYBDEGRENSER = [0, 5, 10, 15, 20, 30, np.inf]
 DYBDENAVN = ["0–5", "5–10", "10–15", "15–20", "20–30", "30+"]
 BUNNHINT = {"hard": "Tare\n(trolig fjell)", "blot": "Ålegras, skjellsand\n(trolig sand)"}
 UKJENT_BUNN = "Ukjent\nbunn"
+
+# Fra lag_hummerpotensial.py
+POTENSIAL = {"hoy": "Høyt", "middels": "Middels"}
+POTENSIALNAVN = ["Høyt", "Middels", "Lavt"]
+HELNINGSGRENSER = [0, 5, 10, 20, 90]
+HELNINGSNAVN = ["0–5°", "5–10°", "10–20°", "20°+"]
+KANTGRENSER = [0, 50, 150, np.inf]
+KANTNAVN = ["Under 50 m", "50–150 m", "Over 150 m"]
+TERRENG_TIF = PROCESSED_DIR / "hummerpotensial.tif"
 TIDSSONE = "Europe/Oslo"
 FAA_TEINEDOGN = 30  # under dette: si tydelig fra at tallene er usikre
 
@@ -91,9 +107,41 @@ def lag_teinesettinger(m: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame, pd.DataFr
     treff = gpd.sjoin(teiner[["id", "geometry"]], hint, how="left", predicate="within")
     bunn = treff.drop_duplicates("id").set_index("id")["kategori"].map(BUNNHINT)
     teiner["bunn"] = teiner["id"].map(bunn).fillna(UKJENT_BUNN)
+    teiner = legg_til_terreng(teiner)
 
     uten_teine = fangst[~fangst["teine_id"].isin(teiner["id"])]
     return teiner, uten_teine
+
+
+def legg_til_terreng(teiner: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Hummerpotensial, helning og avstand til tarekanten der hver teine stod
+    (fra lag_hummerpotensial.py). Mangler filene, blir kolonnene tomme."""
+    utm = teiner.geometry.to_crs(CRS_UTM32)
+
+    flater = APP_DATA_DIR / "hummerpotensial.geojson"
+    klasse = pd.Series(dtype=object)
+    if flater.exists():
+        pot = gpd.read_file(flater)[["klasse", "geometry"]].to_crs(teiner.crs)
+        treff = gpd.sjoin(teiner[["id", "geometry"]], pot, how="left", predicate="within")
+        klasse = treff.drop_duplicates("id").set_index("id")["klasse"].map(POTENSIAL)
+    teiner["potensial"] = pd.Categorical(teiner["id"].map(klasse).fillna("Lavt"), categories=POTENSIALNAVN)
+
+    kant = APP_DATA_DIR / "tarekant.geojson"
+    linjer = gpd.read_file(kant).to_crs(CRS_UTM32).union_all() if kant.exists() else None
+    teiner["avstand_kant"] = utm.distance(linjer).round(0).values if linjer is not None else np.nan
+    teiner["kantintervall"] = pd.cut(teiner["avstand_kant"], KANTGRENSER, labels=KANTNAVN, right=False)
+
+    if TERRENG_TIF.exists():
+        with rasterio.open(TERRENG_TIF) as tif:
+            verdier = np.array(list(tif.sample(zip(utm.x, utm.y))), dtype=float)
+        teiner["helning"] = verdier[:, 1].round(1)
+        teiner["poeng"] = verdier[:, 2].round(2)
+    else:
+        print(f"Fant ikke {TERRENG_TIF.name}: kjør scripts/lag_hummerpotensial.py for å få med helningen.")
+        teiner["helning"] = np.nan
+        teiner["poeng"] = np.nan
+    teiner["helningsintervall"] = pd.cut(teiner["helning"], HELNINGSGRENSER, labels=HELNINGSNAVN, right=False)
+    return teiner
 
 
 def oppsummer(teiner: pd.DataFrame, kolonne: str) -> pd.DataFrame:
@@ -219,11 +267,11 @@ def stolper_per_teinedoegn(ax, tabell: pd.DataFrame, tittel: str) -> None:
     ax.set_ylim(0, max(verdier.max() * 1.25, 0.1))
 
 
-def lag_figur(teiner, fangst_alle, dybdetabell, bunntabell, fil: Path, ut: Path) -> Path:
-    fig, akser = plt.subplots(2, 2, figsize=(13, 9), facecolor=FLATE)
-    (a, b), (c, d) = akser
+def lag_figur(teiner, fangst_alle, tabeller: dict, fil: Path, ut: Path) -> Path:
+    fig, akser = plt.subplots(3, 2, figsize=(13, 13), facecolor=FLATE)
+    (a, b), (c, e), (f, d) = akser
 
-    stolper_per_teinedoegn(a, dybdetabell, "Fangst etter dybde (m)")
+    stolper_per_teinedoegn(a, tabeller["dybde"], "Fangst etter dybde (m)")
 
     med = teiner.dropna(subset=["dybde", "per_doegn"])
     b.scatter(med["dybde"], med["per_doegn"], s=70, color=BLAA, edgecolors=FLATE, linewidths=1.5, zorder=3)
@@ -231,7 +279,9 @@ def lag_figur(teiner, fangst_alle, dybdetabell, bunntabell, fil: Path, ut: Path)
     b.set_xlim(left=0)
     b.set_ylim(bottom=0)
 
-    stolper_per_teinedoegn(c, bunntabell, "Fangst etter bunnhint")
+    stolper_per_teinedoegn(c, tabeller["bunn"], "Fangst etter bunnhint")
+    stolper_per_teinedoegn(e, tabeller["potensial"], "Fangst etter hummerpotensial (anslaget)")
+    stolper_per_teinedoegn(f, tabeller["helning"], "Fangst etter helning")
 
     if len(fangst_alle):
         dag = fangst_alle["tid"].dt.tz_convert(TIDSSONE).dt.date
@@ -255,13 +305,14 @@ def lag_figur(teiner, fangst_alle, dybdetabell, bunntabell, fil: Path, ut: Path)
 
     teinedoegn = teiner["doegn"].sum()
     tekst = (f"Kilde: {fil.name} · {len(teiner)} teinesettinger, {komma(teinedoegn, 1)} teinedøgn, "
-             f"{int(fangst_alle['hummer'].sum())} hummer · Dybden er anslått fra Kartverkets dybdedata, "
-             "bunnhint fra Miljødirektoratet.")
+             f"{int(fangst_alle['hummer'].sum())} hummer")
     if teinedoegn < FAA_TEINEDOGN:
-        tekst += "  Få data: tolk forskjellene forsiktig."
-    fig.text(0.01, 0.01, tekst, color=TEKST2, fontsize=9)
+        tekst += " · Få data: tolk forskjellene forsiktig."
+    tekst += ("\nDybde og helning er anslått fra Kartverkets dybdedata, bunnhint fra Miljødirektoratet "
+              "og hummerpotensialet med lag_hummerpotensial.py.")
+    fig.text(0.01, 0.008, tekst, color=TEKST2, fontsize=9, linespacing=1.5)
     fig.suptitle("Fangst mot dybde og bunn", x=0.01, ha="left", color=TEKST, fontsize=16, fontweight="bold")
-    fig.tight_layout(rect=(0, 0.03, 1, 0.97))
+    fig.tight_layout(rect=(0, 0.03, 1, 0.98))
     sti = ut / "dybde_og_bunn.png"
     fig.savefig(sti, dpi=120, facecolor=FLATE)
     plt.close(fig)
@@ -420,12 +471,21 @@ def main() -> int:
         print(f"  {etikett + ':':<27}{verdi}")
     skriv_tidslinje(teiner, fangst_alle)
 
-    dybdetabell = oppsummer(teiner, "dybdeintervall")
     bunntabell = oppsummer(teiner, "bunn").reindex([*BUNNHINT.values(), UKJENT_BUNN]).dropna(how="all")
     heltall = ["settinger", "hummer", "beholdt", "satt_ut", "med_fangst"]
     bunntabell[heltall] = bunntabell[heltall].astype(int)  # reindex gjør dem til desimaltall
-    skriv_tabell("Fangst etter dybde (m):", dybdetabell)
-    skriv_tabell("Fangst etter bunnhint:", bunntabell)
+    tabeller = {
+        "dybde": oppsummer(teiner, "dybdeintervall"),
+        "bunn": bunntabell,
+        "potensial": oppsummer(teiner, "potensial"),
+        "helning": oppsummer(teiner, "helningsintervall"),
+        "kant": oppsummer(teiner, "kantintervall"),
+    }
+    skriv_tabell("Fangst etter dybde (m):", tabeller["dybde"])
+    skriv_tabell("Fangst etter bunnhint:", tabeller["bunn"])
+    skriv_tabell("Fangst etter hummerpotensial (anslaget fra lag_hummerpotensial.py):", tabeller["potensial"])
+    skriv_tabell("Fangst etter helning:", tabeller["helning"])
+    skriv_tabell("Fangst etter avstand til tarekanten:", tabeller["kant"])
     if len(uten_teine):
         print(f"\n{int(uten_teine['hummer'].sum())} hummer er registrert uten kobling til en teine "
               "og er ikke med i «per teinedøgn».")
@@ -435,7 +495,7 @@ def main() -> int:
     ut = Path(args.ut)
     ut.mkdir(parents=True, exist_ok=True)
     tidslinje = lag_tidslinje(teiner, fangst_alle, uten_teine, statistikk, fil, ut)
-    figur = lag_figur(teiner, fangst_alle, dybdetabell, bunntabell, fil, ut)
+    figur = lag_figur(teiner, fangst_alle, tabeller, fil, ut)
 
     csv = teiner.assign(
         lat=teiner.geometry.y.round(6), lon=teiner.geometry.x.round(6),
@@ -446,6 +506,7 @@ def main() -> int:
         satt_ut=teiner["satt_ut"].astype(int),
     )
     kolonner = ["nummer", "tid", "tatt_opp", "status", "doegn", "dybde", "dybdeintervall", "bunn",
+                "helning", "potensial", "poeng", "avstand_kant",
                 "hummer", "beholdt", "satt_ut", "per_doegn", "lat", "lon", "notat"]
     csv[kolonner].sort_values("tid").to_csv(ut / "teinesettinger.csv", index=False, encoding="utf-8")
     print(f"\nSkrev {tidslinje}, {figur} og {ut / 'teinesettinger.csv'}")

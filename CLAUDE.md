@@ -37,8 +37,11 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
 ```
 
 - Dataskriptene (`last_ned_dybdedata.py`, `lag_dybdekart.py`, `lag_stedsnavn.py`,
-  `lag_bunnhint.py`, `lag_fredningsomrader.py`, `analyser_fangst.py`) krever
-  Python 3.14 og `requirements.txt` (geopandas osv.), det samme gjør `sjekk_miljo.py`.
+  `lag_bunnhint.py`, `lag_hummerpotensial.py`, `lag_fredningsomrader.py`,
+  `analyser_fangst.py`) krever Python 3.14 og `requirements.txt` (geopandas, rasterio
+  osv.), det samme gjør `sjekk_miljo.py`. Rekkefølgen er `last_ned_dybdedata` →
+  `lag_dybdekart` → `lag_bunnhint` → `lag_hummerpotensial`, siden hvert skript leser det
+  forrige lagde (`data/processed/dybdedata_lillesand.gpkg`, `app/data/bunnhint.geojson`).
   De tre første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
   trenger bare `pip install pillow`.
 - Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`.
@@ -108,9 +111,19 @@ slettingen. Flere telefoner deler filen, så formatet må forbli bakoverkompatib
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
-dataene har flere hundre tusen koordinater. `dybdeoppslag.js` anslår dybde og bunnhint
-i et punkt. Dataene lages av skriptene i `scripts/`, og `scripts/config.py` har felles
-stier og kartutsnitt. `BBOX_WGS84` der må stemme med `DATAOMRADE` i `app/js/app.js`.
+dataene har flere hundre tusen koordinater. `dybdeoppslag.js` anslår dybde, bunnhint
+og hummerpotensial i et punkt. Dataene lages av skriptene i `scripts/`, og
+`scripts/config.py` har felles stier og kartutsnitt. `BBOX_WGS84` der må stemme med
+`DATAOMRADE` i `app/js/app.js`. Nytt valgfritt datalag: hent det i `lastDybdedata()`
+med `.catch(() => tom)`, så kartet virker uten filen, og tegn det i `_tegnFlis` i riktig
+rekkefølge (soner, hummerpotensial, kurver, bunnhint, tarekant, land, tekst).
+
+**Hummerpotensialet** (`lag_hummerpotensial.py`) er et anslag som brukeren justerer etter
+egen fangst: vektene og grensene står øverst i skriptet, og `analyser_fangst.py` leser
+`app/data/hummerpotensial.geojson`, `tarekant.geojson` og rutenettet
+`data/processed/hummerpotensial.tif` (dybde, helning, poengsum) for å vise fangst etter
+potensial, helning og avstand til tarekanten. Endres klassene (`hoy`/`middels`) eller
+filnavnene, må `dybdelag.js`, `dybdeoppslag.js` og `analyser_fangst.py` følge med.
 
 **Offline.** `app/sw.js` lagrer alle filene i `FILER` (generert av
 `lag_service_worker.py`, nesten alle filer under `app/`). Lagret versjon brukes først,

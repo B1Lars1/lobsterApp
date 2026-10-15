@@ -36,5 +36,11 @@
     "lisens_url": "https://data.norge.no/nlod/no/2.0",
     "metadata_url": "https://kartkatalog.geonorge.no/metadata/e4f40b02-7a32-4163-87af-d4121de48e6d",
     "lastet_ned": "2026-10-14"
+  },
+  "hummerpotensial": {
+    "navn": "Hummerpotensial og tarekant (anslag)",
+    "kreditering": "Beregnet fra Kartverkets dybdedata og Miljødirektoratets marine naturtyper",
+    "metode": "Dybde 10–30 m, helning, nærhet til kanten mellom tare og sand/ålegras, og tareskog",
+    "laget": "2026-10-15"
   }
 }
