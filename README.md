@@ -253,7 +253,8 @@ av i innstillingsarket.
 
 Det finnes ikke noe åpent kart over hvor hummeren holder til ved Lillesand. Skriptet
 lager derfor et anslag ut fra det forskningen sier om europeisk hummer, og dataene vi
-allerede har. Det krever at `lag_dybdekart.py` og `lag_bunnhint.py` er kjørt først.
+allerede har. Det krever at `lag_dybdekart.py`, `lag_bunnhint.py` og
+`lag_fredningsomrader.py` er kjørt først.
 
 Hva forskningen sier, og hva skriptet bruker:
 
@@ -270,10 +271,14 @@ Hva forskningen sier, og hva skriptet bruker:
 
 Poengsummen er dybdeverdien ganget med en vektet sum: helning 50 %, nærhet til
 tarekanten 25 % og tareskog 25 %. Ruter på 20 × 20 m med poengsum fra 0,5 blir
-**høyt**, fra 0,3 **middels**. Det er ca. 1,8 km² høyt og 6,8 km² middels, som oftest
+**høyt**, fra 0,3 **middels**. Det er ca. 1,7 km² høyt og 6,6 km² middels, som oftest
 smale striper langs bratte skråninger. Bølgeeksponering er ikke med, siden det ikke
 finnes slike data for området (Marine grunnkart dekker foreløpig bare Stavanger og
 Sunnmøre).
+
+Inne i fredningsområdene for hummer vises verken potensial eller tarekant, siden
+teiner er forbudt der. Når fredningsområdene oppdateres med `lag_fredningsomrader.py`,
+må `lag_hummerpotensial.py` kjøres på nytt etterpå.
 
 I appen (bryteren **Hummerpotensial** i innstillingsarket, fra zoom 14):
 
@@ -298,7 +303,8 @@ Skriptet skriver også rutenettet med dybde, helning og poengsum til
 Skriptet henter Fiskeridirektoratets fredningsområder for hummer (WFS-laget
 `FiskeridirWFS_fiskeri:hummer_fredningsomraader`) og skriver områdene i Agder til
 `app/data/fredningsomrader.geojson`. Kjør det på nytt før hver sesong, siden
-forskriften endres.
+forskriften endres, og kjør deretter `lag_hummerpotensial.py`, så hummerpotensialet
+ikke vises i nye fredningsområder.
 
 I appen:
 

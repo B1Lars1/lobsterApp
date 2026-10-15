@@ -17,6 +17,9 @@ Fremgangsmåte:
      og tareskog). Dybdeverdien er 1 på 10–30 m og 0 grunnere enn 5 m og dypere enn 40 m,
      så de andre forholdene teller bare på riktig dybde.
   4. Ruter med poengsum over GRENSER blir flater med klasse «hoy» eller «middels».
+  5. Flater og tarekant inne i fredningsområdene for hummer fjernes, siden teiner er
+     forbudt der (fra lag_fredningsomrader.py). Kjør dette skriptet på nytt når
+     fredningsområdene er oppdatert.
 
 Dette er et anslag, ikke en fasit. Kartverkets åpne data har ca. 50 m mellom
 dybdepunktene, så små fjellnabber og steiner kommer ikke med. Juster vektene etter
@@ -27,7 +30,7 @@ Skriver:
   app/data/tarekant.geojson            linjer: kanten mellom tare og sand/ålegras
   data/processed/hummerpotensial.tif   rutenettet (dybde, helning, poengsum), brukes av
                                        analyser_fangst.py
-Krever at lag_dybdekart.py og lag_bunnhint.py er kjørt.
+Krever at lag_dybdekart.py, lag_bunnhint.py og lag_fredningsomrader.py er kjørt.
 
 Kjør fra roten av repoet:  python scripts/lag_hummerpotensial.py
 """
@@ -48,6 +51,7 @@ from config import APP_DATA_DIR, CRS_UTM32, CRS_WGS84, PROCESSED_DIR
 
 GPKG = PROCESSED_DIR / "dybdedata_lillesand.gpkg"
 BUNNHINT = APP_DATA_DIR / "bunnhint.geojson"
+FREDNING = APP_DATA_DIR / "fredningsomrader.geojson"
 UT_FLATER = APP_DATA_DIR / "hummerpotensial.geojson"
 UT_KANT = APP_DATA_DIR / "tarekant.geojson"
 UT_RUTENETT = PROCESSED_DIR / "hummerpotensial.tif"
@@ -188,6 +192,18 @@ def main() -> int:
     # Mykere kanter enn trappetrinnene i rutenettet
     gdf["geometry"] = gdf.buffer(RUTE_M / 2, join_style="round").buffer(-RUTE_M / 2).simplify(FORENKLING_M)
     gdf = gdf[~gdf.is_empty & gdf.geom_type.isin(["Polygon", "MultiPolygon"])]
+
+    # Ikke vis gode plasser der teiner er forbudt
+    fredet = gpd.read_file(FREDNING).to_crs(CRS_UTM32).union_all()
+    print(f"Fjernes i fredningsområdene: {gdf.intersection(fredet).area.sum() / 1e6:.3f} km² flater, "
+          f"{kant.intersection(fredet).length.sum() / 1000:.2f} km tarekant")
+    gdf["geometry"] = gdf.difference(fredet)
+    gdf = gdf.explode(ignore_index=True)
+    gdf = gdf[gdf.geom_type.eq("Polygon") & (gdf.area >= MINSTE_FLATE_M2)]
+    kant["geometry"] = kant.difference(fredet)
+    kant = kant.explode(ignore_index=True)
+    kant = kant[~kant.is_empty & (kant.length >= MINSTE_KANT_M)]
+
     for k in ("hoy", "middels"):
         del_ = gdf[gdf["klasse"] == k]
         print(f"  {k}: {len(del_)} flater, {del_.area.sum() / 1e6:.2f} km²")

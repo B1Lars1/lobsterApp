@@ -40,8 +40,9 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
   `lag_bunnhint.py`, `lag_hummerpotensial.py`, `lag_fredningsomrader.py`,
   `analyser_fangst.py`) krever Python 3.14 og `requirements.txt` (geopandas, rasterio
   osv.), det samme gjør `sjekk_miljo.py`. Rekkefølgen er `last_ned_dybdedata` →
-  `lag_dybdekart` → `lag_bunnhint` → `lag_hummerpotensial`, siden hvert skript leser det
-  forrige lagde (`data/processed/dybdedata_lillesand.gpkg`, `app/data/bunnhint.geojson`).
+  `lag_dybdekart` → `lag_bunnhint` og `lag_fredningsomrader` → `lag_hummerpotensial`,
+  siden hvert skript leser det de forrige lagde (`data/processed/dybdedata_lillesand.gpkg`,
+  `app/data/bunnhint.geojson`, `app/data/fredningsomrader.geojson`).
   De tre første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
   trenger bare `pip install pillow`.
 - Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`.
@@ -122,7 +123,9 @@ rekkefølge (soner, hummerpotensial, kurver, bunnhint, tarekant, land, tekst).
 egen fangst: vektene og grensene står øverst i skriptet, og `analyser_fangst.py` leser
 `app/data/hummerpotensial.geojson`, `tarekant.geojson` og rutenettet
 `data/processed/hummerpotensial.tif` (dybde, helning, poengsum) for å vise fangst etter
-potensial, helning og avstand til tarekanten. Endres klassene (`hoy`/`middels`) eller
+potensial, helning og avstand til tarekanten. Flater og tarekant fjernes inne i
+fredningsområdene (teiner er forbudt der), mens rutenettet beholder alle verdiene.
+Endres klassene (`hoy`/`middels`) eller
 filnavnene, må `dybdelag.js`, `dybdeoppslag.js` og `analyser_fangst.py` følge med.
 
 **Offline.** `app/sw.js` lagrer alle filene i `FILER` (generert av
