@@ -12,6 +12,7 @@
  */
 
 import { visMelding } from './melding.js';
+import { hummersesong } from './oversikt.js';
 
 const tidFormat = new Intl.DateTimeFormat('nb-NO', {
   weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -587,13 +588,14 @@ export class Markeringsark {
 
     this._tegnSlettede();
 
-    // Fangst i år
-    const aar = new Date().getFullYear();
-    const iAar = this.markeringer.alle().filter((m) => m.kategori === 'hummer' && new Date(m.tid).getFullYear() === aar);
-    const beholdt = iAar.reduce((s, f) => s + f.beholdt, 0);
-    const sattUt = iAar.reduce((s, f) => s + f.satt_ut, 0);
+    // Fangst i hummersesongen (den som pågår, eller den siste), som i fangstoversikten
+    const sesong = hummersesong();
+    const iSesongen = this.markeringer.alle().filter((m) => m.kategori === 'hummer'
+      && Date.parse(m.tid) >= sesong.fra && Date.parse(m.tid) < sesong.til);
+    const beholdt = iSesongen.reduce((s, f) => s + f.beholdt, 0);
+    const sattUt = iSesongen.reduce((s, f) => s + f.satt_ut, 0);
     this.arkTeiner.querySelector('[data-tekst="sesong"]').textContent =
-      `Fangst i ${aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
+      `Sesongen ${sesong.aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
 
     // All fangst, sist registrert først. Trykk åpner fangsten, så den kan rettes eller slettes.
     const fangst = this.markeringer.alle().filter((m) => m.kategori === 'hummer')

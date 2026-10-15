@@ -290,7 +290,11 @@ Sjekk alltid gjeldende forskrift.
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
   Tallet på knappen er antall teiner i sjøen.
 - **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt
-  for de siste 7 eller 30 dagene eller hele sesongen (fra første teine i år):
+  over hummersesongen, 1. oktober–30. november. Velg de siste 7 eller 30 dagene eller
+  hele sesongen. Datoer utenfor sesongen vises aldri: 30 dager tidlig i oktober
+  begynner 1. oktober, og etter 30. november (og før 1. oktober) vises den siste
+  sesongen. Tallet på knappen («Sesongen 2026: …») gjelder også bare sesongen.
+  Oversikten viser:
   - tre nøkkeltall: antall hummer (beholdt og satt ut), fangstrate (hummer per
     teinedøgn) og hvor mange av teinesettingene som ga hummer
   - en tidslinje med én rad per teine: en stolpe for hver gang teinen har stått i

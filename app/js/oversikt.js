@@ -2,6 +2,9 @@
  * Fangstoversikten: et ark med nøkkeltall og en enkel tidslinje for teinene, for en
  * valgt periode (7 dager, 30 dager eller sesongen). Åpnes fra teinelisten.
  *
+ * Bare hummersesongen vises: 1. oktober til og med 30. november. Perioden er alltid
+ * innenfor sesongen som pågår, eller den siste som var (før 1. oktober: fjorårets).
+ *
  * Samme regnemåte som scripts/analyser_fangst.py, men enklere:
  *   - En teinesetting går fra teinen ble satt til den ble tatt opp, eller til nå.
  *   - Fangst hører til settingen via teine_id. Fangst uten teine får egen rad nederst.
@@ -57,19 +60,33 @@ function lagSettinger(alle, naa) {
   return { settinger, fangst, utenTeine: fangst.filter((f) => !ider.has(f.teine_id)) };
 }
 
-/** Perioden som vises: fra midnatt den første dagen til midnatt etter i dag. */
-function lagPeriode(valg, naa, settinger, fangst) {
-  const iDag = midnatt(naa);
-  const slutt = dagerFra(iDag, 1);
-  if (valg !== 'sesong') return { fra: dagerFra(iDag, 1 - Number(valg)), til: slutt };
-  // Sesongen: fra den første teinen eller fangsten i år, men minst en uke
-  const aarStart = new Date(new Date(naa).getFullYear(), 0, 1).getTime();
-  const tider = [
-    ...settinger.filter((s) => s.til >= aarStart).map((s) => Math.max(s.fra, aarStart)),
-    ...fangst.filter((f) => f.ms >= aarStart).map((f) => f.ms),
-  ];
-  const forste = tider.length ? Math.min(...tider) : naa;
-  return { fra: Math.min(midnatt(forste), dagerFra(iDag, -6)), til: slutt };
+// Hummersesongen: 1. oktober til og med 30. november (månedene teller fra januar = 0)
+const SESONG_START_MAANED = 9;  // 1. oktober
+const SESONG_SLUTT_MAANED = 11; // 1. desember, første dag etter sesongen
+
+/**
+ * Hummersesongen som pågår, eller den siste som var: { aar, fra, til } i millisekunder,
+ * der til er midnatt 1. desember (ikke med i sesongen).
+ */
+export function hummersesong(naa = Date.now()) {
+  const d = new Date(naa);
+  const aar = d.getMonth() >= SESONG_START_MAANED ? d.getFullYear() : d.getFullYear() - 1;
+  return {
+    aar,
+    fra: new Date(aar, SESONG_START_MAANED, 1).getTime(),
+    til: new Date(aar, SESONG_SLUTT_MAANED, 1).getTime(),
+  };
+}
+
+/**
+ * Perioden som vises: hele dager innenfor sesongen, til og med i dag (eller 30. november
+ * når sesongen er over). 7 og 30 dager er de siste dagene, men aldri før 1. oktober.
+ */
+function lagPeriode(valg, naa) {
+  const sesong = hummersesong(naa);
+  const til = Math.min(dagerFra(midnatt(naa), 1), sesong.til);
+  const fra = valg === 'sesong' ? sesong.fra : Math.max(dagerFra(til, -Number(valg)), sesong.fra);
+  return { fra, til, aar: sesong.aar, over: naa >= sesong.til, sesong: valg === 'sesong' };
 }
 
 export class Fangstoversikt {
@@ -99,7 +116,7 @@ export class Fangstoversikt {
     const naa = Date.now();
     const valg = this.ark.querySelector('input[name="periode"]:checked')?.value ?? '7';
     const { settinger, fangst, utenTeine } = lagSettinger(this.markeringer.alle(), naa);
-    const periode = lagPeriode(valg, naa, settinger, fangst);
+    const periode = lagPeriode(valg, naa);
     const iPerioden = settinger.filter((s) => s.til > periode.fra && s.fra < periode.til);
     const fangstIPerioden = fangst.filter((f) => f.ms >= periode.fra && f.ms < periode.til);
 
@@ -118,7 +135,9 @@ export class Fangstoversikt {
 
   _tegnTall(periode, naa, iPerioden, fangstIPerioden) {
     const sett = (navn, tekst) => { this.ark.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
-    sett('periode', `${langDato.format(periode.fra)} – i dag`);
+    // Når sesongen er over, vises den siste sesongen helt ut (til 30. november)
+    sett('periode', `${langDato.format(periode.fra)} – ${periode.over
+      ? `${langDato.format(dagerFra(periode.til, -1))} ${periode.aar}` : 'i dag'}`);
 
     const sum = (liste, felt) => liste.reduce((s, f) => s + f[felt], 0);
     const hummer = sum(fangstIPerioden, 'hummer');
@@ -126,7 +145,8 @@ export class Fangstoversikt {
     sett('beholdt', `${sum(fangstIPerioden, 'beholdt')} beholdt, ${sum(fangstIPerioden, 'satt_ut')} satt ut`);
 
     // Bare tiden innenfor perioden teller, og bare fangst fra teinene
-    const teinedogn = iPerioden.reduce((s, t) => s + Math.max(0, Math.min(t.til, naa) - Math.max(t.fra, periode.fra)), 0) / DAG;
+    const teinedogn = iPerioden.reduce((s, t) =>
+      s + Math.max(0, Math.min(t.til, naa, periode.til) - Math.max(t.fra, periode.fra)), 0) / DAG;
     const ider = new Set(iPerioden.map((t) => t.id));
     const fraTeiner = sum(fangstIPerioden.filter((f) => ider.has(f.teine_id)), 'hummer');
     sett('rate', teinedogn > 0 ? komma(fraTeiner / teinedogn, 2) : '–');
@@ -167,13 +187,15 @@ export class Fangstoversikt {
         deler.push(`<text class="tl-dato${iDag ? ' idag' : ''}" x="${midt}" y="${bunn + 30}">${new Date(d).getDate()}.</text>`);
       }
     } else {
-      // Smalere dager: en strek med dato hver 2., 7., 14. eller 28. dag (minst 48 px mellom),
-      // regnet bakover fra i dag, så i dag alltid har en dato
+      // Smalere dager: en strek med dato hver 2., 7., 14. eller 28. dag (minst 48 px mellom).
+      // Sesongen regnes fra 1. oktober og fremover, så datoene står fast. 7 og 30 dager
+      // regnes bakover fra den siste dagen (i dag, eller 30. november), så den har en dato.
       const steg = [2, 7, 14, 28].find((n) => n * pxPerDag >= 48) ?? 28;
-      for (let i = 0, d = midnatt(naa); d >= periode.fra; d = dagerFra(midnatt(naa), -steg * ++i)) {
-        const xd = x(d);
-        const tx = Math.min(Math.max(xd, x0 + 16), x1 - 16); // datoen skal ikke gå utenfor kanten
-        deler.push(`<line class="tl-rutenett" x1="${xd}" x2="${xd}" y1="${TOPP - 4}" y2="${bunn}"/>`);
+      const start = periode.sesong ? periode.fra : dagerFra(periode.til, -1);
+      const retning = periode.sesong ? 1 : -1;
+      for (let i = 0, d = start; d >= periode.fra && d < periode.til; d = dagerFra(start, retning * steg * ++i)) {
+        const tx = Math.min(Math.max(x(d), x0 + 16), x1 - 16); // datoen skal ikke gå utenfor kanten
+        deler.push(`<line class="tl-rutenett" x1="${x(d)}" x2="${x(d)}" y1="${TOPP - 4}" y2="${bunn}"/>`);
         deler.push(`<text class="tl-dato" x="${tx}" y="${bunn + 18}">${kortDato.format(d)}</text>`);
       }
     }
@@ -188,9 +210,11 @@ export class Fangstoversikt {
       deler.push(`<text class="tl-uten-teine" x="21" y="${yFor(nummer.length) + 4}">Uten</text>`);
     }
 
-    // «Nå»
-    deler.push(`<line class="tl-naa" x1="${x(naa)}" x2="${x(naa)}" y1="${TOPP - 4}" y2="${bunn}"/>`);
-    deler.push(`<text class="tl-naatekst" x="${Math.min(x(naa), x1 - 6)}" y="${TOPP - 8}">nå</text>`);
+    // «Nå», bare mens sesongen pågår
+    if (!periode.over) {
+      deler.push(`<line class="tl-naa" x1="${x(naa)}" x2="${x(naa)}" y1="${TOPP - 4}" y2="${bunn}"/>`);
+      deler.push(`<text class="tl-naatekst" x="${Math.min(x(naa), x1 - 6)}" y="${TOPP - 8}">nå</text>`);
+    }
 
     // Stolper: én per teinesetting
     const prikker = [];
@@ -201,7 +225,7 @@ export class Fangstoversikt {
       const klasse = `${t.hummer > 0 ? 'tl-med' : 'tl-uten'}${t.iSjoen ? ' tl-isjoen' : ''}`;
       deler.push(`<rect class="${klasse}" x="${fra}" y="${y - STOLPE / 2}" width="${Math.max(4, til - fra)}" height="${STOLPE}" rx="4"/>`);
       if (t.iSjoen) deler.push(`<path class="${klasse} tl-pil" d="M${til + 1} ${y - 7}l7 7-7 7z"/>`);
-      for (const f of t.fangst) if (f.ms >= periode.fra) prikker.push({ f, y });
+      for (const f of t.fangst) if (f.ms >= periode.fra && f.ms < periode.til) prikker.push({ f, y });
     }
     for (const f of utenTeine) prikker.push({ f, y: yFor(nummer.length) });
 

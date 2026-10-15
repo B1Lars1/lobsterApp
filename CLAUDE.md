@@ -93,7 +93,9 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   neste synkronisering. Tidslinjen i `analyser_fangst.py` viser dem som hule ringer.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`.
-  Endres regnemåten ett sted, skal den endres begge steder. Tidslinjen er SVG laget som
+  Endres regnemåten ett sted, skal den endres begge steder. Oversikten viser bare
+  hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
+  brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG laget som
   tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren (notater).
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
