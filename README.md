@@ -196,7 +196,10 @@ hånd om av `js/dobbelttrykk.js`, siden Safari ikke sender det videre til Leafle
 trykk markerer et sted (se «Markeringer»). Tekst på kartet og knappene kan ikke merkes,
 så et langt trykk ikke merker for eksempel målestokken på iPhone.
 
-**Kartvalg** (knappen øverst til høyre):
+**Innstillinger** (tannhjulet øverst til høyre) har kartvalg, hva som vises på kartet,
+tema, sikkerhetskopi, konto og lag.
+
+**Kartvalg** (under Innstillinger):
 
 - **Dybdekart:** bare våre egne data. Fungerer uten nett.
 - **Topo + dybde:** Kartverkets gråtone-topokart med dybdesoner og kurver oppå.

@@ -286,7 +286,7 @@ $('velg-fil').addEventListener('change', (e) => {
 const innstillingsark = $('lagvelger');
 const skjema = innstillingsark.querySelector('form');
 
-$('knapp-lag').addEventListener('click', () => {
+$('knapp-innstillinger').addEventListener('click', () => {
   skjema.elements.bakgrunn.value = innstillinger.bakgrunn;
   skjema.elements.tema.value = innstillinger.tema;
   skjema.elements.dybdetall.checked = innstillinger.dybdetall;
