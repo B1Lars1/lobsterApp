@@ -140,6 +140,29 @@
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
+  <!-- Konto: logg inn, opprett konto, glemt passord og slett konto (se konto.js) -->
+  <dialog id="ark-konto" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <form class="konto-skjema" novalidate>
+      <h3 class="ark-tittel" data-tekst="tittel">Logg inn</h3>
+      <p class="hjelp" data-tekst="forklaring"></p>
+      <div class="felter">
+        <label class="felt">E-post<input name="epost" type="email" inputmode="email" autocomplete="username"
+          autocapitalize="off" spellcheck="false"></label>
+        <label class="felt">Passord<input name="passord" type="password" autocomplete="current-password"></label>
+      </div>
+      <p class="hjelp svar" data-tekst="svar" role="status" hidden></p>
+      <div class="knapper">
+        <button type="submit" class="ferdig" data-handling="send">Logg inn</button>
+      </div>
+      <div class="konto-lenker">
+        <button type="button" class="lenke" data-handling="bytt" data-tekst="bytt"></button>
+        <button type="button" class="lenke" data-handling="glemt">Glemt passord?</button>
+      </div>
+      <button type="button" class="avbryt" data-handling="lukk">Avbryt</button>
+    </form>
+  </dialog>
+
   <!-- Fangstoversikt: nøkkeltall og tidslinje for en periode (se oversikt.js) -->
   <dialog id="ark-oversikt" class="ark">
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
@@ -288,19 +311,26 @@
         <button type="button" id="knapp-importer" class="sekundar">Importer</button>
       </div>
 
-      <h2>Synkronisering med GitHub</h2>
-      <div class="synk">
-        <p id="synkstatus" class="hjelp" data-tilstand="av">Ikke satt opp.</p>
-        <label class="felt">Privat repo
-          <input name="synkRepo" placeholder="brukernavn/hummerkart-data" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
-        <label class="felt">Tilgangsnøkkel (token)
-          <input name="synkToken" type="password" placeholder="github_pat_…" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
-        <div class="knapperad">
-          <button type="button" id="knapp-synk" class="sekundar">Synkroniser nå</button>
-          <button type="button" id="knapp-synk-av" class="sekundar">Koble fra</button>
+      <h2>Konto</h2>
+      <div class="konto">
+        <div data-vis="utlogget">
+          <p class="hjelp">Logg inn for å lagre teiner og fangst i en konto. Da har du en
+            sikkerhetskopi, og du får dem på alle telefonene dine. Uten konto ligger de bare
+            på denne telefonen.</p>
+          <button type="button" id="knapp-logg-inn" class="sekundar">Logg inn eller opprett konto</button>
         </div>
-        <p class="hjelp">Lagrer markeringene automatisk i et privat GitHub-repo som bare du, og
-          de du gir tilgang, kan se. Slik settes det opp: se README.</p>
+        <div data-vis="innlogget" hidden>
+          <p class="hjelp">Logget inn som <b data-tekst="epost"></b>. Teiner og fangst lagres
+            i kontoen og synkroniseres med de andre telefonene dine.</p>
+          <div class="knapperad">
+            <button type="button" id="knapp-synk" class="sekundar">Synkroniser nå</button>
+            <button type="button" id="knapp-logg-ut" class="sekundar">Logg ut</button>
+          </div>
+          <button type="button" id="knapp-slett-konto" class="fare liten">Slett kontoen</button>
+        </div>
+        <p id="skystatus" class="hjelp" data-tilstand="av"></p>
+        <p class="hjelp"><a href="personvern.html" target="_blank" rel="noopener">Personvern</a>:
+          hva som lagres, og hvor.</p>
       </div>
 
       <p id="kildeinfo" class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>

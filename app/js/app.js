@@ -7,7 +7,8 @@
  *   kartmarkeringer.js symbolene på kartet
  *   markeringsark.js   knappene og arkene for markeringer
  *   fredning.js        fredningsområder for hummer
- *   synk.js            synkronisering med et privat GitHub-repo
+ *   sky.js             konto og synkronisering med skyen (Firebase, se firebase.js)
+ *   konto.js           innlogging og kontoen i innstillingsarket
  *   hjemskjerm.js      veiledning for å legge appen til på hjemskjermen
  *   oversikt.js        fangstoversikten: nøkkeltall og tidslinje
  *
@@ -28,7 +29,9 @@ import { markeringer } from './markeringer.js';
 import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { Fangstoversikt } from './oversikt.js';
 import { visMelding } from './melding.js';
-import { Synk, hentSynkOppsett } from './synk.js';
+import { FirebaseInnlogging, FirestoreTjeneste } from './firebase.js';
+import { Konto } from './konto.js';
+import { Sky } from './sky.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
 const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]); // samme som BBOX_WGS84 i scripts/config.py
@@ -265,7 +268,7 @@ function oppdaterDatainfo() {
     `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer ` +
     `(${alle.length} markeringer i alt). Sist eksportert: ${eksport}. ` +
     (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass.') +
-    (synk.erSattOpp() ? ' Markeringene synkroniseres med GitHub.' : ' Eksporter jevnlig, eller sett opp synkronisering med GitHub.');
+    (sky.innlogget ? ' Markeringene lagres også i kontoen din.' : ' Eksporter jevnlig, eller logg inn så de lagres i en konto.');
 }
 
 $('knapp-eksporter').addEventListener('click', () => eksporter());
@@ -290,10 +293,7 @@ $('knapp-lag').addEventListener('click', () => {
   skjema.elements.visFredning.checked = innstillinger.visFredning;
   skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
   skjema.elements.visPotensial.checked = innstillinger.visPotensial;
-  const synkOppsett = hentSynkOppsett();
-  skjema.elements.synkRepo.value = synkOppsett.repo || '';
-  skjema.elements.synkToken.value = synkOppsett.token || '';
-  visSynkStatus(synk.statusTekst());
+  konto.visStatus(sky.statusTekst());
   oppdaterDatainfo();
   $('knapp-hjemskjerm').hidden = !kanLeggesTil();
   innstillingsark.showModal();
@@ -304,8 +304,7 @@ $('knapp-hjemskjerm').addEventListener('click', () => {
   visHjemskjermVeiledning();
 });
 
-skjema.addEventListener('change', (e) => {
-  if (e.target.closest('.synk')) return; // feltene for synkronisering har egne knapper
+skjema.addEventListener('change', () => {
   innstillinger.bakgrunn = skjema.elements.bakgrunn.value;
   innstillinger.tema = skjema.elements.tema.value;
   innstillinger.dybdetall = skjema.elements.dybdetall.checked;
@@ -351,35 +350,25 @@ async function visKilder() {
   }
 }
 
-// ---------- Synkronisering med GitHub ----------
+// ---------- Konto og synkronisering med skyen ----------
 
-function visSynkStatus({ tilstand, tekst }) {
-  $('synkstatus').textContent = tekst;
-  $('synkstatus').dataset.tilstand = tilstand;
+const sky = new Sky(markeringer, {
+  naarStatus: (status) => konto.visStatus(status),
+  naarBruker: (bruker) => {
+    konto.visBruker(bruker);
+    oppdaterDatainfo();
+  },
+  innlogging: new FirebaseInnlogging(),
+  tjeneste: new FirestoreTjeneste(),
+});
+const konto = new Konto(sky);
+
+// Synkroniseringen med GitHub er erstattet av kontoen. Fjern den gamle tilgangsnøkkelen.
+try {
+  localStorage.removeItem('hummerkart.synk');
+} catch {
+  // Ikke tilgjengelig: da var den heller ikke lagret
 }
-const synk = new Synk(markeringer, visSynkStatus);
-
-$('knapp-synk').addEventListener('click', () => {
-  const repo = skjema.elements.synkRepo.value.trim();
-  const token = skjema.elements.synkToken.value.trim();
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
-    visMelding('Skriv repoet som brukernavn/reponavn', { fare: true });
-    return;
-  }
-  if (!token) {
-    visMelding('Lim inn tilgangsnøkkelen', { fare: true });
-    return;
-  }
-  synk.settOppsett({ repo, token });
-  synk.synkroniser({ manuell: true });
-});
-
-$('knapp-synk-av').addEventListener('click', () => {
-  synk.kobleFra();
-  skjema.elements.synkRepo.value = '';
-  skjema.elements.synkToken.value = '';
-  visMelding('Synkronisering er koblet fra. Markeringene på telefonen er urørt.');
-});
 
 // ---------- Uten nett og service worker ----------
 
@@ -417,7 +406,7 @@ settOppHjemskjerm();
 
 brukTema();
 visKilder();
-markeringer.last().then(() => synk.synkroniser());
+markeringer.last().then(() => sky.start()); // logger inn igjen og synkroniserer hvis du har konto
 fredning.last()
   .then(() => {
     fredning.settSynlig(innstillinger.visFredning);

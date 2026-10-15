@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Personvern – Hummerkart</title>
+  <link rel="icon" href="ikoner/favicon-32.png" sizes="32x32">
+  <style>
+    :root { --flate: #ffffff; --tekst: #0d1b26; --dempet: #4d5d6b; --aksent: #0a66c2; --kant: rgba(13, 27, 38, 0.14); }
+    @media (prefers-color-scheme: dark) {
+      :root { --flate: #18222c; --tekst: #e6edf3; --dempet: #9aabbb; --aksent: #4da3ff; --kant: rgba(230, 237, 243, 0.14); }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: calc(env(safe-area-inset-top) + 24px) 16px calc(env(safe-area-inset-bottom) + 32px);
+      background: var(--flate);
+      color: var(--tekst);
+      font: 17px/1.55 system-ui, -apple-system, sans-serif;
+    }
+    main { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    h2 { font-size: 19px; margin: 28px 0 6px; }
+    p, li { margin: 6px 0; }
+    ul { padding-left: 22px; }
+    a { color: var(--aksent); font-weight: 600; }
+    .dempet { color: var(--dempet); font-size: 15px; }
+    .tilbake { display: inline-block; margin-top: 28px; padding: 12px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Personvern i Hummerkart</h1>
+  <p class="dempet">Sist endret 15. oktober 2026</p>
+
+  <h2>Kort fortalt</h2>
+  <ul>
+    <li>Uten konto ligger alt du markerer, bare på telefonen din.</li>
+    <li>Med konto lagres teiner og fangst også i skyen (Google Firebase, i EU), så du har en
+      sikkerhetskopi og får dem på alle telefonene dine.</li>
+    <li>Bare du kan se dataene dine. Ingen reklame, ingen sporing, ingen deling.</li>
+    <li>Du kan når som helst eksportere alt, eller slette kontoen og alt i skyen.</li>
+  </ul>
+
+  <h2>Uten konto</h2>
+  <p>Teiner, fangst og innstillinger lagres i nettleserens lagring på telefonen. Posisjonen
+    fra GPS brukes bare på telefonen, til å vise hvor du er og til markeringene du lager.
+    Ingenting av dette sendes noe sted.</p>
+
+  <h2>Med konto</h2>
+  <p>Når du oppretter en konto, lagres dette:</p>
+  <ul>
+    <li><b>E-postadressen din og passordet</b>, i Firebase Authentication. Passordet lagres
+      kryptert (som en hash) av Google, og appen ser det aldri i klartekst etter innlogging.</li>
+    <li><b>Teinene og fangsten din</b>: posisjon, tidspunkt, teinenummer, om teinen står i
+      sjøen, antall hummer beholdt og satt ut, anslått dybde, GPS-nøyaktighet og notatet du
+      eventuelt har skrevet. Også at en markering er slettet, så slettingen når de andre
+      telefonene dine.</li>
+  </ul>
+  <p>Dataene lagres i Google Firebase (Firestore) i Googles datasentre i EU. Google er
+    databehandler og bruker ikke dataene til egne formål. Tilgangsreglene gjør at bare den
+    som er logget inn på kontoen, kan lese og endre dataene.</p>
+
+  <h2>Hva dataene brukes til</h2>
+  <p>Bare til å vise teinene og fangsten din i appen, på telefonene der du er logget inn.
+    De deles ikke med andre, selges ikke og brukes ikke til reklame eller analyse. Appen
+    bruker ikke Google Analytics eller andre sporingsverktøy.</p>
+
+  <h2>Hvor lenge</h2>
+  <p>Til du sletter dem. Sletter du en markering, slettes den også i skyen. Sletter du
+    kontoen, slettes alt i skyen. Logger du ut, fjernes markeringene fra telefonen, men de
+    ligger fortsatt i kontoen.</p>
+
+  <h2>Dine rettigheter</h2>
+  <ul>
+    <li><b>Innsyn og kopi:</b> Innstillinger → Eksporter GeoJSON gir deg alle markeringene
+      i en fil.</li>
+    <li><b>Retting:</b> Endre eller slett markeringer i appen.</li>
+    <li><b>Sletting:</b> Innstillinger → Konto → Slett kontoen. Da slettes kontoen og alt i
+      skyen med en gang.</li>
+    <li><b>Klage:</b> Mener du at personopplysningene dine behandles feil, kan du klage til
+      <a href="https://www.datatilsynet.no/">Datatilsynet</a>.</li>
+  </ul>
+
+  <h2>Kartet og appen</h2>
+  <p>Selve appen hentes fra GitHub Pages, og bakgrunnskartet «Topo» fra Kartverket. Som
+    med alle nettsider ser de adressen (IP) til telefonen når filene hentes. Dybdekartet
+    og resten lagres på telefonen, så appen virker uten nett.</p>
+
+  <h2>Kontakt</h2>
+  <p>Hummerkart lages og drives av eieren av GitHub-kontoen
+    <a href="https://github.com/B1Lars1">B1Lars1</a>. Spørsmål om personvern, eller om du vil
+    ha innsyn eller slettet noe, kan sendes til
+    <a href="mailto:benlars1@gmail.com">benlars1@gmail.com</a>.</p>
+
+  <a class="tilbake" href="./">← Tilbake til kartet</a>
+</main>
+</body>
+</html>

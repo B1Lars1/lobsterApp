@@ -2,8 +2,8 @@
 
 Leser markeringene dine fra, i denne rekkefølgen:
   1. filen du oppgir:            python scripts/analyser_fangst.py sti/til/fil.geojson
-  2. det klonede synk-repoet:    data/private/hummerkart-data/markeringer.geojson
-  3. nyeste eksport fra appen:   data/private/markeringer-*.geojson
+  2. nyeste eksport fra appen:   data/private/markeringer-*.geojson
+     (Innstillinger → Eksporter GeoJSON, lagret i data/private/)
 
 Fangst måles som hummer per teinedøgn: antall hummer (beholdt + satt ut) delt på
 antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en teine
@@ -71,9 +71,6 @@ GRAA = "#b4b2a9"  # teinesettinger uten hummer
 def finn_fil(oppgitt: str | None) -> Path | None:
     if oppgitt:
         return Path(oppgitt)
-    synk = PRIVATE_DIR / "hummerkart-data" / "markeringer.geojson"
-    if synk.exists():
-        return synk
     eksporter = sorted(PRIVATE_DIR.glob("markeringer-*.geojson"))
     return eksporter[-1] if eksporter else None
 
@@ -453,8 +450,8 @@ def main() -> int:
 
     fil = finn_fil(args.fil)
     if fil is None or not fil.exists():
-        print("Fant ingen markeringer. Klon synk-repoet til data/private/hummerkart-data/ "
-              "eller legg en eksport (markeringer-*.geojson) i data/private/. Se README.")
+        print("Fant ingen markeringer. Eksporter dem i appen (Innstillinger → Eksporter GeoJSON) "
+              "og legg filen (markeringer-*.geojson) i data/private/. Se README.")
         return 1
     print(f"Leser {fil}")
     m = les_markeringer(fil)

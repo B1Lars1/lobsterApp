@@ -901,9 +901,30 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .tl-forklaring svg { flex: none; overflow: visible; }
 
 .hjelp { margin: 8px 0; font-size: 14px; line-height: 1.45; color: var(--dempet); }
-#synkstatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }
-#synkstatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
-.synk .felt { margin-bottom: 10px; }
+.hjelp a { color: var(--aksent); font-weight: 700; }
+
+/* ---------- Konto (konto.js) ---------- */
+
+#skystatus:empty { display: none; }
+#skystatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }
+#skystatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
+#knapp-logg-inn,
+#knapp-slett-konto { width: 100%; }
+#knapp-slett-konto { margin-top: 10px; }
+.konto-skjema .ark-tittel { margin: 6px 0 4px; }
+.konto-skjema .knapper > * { grid-column: 1 / -1; } /* også «Slett kontoen for godt» i full bredde */
+.svar.feil { color: var(--darlig); font-weight: 700; }
+.konto-lenker { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.lenke {
+  min-height: 44px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--aksent);
+  font-size: 16px;
+  font-weight: 700;
+}
+.lenke[hidden] { display: none; }
 
 /* ---------- Flyttemodus ---------- */
 

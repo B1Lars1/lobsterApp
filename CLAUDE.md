@@ -77,7 +77,7 @@ sammen modulene. README har en tabell over hva hver fil gjør.
 `markeringer` som holder alle markeringer i minnet, lagrer hver endring i IndexedDB via
 `lager.js` og varsler lyttere med `naarEndret()`. Lytterne er `kartmarkeringer.js`
 (symbolene på kartet), `markeringsark.js` (arkene og listene), `oversikt.js`
-(fangstoversikten, når den er åpen), `synk.js` (synkronisering kort tid etter
+(fangstoversikten, når den er åpen), `sky.js` (synkronisering kort tid etter
 endringer) og merket på listeknappen i `app.js`.
 Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
 
@@ -93,8 +93,9 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   fangstarket med 0 som utgangspunkt (`_taOppMedFangst`). Den settes ut igjen med «Sett teine», og `nesteTeinenummer()`
   gir da nummeret til teinen som sist ble tatt opp (siste 12 timer) hvis det er ledig.
   Tom teine er fangst med 0 beholdt og 0 satt ut (`erSjekk`), ikke en egen `kategori`:
-  en ny kategori ville eldre versjoner av appen forkastet og så slettet fra GitHub ved
-  neste synkronisering. Tidslinjen i `analyser_fangst.py` viser dem som hule ringer.
+  en ny kategori ville eldre versjoner av appen forkastet (`importer` godtar bare `teine`
+  og `hummer`), og synkroniseringen ville ikke fått den med. Tidslinjen i
+  `analyser_fangst.py` viser dem som hule ringer.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`.
   Endres regnemåten ett sted, skal den endres begge steder. Oversikten viser bare
@@ -104,11 +105,32 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
 - Feltene i GeoJSON-eksporten (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py` og brukerens analyser i GeoPandas. Ikke gi dem nye navn.
 
-**Synkronisering** (`synk.js`) lagrer `markeringer.geojson` i brukerens private
-GitHub-repo via GitHub-API-et, med token i `localStorage`. Sammenslåingen skjer i
-`Markeringer.importer()`: nyeste `endret` vinner per id, og slettinger følger med som
-`slettet: [{ id, endret }]`. Gjenoppretting gir ny `endret`, så den vinner over
-slettingen. Flere telefoner deler filen, så formatet må forbli bakoverkompatibelt.
+**Konto og synkronisering** (`sky.js`, `konto.js`, `firebase.js`) bruker Firebase:
+innlogging med e-post og passord, og Firestore med ett dokument per markering i
+`brukere/{uid}/markeringer/{id}` (feltene i `FELT` pluss `lat`, `lon`, `slettet` og
+`oppdatert`). En sletting er et dokument `{ id, endret, slettet: true }`.
+- Telefonen er hovedkopien. `Sky` henter dokumenter med `oppdatert` (serverens tid)
+  nyere enn `sistHentet`, slår dem sammen med `Markeringer.importer()` (nyeste `endret`
+  vinner, slettinger følger med) og sender så det som er endret lokalt: der `endret`
+  avviker fra kartet `kjent` (id → `endret` som ligger i skyen). Tilstanden ligger i
+  `localStorage` under `hummerkart.sky`. Gjenoppretting gir ny `endret`, så den vinner
+  over slettingen.
+- `naarEndret` overses mens en synkronisering pågår, ellers ville importen av det som
+  hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
+  rett etterpå.
+- Flere telefoner og eldre versjoner av appen deler dataene, så dokumentformatet må
+  forbli bakoverkompatibelt. Nye felt må også tillates i `firestore.rules` (maks 20 felt).
+- `firestore.rules` i roten er tilgangsreglene. De publiseres ikke automatisk: brukeren
+  limer dem inn i Firebase-konsollen (Firestore → Rules). Si fra når de endres.
+- Firebase-SDK-et ligger i `app/vendor/firebase-12.19.0/` med importene endret til
+  relative stier (se README der), så det virker uten nett. Bruk `firestore-lite`, ikke full
+  Firestore: appen har egen lagring, og den fulle utgaven ville lagret alt en gang til.
+- Agenten kan ikke logge inn eller opprette kontoer i Firebase (ekstern tjeneste). Test
+  logikken med erstatninger: `Sky` tar `innlogging` og `tjeneste` som parametre
+  (se `FirebaseInnlogging`/`FirestoreTjeneste` i `firebase.js` for hvilke metoder som
+  trengs), og la brukeren teste ekte innlogging.
+- Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser
+  GeoJSON-eksporten fra appen i `data/private/`.
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
@@ -172,7 +194,7 @@ bakgrunn, med nummeret som HTML oppå.
   øverst, plasseres med `var(--topp)` i `app.css` (statuslinjen + 36 px), ikke høyere.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
   ved hver endring. Andre moduler som husker noe i `localStorage`, bruker derfor egen
-  nøkkel (som `hummerkart.synk`), ellers blir verdien overskrevet.
+  nøkkel (som `hummerkart.sky`), ellers blir verdien overskrevet.
 - Veiledningen for hjemskjermen (`hjemskjerm.js`) vises hver gang siden åpnes i
   nettleseren på telefon (brukeren vil det slik, ikke «vis igjen om en uke»). På PC
   skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste
@@ -186,4 +208,8 @@ bakgrunn, med nummeret som HTML oppå.
 
 Repoet er offentlig. Ekte teineplasser og fangst skal aldri inn: `data/private/` og
 `markeringer*.geojson` er ignorert av git, og testdata skal være oppdiktede punkter.
+Brukernes data ligger i Firebase. Firebase-konfigurasjonen i `firebase.js` er offentlig
+av natur, men tjenestekontonøkler (service account) og annet som gir adgang til alles
+data, skal aldri inn i repoet. `app/personvern.html` må oppdateres hvis appen begynner å
+lagre eller dele noe nytt om brukerne.
 `data/raw/` og `data/processed/` lages på nytt av skriptene og ligger heller ikke i git.

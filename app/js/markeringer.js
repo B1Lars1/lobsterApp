@@ -23,13 +23,14 @@
  * Posisjonen lagres som lat/lon og blir geometrien i GeoJSON.
  *
  * Slettede markeringer huskes (id og tidspunkt), så en sletting også gjelder for
- * kopien på GitHub og andre telefoner som synkroniserer (se synk.js). En kopi av
+ * kopien i skyen og andre telefoner som synkroniserer (se sky.js). En kopi av
  * markeringen tas også vare på, så den kan gjenopprettes senere (se slettede()).
  */
 
 import * as lager from './lager.js';
 
-const FELT = [
+// Feltene i GeoJSON-eksporten og i skyen. En kontrakt med analyser_fangst.py: ikke gi dem nye navn.
+export const FELT = [
   'id', 'kategori', 'tid', 'endret', 'notat', 'dybde', 'noyaktighet', 'kilde',
   'nummer', 'status', 'tatt_opp', 'beholdt', 'satt_ut', 'teine_id',
 ];
@@ -265,18 +266,27 @@ export class Markeringer {
     };
   }
 
-  /** GeoJSON for synkronisering: som eksporten, pluss listen over slettede markeringer. */
-  tilSynkGeoJSON() {
-    const slettet = [...this._slettinger.values()]
-      .map(({ id, endret }) => ({ id, endret }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-    return { ...this.tilGeoJSON(), slettet };
+  /** Alle slettinger ({ id, endret }) som skal med til skyen, også de uten kopi. */
+  slettinger() {
+    return [...this._slettinger.values()].map(({ id, endret }) => ({ id, endret }));
+  }
+
+  /** Fjern alle markeringer og slettinger fra telefonen (brukes når du logger ut). */
+  async tomAlt() {
+    this._alle.clear();
+    this._slettinger.clear();
+    try {
+      await lager.tomAlt();
+    } catch (feil) {
+      console.error(feil);
+    }
+    this._varsle();
   }
 
   /**
-   * Les markeringer fra en GeoJSON-fil. Markeringer som finnes fra før (samme id),
-   * oppdateres bare hvis filen har en nyere versjon. Filen kan også ha en liste
-   * «slettet» (fra synkronisering): da slettes markeringene her hvis slettingen er nyere.
+   * Les markeringer fra en GeoJSON-fil eller fra skyen (sky.js). Markeringer som finnes
+   * fra før (samme id), oppdateres bare hvis de nye har en nyere versjon. En liste
+   * «slettet» (fra skyen) sletter markeringene her hvis slettingen er nyere.
    */
   async importer(geojson) {
     if (geojson?.type !== 'FeatureCollection' || !Array.isArray(geojson.features)) {

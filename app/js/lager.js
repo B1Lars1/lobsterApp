@@ -2,13 +2,13 @@
  * Lagring av markeringer i nettleserens database (IndexedDB) på telefonen.
  *
  * Dataene blir liggende til neste gang appen åpnes, også uten nett. De forsvinner
- * bare hvis nettleserdataene for siden slettes. Synkroniser med GitHub (synk.js)
- * eller eksporter til GeoJSON som sikkerhetskopi.
+ * bare hvis nettleserdataene for siden slettes. Logg inn, så lagres de også i kontoen
+ * (sky.js), eller eksporter til GeoJSON som sikkerhetskopi.
  *
  * To tabeller:
  *   markeringer  teiner og fangst
  *   slettinger   id og tidspunkt for markeringer du har slettet, så slettingen også
- *                gjelder for kopien på GitHub og andre telefoner, og en kopi av
+ *                gjelder for kopien i skyen og andre telefoner, og en kopi av
  *                markeringen, så den kan gjenopprettes (eldre slettinger mangler kopien)
  *
  * IndexedDB har et tungvint, hendelsesbasert API. Funksjonene her pakker det inn
@@ -73,6 +73,12 @@ export const hentSlettinger = () => transaksjon(SLETTINGER, 'readonly', (t) => t
 export const lagreSletting = (sletting) => transaksjon(SLETTINGER, 'readwrite', (t) => t.put(sletting));
 
 export const fjernSletting = (id) => transaksjon(SLETTINGER, 'readwrite', (t) => t.delete(id));
+
+/** Tøm begge tabellene (når du logger ut av kontoen). */
+export async function tomAlt() {
+  await transaksjon(MARKERINGER, 'readwrite', (t) => t.clear());
+  await transaksjon(SLETTINGER, 'readwrite', (t) => t.clear());
+}
 
 /**
  * Be nettleseren om varig lagring, så dataene ikke slettes ved lite plass.

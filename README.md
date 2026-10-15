@@ -8,9 +8,9 @@ til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 - teiner og fangst som du markerer med ett trykk
 - hummerfredningsområder i Agder
 
-Markeringene lagres på telefonen og kan synkroniseres med et privat GitHub-repo
-som sikkerhetskopi og for deling. De kan også eksporteres som GeoJSON og
-analyseres i GeoPandas.
+Markeringene lagres på telefonen. Med konto (e-post og passord) lagres de også i
+skyen, som sikkerhetskopi og for å bruke dem på flere telefoner. De kan også
+eksporteres som GeoJSON og analyseres i GeoPandas.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
 > Bruk offisielle sjøkart.
@@ -39,6 +39,7 @@ data/
   processed/      Mellomprodukter i full oppløsning (ikke i git)
   private/        Dine egne markeringer (ALDRI i git)
 scripts/          Python-skript for databehandling
+firestore.rules   Tilgangsreglene for Firestore (limes inn i Firebase-konsollen)
 CLAUDE.md         Instruksjoner for kodeagenter (Claude Code) som jobber i repoet
 ```
 
@@ -52,6 +53,11 @@ Repoet er offentlig. Egne teineplasser og fangst skal aldri inn i det:
 - Lagre eksporterte markeringer i `data/private/`. Hele mappen ignoreres av git.
 - Filer som heter `markeringer*.geojson` ignoreres uansett hvor i repoet de ligger.
 - Testdata i repoet skal bare inneholde oppdiktede punkter.
+
+Med konto ligger markeringene i Firebase, ikke i repoet. Firebase-konfigurasjonen i
+`app/js/firebase.js` er ikke hemmelig: tilgangsreglene i `firestore.rules` sørger for at
+hver bruker bare kan lese og skrive sine egne markeringer. Hva appen lagrer om brukerne,
+står i `app/personvern.html`.
 
 ## Python-miljø (Windows/PowerShell)
 
@@ -174,7 +180,10 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet ligger i
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
 | `js/hjemskjerm.js` | Veiledning for å legge appen til på hjemskjermen (iPhone og Android) |
-| `js/synk.js` | Synkronisering med et privat GitHub-repo |
+| `js/sky.js` | Konto og synkronisering med skyen (Firebase) |
+| `js/konto.js` | Innlogging og kontoen i innstillingsarket |
+| `js/firebase.js` | Kobling til Firebase (konfigurasjon, innlogging og databasen) |
+| `personvern.html` | Personvernerklæring |
 | `js/dybdeoppslag.js` | Anslår dybden i et punkt (markeringer og der du er) |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
 
@@ -385,8 +394,8 @@ Sjekk alltid gjeldende forskrift.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
-der når appen åpnes igjen, også uten nett. Med synkronisering (se under) får du i
-tillegg en automatisk kopi i et privat GitHub-repo. De forsvinner hvis nettleserdataene
+der når appen åpnes igjen, også uten nett. Logger du inn (se «Konto»), får du i
+tillegg en automatisk kopi i skyen. Uten konto forsvinner de hvis nettleserdataene
 for siden slettes. På iPhone kan Safari dessuten slette data for nettsider som
 ikke er brukt på 7 dager, men det gjelder ikke apper lagt til på hjemskjermen.
 Eksporter derfor jevnlig. Tidspunktet for siste eksport står i innstillingsarket.
@@ -418,71 +427,58 @@ fangst = m[m["kategori"] == "hummer"]
 **Importer** leser en slik fil tilbake. Markeringer med samme id oppdateres bare
 hvis filen har en nyere versjon, så det er trygt å importere samme fil flere ganger.
 
-### Synkronisering med GitHub (sikkerhetskopi og deling)
+### Konto (sikkerhetskopi og flere telefoner)
 
-Appen kan lagre alle markeringene automatisk i et **privat** GitHub-repo, som
-filen `markeringer.geojson`. Synkroniseringen skjer når appen åpnes, kort tid
-etter hver endring og når telefonen får nett igjen. Den henter først filen fra
-GitHub, slår den sammen med markeringene på telefonen (nyeste versjon vinner, og
-slettinger følger med) og lagrer resultatet tilbake. Hver lagring blir en commit,
-så repoet har full historikk.
+Innstillinger → **Konto** → **Logg inn eller opprett konto**, med e-post og passord.
+Da lagres teiner og fangst også i en konto i skyen (Google Firebase, i EU), og du får
+dem på alle telefonene du logger inn på. Uten konto virker appen som før, med alt på
+telefonen.
 
-**Oppsett (én gang):**
+- **Første innlogging:** det som ligger på telefonen, lastes opp til kontoen.
+- **Synkronisering:** når appen åpnes eller kommer fram igjen, kort tid etter hver
+  endring og når telefonen får nett igjen. **Synkroniser nå** gjør det med en gang.
+  Telefonen er hovedkopien, så alt virker uten nett, og endringene sendes når du får
+  nett. Nyeste versjon av hver markering vinner, og slettinger følger med til de andre
+  telefonene.
+- **Logg ut:** det som ikke er sendt, lagres først. Så fjernes teiner og fangst fra
+  telefonen. De ligger i kontoen og kommer tilbake når du logger inn igjen. Uten nett
+  spør appen før usendte endringer går tapt.
+- **Annen konto på samme telefon:** appen spør før markeringene fra den forrige kontoen
+  fjernes fra telefonen, så de ikke havner i feil konto.
+- **Glemt passord:** skriv e-posten og trykk **Glemt passord?**. Det kommer en e-post
+  med lenke for å lage nytt passord.
+- **Slett kontoen:** krever passordet. Kontoen og alt i skyen slettes. Det som ligger
+  på telefonen, blir liggende.
 
-1. **Lag et privat repo:** <https://github.com/new>. Kall det for eksempel
-   `hummerkart-data`, velg **Private** og trykk **Create repository**. Det kan
-   være helt tomt.
-2. **Lag en tilgangsnøkkel som bare gjelder dette repoet:**
-   <https://github.com/settings/personal-access-tokens/new>
-   - **Token name:** `Hummerkart`
-   - **Expiration:** for eksempel ett år (appen sier fra når den har utløpt)
-   - **Repository access:** **Only select repositories** → `hummerkart-data`
-   - **Permissions → Repository permissions → Contents:** **Read and write**
-   - Trykk **Generate token** og kopier nøkkelen (vises bare én gang).
-3. **I appen:** Innstillinger → **Synkronisering med GitHub**. Skriv
-   `B1Lars1/hummerkart-data` som repo, lim inn nøkkelen og trykk
-   **Synkroniser nå**. Statusen blir grønn når det virker.
-4. **Flere telefoner:** gjør punkt 3 på hver telefon. De får de samme
-   markeringene.
+Hva som lagres, og hvor, står i `app/personvern.html` (lenken **Personvern** under
+Konto). Appen bruker ikke Google Analytics eller annen sporing.
 
-Nøkkelen lagres bare på telefonen. Mister du telefonen, sletter du nøkkelen på
-<https://github.com/settings/personal-access-tokens>. «Koble fra» i appen
-fjerner oppsettet, men rører ikke markeringene.
+**Oppsett i Firebase (gjort én gang, prosjektet `lobsterapp-aee59`):**
 
-**Til analyse:** hent repoet inn i `data/private/` (som aldri kommer med i dette
-offentlige repoet):
+1. Web-app registrert i prosjektet. Konfigurasjonen står i `app/js/firebase.js`. Den er
+   ikke hemmelig, så den kan ligge i det offentlige repoet.
+2. **Authentication → Sign-in method → Email/Password** slått på.
+3. **Authentication → Settings → Authorized domains:** `b1lars1.github.io` (og
+   `localhost`, som er der fra før).
+4. **Firestore Database** opprettet i en EU-region, i «production mode».
+5. **Firestore Database → Rules:** innholdet i `firestore.rules` limt inn og publisert.
+   Må gjøres på nytt hvis filen endres. Bare den innloggede brukeren kan lese og skrive
+   sine egne markeringer (`brukere/{uid}/markeringer/{id}`).
 
-```powershell
-git clone https://github.com/B1Lars1/hummerkart-data.git data/private/hummerkart-data
-git -C data/private/hummerkart-data pull   # senere: hent siste versjon
-```
-
-```python
-m = gpd.read_file("data/private/hummerkart-data/markeringer.geojson")
-```
-
-**Deling:** i det private repoet → **Settings → Collaborators → Add people**.
-De får en invitasjon og må ha GitHub-konto. Merk:
-
-- I et repo på en personlig konto får de som inviteres **både lese- og
-  skrivetilgang**. Skal noen bare kunne se, må repoet ligge i en (gratis)
-  GitHub-organisasjon der du kan gi rollen **Read**, eller så sender du dem en
-  eksportert fil.
-- Kobler de egen app til samme repo, blir det en **felles logg**: de ser dine
-  teiner og fangst, og deres markeringer havner i samme fil.
-- Tilgangen trekkes tilbake samme sted.
+Gratisplanen (Spark) krever ikke betalingskort og kan ikke gi regning. Den har blant
+annet 1 GB lagring, 50 000 lesinger og 20 000 skrivinger per dag. Appen henter og
+sender bare det som er endret.
 
 ## Analyse av fangst
 
 ```powershell
-git -C data/private/hummerkart-data pull                 # hent siste synkronisering
 .\.venv\Scripts\python.exe scripts\analyser_fangst.py
 ```
 
-Skriptet leser markeringene fra det klonede synk-repoet
-(`data/private/hummerkart-data/markeringer.geojson`), eller fra nyeste eksport
-(`data/private/markeringer-*.geojson`) hvis repoet ikke er klonet. Du kan også
-oppgi en fil: `python scripts/analyser_fangst.py sti/til/fil.geojson`.
+Skriptet leser nyeste eksport fra appen: Innstillinger → **Eksporter GeoJSON**, og
+legg filen (`markeringer-ÅÅÅÅ-MM-DD.geojson`) i `data/private/`. Er du logget inn,
+inneholder eksporten alt i kontoen. Du kan også oppgi en fil:
+`python scripts/analyser_fangst.py sti/til/fil.geojson`.
 
 Fangst måles som **hummer per teinedøgn**: antall hummer (beholdt + satt ut) delt
 på antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en
@@ -664,3 +660,5 @@ versjon av appen er klar» med knappen **Last inn**. Markeringene dine beholdes.
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), hentet fra
   [Kartverkets stedsnavn-API](https://api.kartverket.no/stedsnavn/v1/).
 - **Kartbibliotek:** [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
+- **Konto og skylagring:** [Firebase JS SDK](https://firebase.google.com/) 12.19.0
+  (Apache 2.0), i `app/vendor/firebase-12.19.0/`.

@@ -14,7 +14,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = 'a7622fbbf0ad';
+const VERSJON = '8532a9c3f7fa';
 const FILER = [
   './',
   'css/app.css',
@@ -42,18 +42,24 @@ const FILER = [
   'js/dra-ned.js',
   'js/dybdelag.js',
   'js/dybdeoppslag.js',
+  'js/firebase.js',
   'js/fredning.js',
   'js/gps.js',
   'js/hjemskjerm.js',
   'js/innstillinger.js',
   'js/kartmarkeringer.js',
+  'js/konto.js',
   'js/lager.js',
   'js/markeringer.js',
   'js/markeringsark.js',
   'js/melding.js',
   'js/oversikt.js',
-  'js/synk.js',
+  'js/sky.js',
   'manifest.webmanifest',
+  'personvern.html',
+  'vendor/firebase-12.19.0/firebase-app.js',
+  'vendor/firebase-12.19.0/firebase-auth.js',
+  'vendor/firebase-12.19.0/firebase-firestore-lite.js',
   'vendor/leaflet-1.9.4/images/layers-2x.png',
   'vendor/leaflet-1.9.4/images/layers.png',
   'vendor/leaflet-1.9.4/images/marker-icon-2x.png',
