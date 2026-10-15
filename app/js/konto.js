@@ -15,9 +15,9 @@ const MODUS = {
   inn: {
     tittel: 'Logg inn',
     knapp: 'Logg inn',
-    forklaring: 'Teiner og fangst lagres i kontoen din, og du får dem på alle telefoner du logger inn på. '
-      + 'Kontoer lages av den som driver appen. Uten konto ligger alt bare på denne telefonen: '
-      + 'trykk Avbryt for å bruke appen uten.',
+    forklaring: 'Du må være logget inn for å sette teiner og registrere fangst. De lagres i kontoen din, '
+      + 'og du får dem på alle telefoner du logger inn på. Kontoer lages av den som driver appen. '
+      + 'Trykk Avbryt for å bare se på kartet.',
     passord: 'current-password',
   },
   slett: {

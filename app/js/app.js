@@ -183,8 +183,19 @@ const kartmarkeringer = new Kartmarkeringer(kart, markeringer, {
 const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer, fredning });
 kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
 
-$('knapp-teine').addEventListener('click', () => ark.settTeine());
-$('knapp-hummer').addEventListener('click', () => ark.registrerFangst());
+// Teiner og fangst lagres bare når du er logget inn. Ellers åpnes innloggingen i stedet.
+// Rett etter at appen er åpnet er innloggingen ikke lest ennå (innloggingKjent).
+// Til testing på PC: ?utenkonto i adressen slår sperren av, bare på localhost.
+let innloggingKjent = false;
+const utenKonto = location.hostname === 'localhost' && new URLSearchParams(location.search).has('utenkonto');
+const medKonto = (handling) => (...args) => {
+  if (sky.innlogget || utenKonto) handling(...args);
+  else if (innloggingKjent) konto.vis('inn');
+  else visMelding('Et øyeblikk …');
+};
+
+$('knapp-teine').addEventListener('click', medKonto(() => ark.settTeine()));
+$('knapp-hummer').addEventListener('click', medKonto(() => ark.registrerFangst()));
 $('knapp-teiner').addEventListener('click', () => ark.visTeineliste());
 
 // Fangstoversikten åpnes fra teinelisten
@@ -210,9 +221,9 @@ kart.on('click', (e) => {
 });
 
 // Langt trykk (eller høyreklikk på PC) i kartet: marker et valgfritt sted.
-kart.on('contextmenu', (e) => {
+kart.on('contextmenu', medKonto((e) => {
   if (!kartmarkeringer.flytter) ark.visVelgType(e.latlng);
-});
+}));
 
 // Antall teiner i sjøen vises som et merke på listeknappen.
 markeringer.naarEndret(() => {
@@ -270,11 +281,11 @@ function oppdaterDatainfo() {
     (varigLagring ? 'Nettleseren har lovet varig lagring.' : 'Nettleseren kan slette data ved lite plass.') +
     (sky.lag ? ` Markeringene deles i laget «${sky.lag.navn}».`
       : sky.innlogget ? ' Markeringene lagres også i kontoen din.'
-        : ' Eksporter jevnlig, eller logg inn så de lagres i en konto.');
+        : ' Logg inn for å lagre teiner og fangst.');
 }
 
 $('knapp-eksporter').addEventListener('click', () => eksporter());
-$('knapp-importer').addEventListener('click', () => $('velg-fil').click());
+$('knapp-importer').addEventListener('click', medKonto(() => $('velg-fil').click()));
 $('velg-fil').addEventListener('change', (e) => {
   const fil = e.target.files[0];
   e.target.value = ''; // så samme fil kan velges igjen
@@ -370,6 +381,7 @@ function sporOmInnlogging(bruker) {
 const sky = new Sky(markeringer, {
   naarStatus: (status) => konto.visStatus(status),
   naarBruker: (bruker) => {
+    innloggingKjent = true;
     konto.visBruker(bruker);
     oppdaterDatainfo();
     sporOmInnlogging(bruker);

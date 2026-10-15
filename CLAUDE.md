@@ -47,6 +47,8 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
   De tre første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
   trenger bare `pip install pillow`.
 - Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`.
+- Uten innlogging kan ingenting lagres, og agenten kan ikke logge inn. Legg til
+  `&utenkonto` for å teste teiner og fangst (virker bare på `localhost`, se `medKonto`).
 - Verifiser endringer i nettleseren med mobilstørrelse (ca. 375×812). Brukeren har
   iPhone og bruker appen fra hjemskjermen.
 - Repoets vane er å kjøre `lag_service_worker.py` og committe den oppdaterte `sw.js`
@@ -148,6 +150,13 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
 - Er man ikke logget inn, åpner `app.js` innloggingsarket når appen åpnes (første svar fra
   `sky`, se `sporOmInnlogging`), men ikke i nettleseren på telefon (`kanLeggesTil()`):
   der vises veiledningen for hjemskjermen, og innloggingen skal skje i appen derfra.
+- Teiner og fangst kan bare lagres når man er logget inn (brukerens ønske). `medKonto` i
+  `app.js` sperrer inngangene: «Sett teine», «Hummer her», langt trykk i kartet og
+  «Importer» åpner innloggingen i stedet. Nye innganger som lager markeringer, må pakkes
+  inn i `medKonto`. Før det første svaret fra `sky` (`innloggingKjent`) vises «Et øyeblikk».
+  Sperren er ikke sikkerhet (dataene i skyen beskyttes av reglene), men gjør at alt havner
+  i kontoen. Telefoner som er logget inn, husker det uten nett. Forsvinner Firebase, må
+  sperren fjernes før nye telefoner kan brukes (se README i det private repoet).
 - `firestore.rules` i roten er tilgangsreglene. De publiseres ikke automatisk: brukeren
   limer dem inn i Firebase-konsollen (Firestore → Rules). Si fra når de endres, og gi
   brukeren hele filen å lime inn. Appen må ikke publiseres før reglene er oppdatert, ellers

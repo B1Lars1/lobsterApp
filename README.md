@@ -9,9 +9,10 @@ til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 - teiner og fangst som du markerer med ett trykk, og en fangstoversikt for sesongen
 - hummerfredningsområder i Agder
 
-Markeringene lagres på telefonen. Med konto (e-post og passord) lagres de også i
-skyen, som sikkerhetskopi og for å bruke dem på flere telefoner, og i et lag deler du
-dem med dem du fisker med. De kan også eksporteres som GeoJSON og analyseres i GeoPandas.
+For å sette teiner og registrere fangst må du være logget inn (e-post og passord).
+Markeringene lagres på telefonen og i skyen, som sikkerhetskopi og for å bruke dem på
+flere telefoner, og i et lag deler du dem med dem du fisker med. Uten innlogging kan du
+bare se på kartet. Markeringene kan også eksporteres som GeoJSON og analyseres i GeoPandas.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
 > Bruk offisielle sjøkart.
@@ -209,6 +210,11 @@ Innlogging på `localhost` bruker det ekte Firebase-prosjektet, med ekte kontoer
 data. Test med en egen testkonto, ikke kontoen du fisker med, så testmarkeringer ikke
 havner i laget. Hver port har egen lagring i nettleseren:
 `scripts\testserver.py 8001` gir en atskilt kopi av appen på <http://localhost:8001>.
+
+Uten innlogging kan ingenting lagres. For å teste teiner og fangst uten konto, legg til
+`&utenkonto` i adressen, for eksempel
+<http://localhost:8001/?simuler=58.2405,8.3810&utenkonto>. Det virker bare på `localhost`,
+og markeringene blir bare liggende i nettleseren.
 
 ## Appen
 
@@ -458,12 +464,10 @@ Sjekk alltid gjeldende forskrift.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
-der når appen åpnes igjen, også uten nett. Logger du inn (se «Konto»), får du i
-tillegg en automatisk kopi i skyen. Uten konto finnes de bare på telefonen og
-forsvinner hvis nettleserdataene for siden slettes. På iPhone kan Safari dessuten
-slette data for nettsider som ikke er brukt på 7 dager, men det gjelder ikke apper
-lagt til på hjemskjermen. Uten konto bør du derfor eksportere jevnlig. Tidspunktet
-for siste eksport står i innstillingsarket.
+der når appen åpnes igjen, også uten nett, og i kontoen din i skyen (se «Konto»).
+Uten innlogging åpner **Sett teine**, **Hummer her**, langt trykk i kartet og
+**Importer** innloggingen i stedet for å lagre noe. Tidspunktet for siste eksport står
+i innstillingsarket.
 
 ### Eksport til GeoPandas
 
@@ -498,13 +502,14 @@ hvis filen har en nyere versjon, så det er trygt å importere samme fil flere g
 
 Innstillinger → **Konto** → **Logg inn**, med e-post og passord. Da lagres teiner og
 fangst også i en konto i skyen (Google Firebase, i EU), og du får dem på alle telefonene
-du logger inn på. Uten konto virker appen som før, med alt på telefonen.
+du logger inn på. Uten innlogging kan du se kartet, dybdene, fredningsområdene og
+hummerpotensialet, men ikke lagre teiner og fangst.
 
 Kontoer kan ikke opprettes i appen. Den som driver appen, legger dem til i Firebase (se
 «Oppsett i Firebase», punkt 6), og så lager du ditt eget passord med **Glemt passord?**.
 
 - **Innlogging når appen åpnes:** er du ikke logget inn, kommer innloggingen opp når
-  appen åpnes. **Avbryt** lukker den, og appen virker uten konto. Åpnes lenken i
+  appen åpnes. **Avbryt** lukker den, så du kan se på kartet. Åpnes lenken i
   nettleseren på en telefon, kommer veiledningen for hjemskjermen i stedet, siden
   innloggingen skal skje i appen fra hjemskjermen (den har egen lagring).
 - **Første innlogging:** det som ligger på telefonen, lastes opp til kontoen.
