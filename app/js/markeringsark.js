@@ -209,7 +209,7 @@ export class Markeringsark {
     this._utkastTittel = tittel;
     this.aapenId = null;
     this.arkMarkering.querySelector('.innhold').replaceChildren(this._fangstInnhold(this._utkast));
-    this._visTaOppHint();
+    this._visUtkastUndertekst();
     if (!this.arkMarkering.open) this.arkMarkering.showModal();
   }
 
@@ -249,13 +249,14 @@ export class Markeringsark {
     return t?.status === 'i_sjoen' ? t : null;
   }
 
-  // I arket for ny fangst: si fra hvilken teine som tas opp når man trykker «Ferdig».
-  _visTaOppHint() {
-    const hint = this.arkMarkering.querySelector('[data-tekst="taOppHint"]');
-    if (!hint || !this._utkast) return;
+  // Underteksten i arket for ny fangst: si fra hvilken teine som tas opp når man trykker
+  // «Ferdig». Står under overskriften i stedet for på egen linje, så arket blir lavere.
+  _visUtkastUndertekst() {
+    if (!this._utkast) return;
     const t = this._teineSomTasOpp(this._utkast.teine_id);
-    hint.textContent = t ? `Teine ${t.nummer} markeres som tatt opp når du trykker Ferdig.` : '';
-    hint.hidden = !t;
+    this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = t
+      ? `Teine ${t.nummer} tas opp når du trykker Ferdig`
+      : 'Registreres når du trykker Ferdig';
   }
 
   // ---------- Langt trykk i kartet ----------
@@ -397,22 +398,21 @@ export class Markeringsark {
       <div class="felter">
         <label class="felt">Tidspunkt<input type="datetime-local" data-felt="tid"></label>
         <label class="felt">Fra teine<select data-felt="teine_id"></select></label>
-        ${ny ? '<p class="hjelp" data-tekst="taOppHint" hidden></p>' : ''}
         <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
       </div>
       ${ny
-        ? `<div class="knapper">
+        ? `<div class="knapper avbryt-ferdig">
+            <button type="button" class="sekundar" data-handling="lukk">Avbryt</button>
             <button type="button" class="ferdig" data-handling="lagreFangst">Ferdig</button>
-          </div>
-          <button type="button" class="avbryt" data-handling="lukk">Avbryt</button>`
+          </div>`
         : `<div class="knapper">
             <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
             <button type="button" class="fare" data-handling="slett">Slett</button>
             <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
           </div>`}`);
 
-    el.querySelector('[data-tekst="undertekst"]').textContent =
-      ny ? 'Registreres når du trykker Ferdig' : formaterTid(m.tid);
+    // For ny fangst fylles underteksten inn av _visUtkastUndertekst()
+    if (!ny) el.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(m.tid);
     el.querySelector('[data-tekst="beholdt"]').textContent = m.beholdt;
     el.querySelector('[data-tekst="satt_ut"]').textContent = m.satt_ut;
     el.querySelector('[data-felt="tid"]').value = tilLokalTid(m.tid);
@@ -510,7 +510,7 @@ export class Markeringsark {
       this._endre(m, { notat: el.value });
     } else if (felt === 'teine_id' && (el.value || null) !== m.teine_id) {
       this._endre(m, { teine_id: el.value || null });
-      this._visTaOppHint();
+      this._visUtkastUndertekst();
     } else if (felt === 'tid' && el.value && el.value !== tilLokalTid(m.tid)) {
       const tid = new Date(el.value).toISOString(); // feltets verdi tolkes som lokal tid
       this._endre(m, { tid });

@@ -134,6 +134,11 @@ bakgrunn, med nummeret som HTML oppå.
   selv. Langt trykk er Leaflets `contextmenu` (marker et valgfritt sted). Kartet og
   knappene har `user-select: none`, ellers merker iPhone nærmeste tekst ved langt trykk.
   Appen fra hjemskjermen har egen lagring, atskilt fra Safari.
+- Arkene må få plass uten å scrolle på en iPhone (ca. 375×812 minus hjem-streken nederst,
+  ca. 34 px). Chrome viser ikke iPhone-feilene: Safari gir datofelt
+  (`datetime-local`) en fast bredde som overser `width: 100%`, så arket ble bredere enn
+  skjermen. Derfor har `.felt` `min-width: 0`, datofeltet mister Safaris utseende
+  (`@supports (-webkit-touch-callout: none)`), og `.ark` har `overflow-x: hidden`.
 - iOS 26 legger en myk uskarphet over de øverste ca. 30 punktene under statuslinjen i
   apper på hjemskjermen, og en nettside kan ikke slå den av. Alt som skal være skarpt
   øverst, plasseres med `var(--topp)` i `app.css` (statuslinjen + 36 px), ikke høyere.

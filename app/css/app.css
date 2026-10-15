@@ -348,6 +348,7 @@ button {
   background: var(--flate);
   color: var(--flate-tekst);
   box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.35);
+  overflow-x: hidden; /* arket skal aldri kunne dras sideveis */
   overflow-y: auto;
 }
 .ark::backdrop { background: var(--bakteppe); }
@@ -627,6 +628,9 @@ button {
 }
 .knapper .stor,
 .knapper .ferdig { grid-column: 1 / -1; }
+/* Ny fangst: Avbryt og Ferdig på samme rad, så arket får plass uten å scrolle */
+.knapper.avbryt-ferdig { grid-template-columns: 1fr 2fr; }
+.knapper.avbryt-ferdig .ferdig { grid-column: auto; }
 .knapperad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* ---------- Detaljark ---------- */
@@ -672,6 +676,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   flex-direction: column;
   gap: 4px;
   flex: 1 1 100%;
+  min-width: 0; /* feltene får krympe til arkets bredde (se datofeltet under) */
   font-size: 14px;
   font-weight: 700;
   color: var(--dempet);
@@ -681,6 +686,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .felt textarea,
 .felt select {
   width: 100%;
+  min-width: 0;
   min-height: 52px;
   padding: 10px 12px;
   border: 2px solid var(--kant);
@@ -692,6 +698,13 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   font-weight: 600;
 }
 .felt textarea { resize: vertical; }
+/* iPhone (Safari) gir datofelt en egen, fast bredde som ikke bryr seg om width: 100%, så
+   arket ble bredere enn skjermen. Uten Safaris eget utseende følger feltet bredden.
+   @supports-testen treffer bare Safari på iPhone og iPad. */
+@supports (-webkit-touch-callout: none) {
+  .felt input[type="datetime-local"] { -webkit-appearance: none; appearance: none; }
+  .felt input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+}
 
 /* Teller med store − og + for antall hummer */
 .teller {
