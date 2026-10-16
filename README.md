@@ -142,8 +142,8 @@ python3.14 -m venv .venv
 .venv/bin/python scripts/sjekk_miljo.py
 ```
 
-Testserveren, `lag_service_worker.py` og `lag_ikoner.py` virker også med eldre
-Python 3. `lag_ikoner.py` trenger bare Pillow (`.venv/bin/python -m pip install pillow`).
+Testserveren, `lag_service_worker.py`, `lag_ikoner.py` og `lag_demodata.py` virker også
+med eldre Python 3. `lag_ikoner.py` trenger bare Pillow (`.venv/bin/python -m pip install pillow`).
 For å pushe fra en ny maskin må git være logget inn på GitHub, for eksempel med
 GitHub CLI: `gh auth login` og deretter `gh auth setup-git`.
 
@@ -230,6 +230,50 @@ Uten innlogging kan ingenting lagres. For å teste teiner og fangst uten konto, 
 `&utenkonto` i adressen, for eksempel
 <http://localhost:8001/?simuler=58.2405,8.3810&utenkonto>. Det virker bare på `localhost`,
 og markeringene blir bare liggende i nettleseren.
+
+### Demokonto med oppdiktede data
+
+For å vise fram appen uten å logge inn på kontoen du fisker med, kan du fylle en egen
+demokonto med oppdiktede teiner og fangst:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\lag_demodata.py --uid BRUKER-ID
+```
+
+`BRUKER-ID` er demokontoens User UID (Firebase-konsollen → Authentication → Users). Skriptet
+lager `data\private\demodata.geojson` med tre hummersesonger (sesongen som pågår og de to
+før) for én person med 10 teiner rundt Skauerøya. Teinene settes 1. oktober kl. 08, trekkes
+hver eller annenhver dag (sjeldnere utover høsten og i uvær), flyttes når de står tomt, og
+tas opp i slutten av november. Hver sesong mistes en teine, og av og til er en hummer tatt
+på dykk (fangst uten teine). Alt er oppdiktet: plassene trekkes tilfeldig i områdene med
+høyt og middels hummerpotensial, utenfor fredningsområdene, og fangsten trekkes ut fra
+potensialet. Ingenting bygger på ekte fangst. Sesongen som pågår, går fram til i dag, med
+10 teiner i sjøen. Det blir ca. 1 300 markeringer i midten av oktober og ca. 1 800 når
+sesongen er over.
+
+Les filen inn slik:
+
+1. Start testserveren på port 8001 (`scripts\testserver.py 8001`), så demokontoen får egen
+   lagring i nettleseren, og åpne <http://localhost:8001>.
+2. Logg inn på demokontoen (Innstillinger → Konto).
+3. Innstillinger → **Gjenopprett fra fil** → velg `data\private\demodata.geojson`.
+4. Vent til innstillingene viser «Synkronisert». Da ligger alt i demokontoen, og
+   telefoner som logger inn der, får det.
+
+Innlesingen koster like mange skrivinger i Firestore som det er markeringer (kvoten er
+20 000 i døgnet), og hver telefon som logger inn på demokontoen, leser like mange første
+gang. Sikkerhetskopien tar også med demokontoen (en egen fil under `brukere/`), men
+fangstanalysen bruker fortsatt lagets fil.
+
+Skriptet lager de samme markeringene (samme id-er) hver gang. Kjør det på nytt senere i
+sesongen og les inn filen igjen, så fylles sesongen på fram til den dagen: teinene som sto
+i sjøen, blir tatt opp, nye trekk legges til, og resten er uendret. `--naa 2026-11-10T12:00`
+lager data fram til et annet tidspunkt (UTC). `--fro` gir andre plasser og annen fangst,
+men som nye markeringer i tillegg til de gamle, ikke i stedet for dem.
+
+For å vise appen på telefonen: logg ut av din egen konto i appen og inn på demokontoen.
+Teinene dine ligger i skyen og kommer tilbake når du logger inn igjen. En annen telefon
+eller et nettbrett slipper det.
 
 ## Appen
 
