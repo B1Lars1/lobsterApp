@@ -26,8 +26,9 @@ detalj. Denne filen er det en agent trenger i tillegg.
 
 ## Kommandoer
 
-Ingen byggesteg, ingen pakkehåndtering for JavaScript, ingen tester og ingen linter.
-Appen i `app/` er statiske filer. README viser kommandoene for Windows/PowerShell
+Ingen byggesteg, ingen pakkehåndtering for JavaScript og ingen linter. Appen i `app/` er
+statiske filer. Testene i `tests/` sjekker bare at fangstoversikten og analysen regner som
+fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`). README viser kommandoene for Windows/PowerShell
 (`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
 
 ```bash
@@ -35,7 +36,11 @@ python scripts/testserver.py [port]     # appen på http://localhost:8000 (eller
 python scripts/lag_service_worker.py    # oppdater VERSJON og FILER i app/sw.js etter endringer i app/
 python scripts/lag_ikoner.py            # app-ikonene (PNG) i app/ikoner/, krever bare Pillow
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
+node tests/regnemaate.test.mjs          # fangstoversikten (oversikt.js) mot fasiten
+python -m unittest discover -s tests    # analysen (analyser_fangst.py) mot samme fasit, krever requirements.txt
 ```
+
+Node finnes ikke på brukerens maskin, men i workflowen (og som regel hos agenten).
 
 - Dataskriptene (`last_ned_dybdedata.py`, `lag_dybdekart.py`, `lag_stedsnavn.py`,
   `lag_bunnhint.py`, `lag_hummerpotensial.py`, `lag_fredningsomrader.py`,
@@ -54,6 +59,11 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
   `&utenkonto` for å teste teiner og fangst (virker bare på `localhost`, se `medKonto`).
 - Verifiser endringer i nettleseren med mobilstørrelse (ca. 375×812). Brukeren har
   iPhone og bruker appen fra hjemskjermen.
+- Steng alltid localhost når du er ferdig: stopp testserveren (Ctrl+C, eller stopp
+  launch-konfigurasjonen eller bakgrunnsprosessen) på alle porter du har brukt (8000, 8001
+  osv.), og sjekk at porten er ledig igjen. På Linux/macOS treffer `pkill -f testserver.py`
+  også skallet som kjører kommandoen (mønsteret står i kommandolinjen). Bruk
+  `pkill -f "[t]estserver.py"`.
 - Repoets vane er å kjøre `lag_service_worker.py` og committe den oppdaterte `sw.js`
   sammen med endringer i `app/`. Workflowen gjør det også ved publisering.
   Sjekksummen regnes med LF-linjeskift (git sjekker ut CRLF på Windows), så samme kode
@@ -63,7 +73,10 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
 ## Publisering
 
 Push til `main` som endrer `app/` starter `.github/workflows/publiser.yml`, som
-publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>.
+publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>. Først sjekker
+den syntaksen (`node --check` på JS, modulene kopiert til `.mjs`, og `py_compile`), at
+`app/data/*` og manifestet er gyldig JSON, og kjører `tests/regnemaate.test.mjs`. Feiler
+noe, publiseres ingenting. Python-testen kjøres ikke der (den trenger GeoPandas).
 Telefonen får ny versjon neste gang appen åpnes med nett («Ny versjon av appen er
 klar» → «Last inn»). `gh` er ikke installert på brukerens maskin. Følg kjøringen med
 det offentlige API-et (uten innlogging):
@@ -119,7 +132,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
 - **Eier i lag.** Teiner er personlige: `registrert_av` på en teine er eieren (kan endres
   i teinearket), og fangst hører til eieren av teinen den kom fra (`Markeringer.eierAv`,
   `legg_til_eier` i analysen), selv om `registrert_av` på fangsten er den som registrerte
-  den. Ikke et nytt felt: dokumentene har 20 felt (grensen i reglene), og eldre versjoner
+  den. Ikke et nytt felt: reglene godtar bare feltene som finnes (`hasOnly`), og eldre versjoner
   av appen skriver hele dokumentet (`batch.set`) og ville slettet et felt de ikke kjenner.
   Uten lag er alt ditt. I et lag er en teine uten eier «Ukjent», ikke din (`personer.erMeg`).
   Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
@@ -128,12 +141,17 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   «Ta opp mine» tar bare opp dine.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
-  (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder. Det samme gjelder
+  (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder, og fasiten i
+  `tests/fangst_fasit.json` må stemme med begge (kjør begge testene). Det samme gjelder
   hvem fangsten hører til. I et lag har oversikten «Mine | Laget»: «Laget» har en tabell
   per person og tidslinjen gruppert per person. Analysen viser det samme per person når
   flere har teiner i filen, og `--person` gir bare én persons teiner, som «Mine». Oversikten viser bare
   hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
-  brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG
+  brukes til sesongtallet i teinelisten). Kartet viser fangst og opptatte teiner bare fra
+  `hummersesong().fra` (`_synlig` i `kartmarkeringer.js`), og teinelisten lager radene for
+  tidligere sesonger først når de åpnes (`_eldreFangst`, `_apneSesonger` i
+  `markeringsark.js`). Symbolene er HTML-elementer, så alt fra flere år ville gjort kartet
+  og listen trege. Analysen bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
   (notater). Se «Sikkerhet».
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
@@ -152,6 +170,9 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   vinner, slettinger følger med) og sender så det som er endret lokalt: der `endret`
   avviker fra kartet `kjent` (id → `endret` som ligger i rommet). Tilstanden ligger i
   `localStorage` under `hummerkart.sky` (`uid`, `rom`, `lag`, `sistHentet`, `kjent`).
+  `sistHentet` er `[sekunder, nanosekunder]` fra serveren, ikke millisekunder: serveren har
+  mikrosekunder, og avrundede millisekunder gjorde at det siste dokumentet ble hentet på
+  nytt annenhver gang (eldre tilstand med et tall gjøres om i `sistHentet()` i `sky.js`).
   Gjenoppretting gir ny `endret`, så den vinner over slettingen.
 - **Lag** er en felles logg: alle medlemmene leser og skriver alt. `lag/{kode}` har
   `{ navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet, initialer: { uid: «BL» } }`,
@@ -177,9 +198,17 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
   rett etterpå.
 - Flere telefoner og eldre versjoner av appen deler dataene, så dokumentformatet må
-  forbli bakoverkompatibelt. Et dokument har nå 20 felt (`FELT` + `lat`, `lon`, `slettet`,
-  `oppdatert`), som er grensen `d.size() <= 20` i `firestore.rules`. Et nytt felt krever at
-  grensen økes og at brukeren publiserer reglene på nytt før appen pushes.
+  forbli bakoverkompatibelt. Et dokument har 20 felt (`FELT` + `lat`, `lon`, `slettet`,
+  `oppdatert`), og reglene godtar bare dem (`d.keys().hasOnly([...])` i `gyldigMarkering`).
+  Et nytt felt må legges til i listen der, og brukeren må publisere reglene før appen pushes.
+  Reglene sjekker også at `registrert_av` er tekst eller null, og at `endret` er kort.
+- Reglene for lag: et medlem kan fjerne andre, men ikke skrive noens e-post i `eposter`
+  (`eposterOk`, bare fjerne e-posten til dem som fjernes). Dokumenter i laget kan bare
+  slettes helt av det siste medlemmet (`slettAlle` i `fjernMedlem`, rett før laget slettes).
+- Bryter ett dokument reglene, avvises hele batchen (`permission-denied`), og da stopper
+  synkroniseringen for alt. Appen må derfor holde seg innenfor grensene i reglene:
+  `MAKS_NOTAT` i `markeringer.js` (kuttes i `normaliser` og `oppdater`, `maxlength` i
+  notatfeltene) er samme grense som `notat.size() <= 2000` i `firestore.rules`.
 - Er man ikke logget inn, åpner `app.js` innloggingsarket når appen åpnes (første svar fra
   `sky`, se `sporOmInnlogging`), men ikke i nettleseren på telefon (`kanLeggesTil()`):
   der vises veiledningen for hjemskjermen, og innloggingen skal skje i appen derfra.
@@ -217,13 +246,16 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   Actions der hver time fra 1. oktober til 15. desember og ellers hver natt (brukerens valg,
   fire `cron`-linjer i UTC), og lagrer alle rom som GeoJSON. Den committer bare når noe er
   endret, så ingen ny commit betyr ikke at den ikke kjørte (se Actions). Tidene står også i
-  innstillingene (`oppdaterDatainfo` i `app.js`) og `personvern.html`. `gjenopprett.py`
+  innstillingene (`oppdaterDatainfo` i `app.js`), `personvern.html`, kommentaren øverst i
+  `lager.js`, `hent_sikkerhetskopi()` i `analyser_fangst.py` og README. Endres de, oppdater
+  alle. `gjenopprett.py`
   gjør en gammel kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra
   kontoene i Auth og `lag`-samlingen) etter dokumenter med `oppdatert` nyere enn rommets
   merke i
   `sikkerhetskopi/tilstand.json`, og fletter dem inn i filene. Det fanger alt fordi
   reglene krever ny `oppdatert` ved hver skriving, og appen sletter dokumenter bare rom
-  for rom (`slettAlle`, da forsvinner kontoen eller laget og filen fjernes). Begynner
+  for rom (`slettAlle`, da forsvinner kontoen eller laget og filen fjernes). I et lag
+  tillater reglene det bare for det siste medlemmet. Begynner
   appen å slette enkeltdokumenter, må kopien kjøres med `--full` (eller valget «Hent alt
   på nytt» i workflowen). Test endringer med en falsk Firestore, ikke ekte data. `sikkerhetskopi.py` har sin egen kopi av `FELT`: legges et felt til
   i `markeringer.js`, må det legges til der også. Tjenestekontoen er skrivebeskyttet, og
@@ -238,12 +270,20 @@ og hummerpotensial i et punkt. Dataene lages av skriptene i `scripts/`, og
 `DATAOMRADE` i `app/js/app.js`. Kartutsnittet går fra Søgne (vestgrensen til Kristiansand
 kommune, som dybdedataene for 4204 dekker) til Grimstad. Utvides det, må alle
 dataskriptene kjøres på nytt i rekkefølgen over (`lag_dybdekart.py` tar ca. 10 min), og
-appen lagrer alt for bruk uten nett (nå ca. 40 MB, ca. 120 MB minne i nettleseren). Mål
-lastetid og minne etter en utvidelse. Ligger nytt område i en annen kommune, må den legges
-til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`. Nytt valgfritt
-datalag: hent det i `lastDybdedata()` med `.catch(() => tom)`, så kartet virker uten
-filen, og tegn det i `_tegnFlis` i riktig rekkefølge (soner, hummerpotensial, kurver,
-bunnhint, tarekant, land, tekst). Skjær er tatt ut av `dybdetall.geojson` med vilje
+appen lagrer alt for bruk uten nett (nå ca. 30 MB, ca. 120 MB minne i nettleseren). Mål
+lastetid og minne etter en utvidelse (med CPU-struping 4× i Chromium: kartet vises etter
+ca. 4 s, dybdeoppslaget er klart etter ca. 6 s). Ligger nytt område i en annen kommune, må den legges
+til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`.
+`lastDybdedata()` gir `{ grunnkart, alt }`: grunnkartet (soner, land, kurver, stedsnavn)
+tegnes først, og resten hentes etterpå og tegnes inn i flisene som vises (`settData`, uten
+`redraw`, så kartet ikke blinker). Dybdeoppslaget (`dybdeI`) må bruke `alt`, ellers lagres
+dybden midt i sonen på markeringene. Nytt valgfritt datalag: hent det i `alt` med
+`.catch(() => tom)`, så kartet virker uten filen, og tegn det i `_tegnFlis` i riktig
+rekkefølge (soner, hummerpotensial, kurver, bunnhint, tarekant, land, tekst).
+`dybdetall.json` og `kurveetiketter.json` er i et kompakt format, ikke GeoJSON
+(`skriv_punkter` i `lag_dybdekart.py`, `lagPunkterFraListe` i `dybdelag.js`). Endres en
+fil i `app/data/`, kjør `lag_service_worker.py` før testing, ellers feiler installeringen
+av service workeren på den manglende filen. Skjær er tatt ut av `dybdetall.json` med vilje
 (brukeren syntes symbolene forstyrret kartet). Ikke legg dem til igjen uten at brukeren
 ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
 
@@ -257,8 +297,15 @@ Endres klassene (`hoy`/`middels`) eller filnavnene, må `dybdelag.js`, `dybdeopp
 og `analyser_fangst.py` følge med.
 
 **Offline.** `app/sw.js` lagrer alle filene i `FILER` (generert av
-`lag_service_worker.py`, nesten alle filer under `app/`). Lagret versjon brukes først,
-unntatt på localhost, der nettverket brukes først så endringer vises med en gang.
+`lag_service_worker.py`, nesten alle filer under `app/`, men ikke Leaflets bilder, siden
+alle symbolene er `divIcon`). Lagret versjon brukes først, unntatt på localhost, der
+nettverket brukes først så endringer vises med en gang. `FILER` er fil → sjekksum
+(SHA-256 av innholdet med LF, 12 tegn). Ved ny versjon kopieres filer med samme sjekksum
+fra forrige lager (sjekksummene der ligger i `__sjekksummer.json`), og bare de andre
+lastes ned. Nedlastede filer sjekkes mot sjekksummen (ikke på localhost, der Windows kan
+gi CRLF), og ved feil slettes det halvferdige lageret og installeringen avbrytes. Test
+oppdateringer med et annet vertsnavn enn localhost (Chromium:
+`--host-resolver-rules` og `--unsafely-treat-insecure-origin-as-secure`).
 
 **Symbolene på kartet** er `L.divIcon` med klassen `symbol` (`symbol teine`,
 `symbol hummer`) og stiles i `app.css`, som også brukes i listene og arkene. Teinen er
@@ -340,7 +387,17 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
   `textContent` eller `dataset`, aldri inn i HTML. `fraMal` i `markeringsark.js`, SVG-en i
   `oversikt.js` og `kildeinfo` i `app.js` får bare konstanter, tall og egne filer. Id-er
   må passe `GYLDIG_ID` i `markeringer.js` (bokstaver, tall, `-`, `_`), ellers avvises de
-  ved import. Samme regel står i `firestore.rules`.
+  ved import. Samme regel står i `firestore.rules`. Navn fra laget (`personer.kortnavn`:
+  initialer eller starten av e-posten) er også tekst fra skyen, så heller ikke `teinenavn()`
+  kan settes inn i en mal (overskriften i fangstarket settes med `textContent`).
+- `index.html` har Content-Security-Policy (meta-taggen øverst), og `personvern.html` en
+  enklere. `script-src 'self'`: ingen script eller `onclick=` skrevet rett i HTML-en (temaet
+  settes derfor av `js/tema.js`). `connect-src` tillater bare `*.googleapis.com` og
+  `*.firebaseapp.com`. Tar appen i bruk en ny ekstern tjeneste, må den legges til der.
+  Slår brukeren på reCAPTCHA eller App Check i Firebase, laster Firebase-SDK-et script fra
+  `www.google.com`, og da stopper innloggingen til CSP-en er utvidet. Inline-stil er tillatt
+  fordi `kartmarkeringer.js` og `oversikt.js` bruker `style=`. Test endringer med
+  `securitypolicyviolation`-hendelser i nettleseren.
 - `firestore.rules` er det eneste som beskytter dataene i Firebase. Hold reglene strenge,
   og si fra til brukeren at de må limes inn på nytt. Agenten har ingen emulator (verken
   Java eller Node er installert), så be brukeren teste dem i Rules Playground i konsollen.

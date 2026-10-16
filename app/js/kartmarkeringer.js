@@ -1,7 +1,7 @@
 /*
  * Viser markeringene på kartet med egne symboler (utseendet ligger i app.css):
  *   teine i sjøen   svart bøyleteine sett fra siden, med nummer
- *   teine tatt opp  grå, stiplet teine (bare når «Opptatte teiner» er slått på)
+ *   teine tatt opp  grå, stiplet teine (bare når «Teiner tatt opp» er slått på)
  *   mistet teine    grå, stiplet teine med rødt «?», alltid, så du kan lete etter den
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
  *   ingen hummer    hvit sirkel med grå hake: fangst med 0 hummer (teinen var tom)
@@ -9,9 +9,13 @@
  *   farget nummer   teinen er en annens i laget (fargen er personens, se personer.js)
  *
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
- * markeringer. Kartet oppdateres automatisk når markeringene endres.
+ * markeringer. Derfor vises fangst og opptatte teiner bare fra hummersesongen som pågår
+ * (eller den siste, fra 1. oktober): over flere år ville det blitt tusenvis av symboler.
+ * Teiner i sjøen og mistede teiner vises alltid. Kartet oppdateres automatisk når
+ * markeringene endres.
  */
 
+import { hummersesong } from './oversikt.js';
 import { personer } from './personer.js';
 
 export class Kartmarkeringer {
@@ -40,17 +44,20 @@ export class Kartmarkeringer {
     this.tegn();
   }
 
-  _synlig(m) {
+  _synlig(m, sesongStart) {
     if (m.id === this.flytter) return true;
-    if (m.kategori === 'hummer') return this.visFangst;
-    return m.status === 'i_sjoen' || m.mistet || this.visOpptatte;
+    if (m.kategori === 'teine' && (m.status === 'i_sjoen' || m.mistet)) return true;
+    // Fangst og opptatte teiner: bare fra sesongen (tidligere år finnes i listene og analysen)
+    const fraSesongen = Date.parse(m.kategori === 'hummer' ? m.tid : m.tatt_opp ?? m.tid) >= sesongStart;
+    return fraSesongen && (m.kategori === 'hummer' ? this.visFangst : this.visOpptatte);
   }
 
   // Lager eller oppdaterer symbolene, og fjerner de som ikke skal vises lenger.
   tegn() {
+    const sesongStart = hummersesong().fra;
     const synlige = new Set();
     for (const m of this.markeringer.alle()) {
-      if (!this._synlig(m)) continue;
+      if (!this._synlig(m, sesongStart)) continue;
       synlige.add(m.id);
       const annen = m.kategori === 'teine' && !this.markeringer.erMin(m) ? personer.farge(m.registrert_av) : null;
       const { html, klasse, storrelse, z } = symbol(m, this.iFredning(m), annen);

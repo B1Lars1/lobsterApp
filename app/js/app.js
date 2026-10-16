@@ -36,7 +36,7 @@ import { Konto } from './konto.js';
 import { Sky } from './sky.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
-const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]); // samme som BBOX_WGS84 i scripts/config.py
+const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]);
 // Skauerøya i Lillesand: før GPS-en har funnet deg, og når du er langt fra sjøen
 const START = { senter: [58.2339, 8.3835], zoom: 13 };
 // Er du nærmere sjøen enn dette når appen åpnes, viser kartet deg i stedet (se gps.js)
@@ -65,7 +65,9 @@ L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(kart);
 // Kreditering helt nederst, under knappene (se app.css). Leaflet er kreditert i README.
 L.control.attribution({ position: 'bottomright', prefix: false }).addTo(kart);
 
-const dybdedata = lastDybdedata(); // hentes én gang, for kartet og GPS-en (se nederst)
+// Hentes én gang, for kartet og GPS-en (se nederst): { grunnkart, alt }. Grunnkartet tegnes
+// først, og dybdetall, bunnhint og hummerpotensial kommer etterpå (se dybdelag.js).
+const dybdedata = lastDybdedata();
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
 let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint
@@ -134,7 +136,7 @@ const gps = new Gps(kart, (s) => {
     $('knapp-meg').classList.toggle('aktiv', s.folger);
     $('knapp-meg').setAttribute('aria-pressed', String(s.folger));
   }
-}, (latlng) => dybdedata
+}, (latlng) => dybdedata.grunnkart
   .then((data) => naerSjoen(data, latlng.lat, latlng.lng, NAER_SJOEN_M))
   .catch(() => false));
 gps.start();
@@ -399,17 +401,13 @@ fredning.last()
   .catch((feil) => console.error(feil));
 beOmVarigLagring(); // be nettleseren ikke slette appen og dataene ved lite plass
 
-dybdedata
+dybdedata.grunnkart
   .then((data) => {
     dybdelag = new Dybdelag(data, {
       bounds: DATAOMRADE,
       attribution: KREDITERING,
     });
     oppdaterKartlag();
-    dybdeI = lagDybdeoppslag(data);
-    bunnI = lagBunnoppslag(data);
-    markeringer.settDybdeoppslag(dybdeI);
-    visDybdeHer();
   })
   .catch((feil) => {
     console.error(feil);
@@ -417,4 +415,18 @@ dybdedata
   })
   .finally(() => {
     $('laster').hidden = true;
+  });
+
+// Dybdeoppslaget venter på dybdetallene, ellers ville teinene fått dybden midt i sonen.
+dybdedata.alt
+  .then((data) => {
+    dybdelag?.settData(data);
+    dybdeI = lagDybdeoppslag(data);
+    bunnI = lagBunnoppslag(data);
+    markeringer.settDybdeoppslag(dybdeI);
+    visDybdeHer();
+  })
+  .catch((feil) => {
+    console.error(feil);
+    if (dybdelag) visMelding('Klarte ikke å laste dybdetallene', { ms: 6000 });
   });

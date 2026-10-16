@@ -40,7 +40,7 @@ bare se på kartet. Fangsten kan analyseres i GeoPandas fra sikkerhetskopien.
 
 ```
 app/                  Web-appen (statiske filer, publiseres på GitHub Pages)
-  data/               Ferdige GeoJSON-filer som appen leser (i git)
+  data/               Ferdige kartdata som appen leser (i git)
   vendor/             Leaflet og Firebase, så appen ikke henter kode fra andre steder
   personvern.html     Personvernerklæringen
 data/
@@ -49,7 +49,8 @@ data/
   private/            Dine egne markeringer og analyser (ALDRI i git)
     hummerkart-data/  Klone av det private repoet med sikkerhetskopien
 scripts/              Python-skript for databehandling
-.github/workflows/    Publisering på GitHub Pages
+tests/                Oppdiktede markeringer og fasit: appen og analysen regner likt
+.github/workflows/    Sjekk og publisering på GitHub Pages
 firestore.rules       Tilgangsreglene for Firestore (limes inn i Firebase-konsollen)
 LICENSE               Opphavsrett: alle rettigheter forbeholdt
 CLAUDE.md             Instruksjoner for kodeagenter (Claude Code) som jobber i repoet
@@ -92,13 +93,18 @@ skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
   dem. Ingen kan liste opp andres kontoer eller lag.
 - Lagkoden har 8 tegn (ca. 850 milliarder muligheter) og kan ikke gjettes. Den som får
   den, kan bli med, og et medlem kan endre og slette alt i laget. Sikkerhetskopien (se
-  «Sikkerhetskopi») har det som blir slettet.
+  «Sikkerhetskopi») har det som blir slettet. Et medlem kan ikke endre de andres e-post i
+  laget, og bare det siste medlemmet kan fjerne markeringene helt fra skyen (når laget
+  slettes). Ellers er en sletting en merknad som når alle telefonene og sikkerhetskopien.
 - Sikkerhetskopien ligger i et privat repo. Tjenestekontoen som tar den, kan bare lese,
   og nøkkelen finnes bare som hemmelighet i GitHub Actions der. Nøkler til
   tjenestekontoer står også i `.gitignore` her.
 - Det som kommer fra skyen, vises som tekst i appen, aldri som HTML, og id-er med andre
   tegn enn bokstaver, tall, `-` og `_` avvises (i appen og i tilgangsreglene). Et
   lagmedlem kan derfor ikke lure inn kode hos de andre.
+- `index.html` har en Content-Security-Policy: bare appens egne filer kan kjøre som
+  script, og appen kan bare kontakte Firebase (Google). Skulle det likevel komme kode inn
+  i siden, kjøres den ikke.
 
 **Utenfor koden.** Den som kommer inn på Google-kontoen som eier Firebase-prosjektet,
 eller GitHub-kontoen `B1Lars1`, får tilgang til alt. Begge har totrinnsbekreftelse.
@@ -163,16 +169,20 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `dybdekurver.geojson` | Dybdekurver 2, 3, 5, 10, 15, 20, 30, 40, 50, 100 og 150 m | `dybde` |
 | `dybdeareal.geojson` | Dybdeområder mellom kurvene | `min`, `maks` |
 | `land.geojson` | Land og tørrfall, grunnkart når appen er offline | `kategori` |
-| `dybdetall.geojson` | Dybdepunkter og grunner (skjær er tatt ut, se «Kartet» under) | `kategori`, `dybde` |
-| `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
+| `dybdetall.json` | Dybdepunkter og grunner (skjær er tatt ut, se «Kartet» under) | `kategori`, `dybde` |
+| `kurveetiketter.json` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
 | `bunnhint.geojson` | Tareskog, ålegras og skjellsand som hint om bunnen (se under) | `kategori`, `navn`, `modellert`, `aar` |
 | `hummerpotensial.geojson` | Steder med høyt eller middels hummerpotensial, et anslag (se «Hummerpotensial») | `klasse` (`hoy`/`middels`) |
 | `tarekant.geojson` | Tarekanten: der tareskog møter sand eller ålegras | |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
-Filene er til sammen ca. 38 MB, eller ca. 5,1 MB komprimert slik de sendes over
-nettet. Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
+Filene er til sammen ca. 29 MB, eller ca. 5 MB komprimert slik de sendes over
+nettet. Dybdetallene og tallene langs kurvene er ca. 90 000 punkter, så de lagres i et
+kompakt format i stedet for GeoJSON (en fjerdedel av størrelsen, og raskere å lese på
+telefonen): `{"felt": ["lon", "lat", "kategori", "dybde"], "punkter": [[8.381, 58.2405,
+"punkt", 23.0], …]}`. Full oppløsning ligger i GPKG-en for GeoPandas (se under).
+Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
 så naboflatene fortsatt passer sammen uten sprekker.
 
 Samme data i full oppløsning (UTM32) lagres i
@@ -232,6 +242,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/dybdelag.js` | Tegner dybdekartet, bunnhint og hummerpotensial som kartfliser |
 | `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
 | `js/innstillinger.js` | Husker hva som vises på kartet, og tema i nettleseren |
+| `js/tema.js` | Setter lys eller mørk modus før siden tegnes, så den ikke blinker hvitt |
 | `js/markeringer.js` | Teiner og fangst: data, lagring og innlesing av GeoJSON (skyen og «Gjenopprett fra fil») |
 | `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
@@ -419,8 +430,8 @@ Sjekk alltid gjeldende forskrift.
   Når du setter teinen ut igjen, trykker du **Sett teine**, og den får samme nummer.
   Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
-- **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
-  ta opp med fangst, melde teinen mistet, flytte eller slette.
+- **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat (opptil 2000
+  tegn), ta opp med fangst, melde teinen mistet, flytte eller slette.
 - **Eier** (bare i et lag): teinearket viser hvem teinen tilhører, som en merkelapp ved
   siden av tittelen («Meg» eller initialene i personens farge). Trykk på den for å gi teinen
   til en annen i laget, for eksempel hvis du satte teinen til broren din fra din telefon.
@@ -455,7 +466,8 @@ Sjekk alltid gjeldende forskrift.
   er derfor gjemt under teinesymbolet på kartet. Du finner den i teinearket (under
   faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert
   først. Trykk på en fangst for å endre antall beholdt og satt ut, tidspunkt, teine
-  eller notat, flytte den eller slette den.
+  eller notat, flytte den eller slette den. Fangsten fra tidligere sesonger ligger
+  sammenslått nederst i den delen («Sesongen 2025 (…)»). Trykk for å åpne en sesong.
 - **0 hummer** vises med en grå hake og «Ingen hummer» i teinearket og under
   Fangstregistreringer, og som en hul ring i tidslinjen i analysen.
 - **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
@@ -482,10 +494,14 @@ Sjekk alltid gjeldende forskrift.
 - **En annens teine i laget:** samme teine, men nummeret er farget (blått, grønt osv., én
   farge per person). Dine egne ser ut som før.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
-  når «Teiner som er tatt opp» er slått på i innstillingene.
+  når «Teiner tatt opp i sesongen» er slått på i innstillingene.
 - **Mistet teine:** samme grå teine med et rødt «?». Vises alltid, til den er funnet.
 - **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
   Stiplet kant betyr at alle ble satt ut igjen.
+- **Bare sesongen:** fangst og opptatte teiner vises bare fra hummersesongen som pågår
+  (eller den siste), altså fra 1. oktober. Over flere år ville kartet ellers fått
+  tusenvis av symboler og blitt tregt. Eldre fangst finnes i listen og i analysen.
+  Teiner i sjøen og mistede teiner vises alltid.
 - **Ingen hummer:** hvit sirkel med grå hake, der en teine ble tatt opp tom.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
@@ -594,7 +610,7 @@ person på en fiskedag:
 | Lesinger i Firestore | 50 000 per døgn | 120 personer som fisker samme dag (ca. 400 lesinger hver i et lag på to) |
 | Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
 | Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
-| GitHub Pages | 100 GB per måned (mykt tak) | 1 700 brukere med 10 nye versjoner i måneden (ca. 6 MB per telefon per versjon) |
+| GitHub Pages | 100 GB per måned (mykt tak) | Mange tusen brukere: ca. 6 MB per telefon første gang, deretter bare filene som er endret (noen hundre kB for en ny versjon av koden, 6 MB hvis alle kartdataene er laget på nytt) |
 | GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 750 i oktober (én kjøring i timen) og ca. 30 i en måned utenom sesongen |
 
 Kontoer har ingen grense, og det kan sendes 150 e-poster om nytt passord per døgn. Du
@@ -772,7 +788,7 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
   dybdekurver. Teinesymbolene på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet
   for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
-  gang den åpnes med nett, ca. 40 MB. Deretter virker appen helt uten nett:
+  gang den åpnes med nett, ca. 30 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, bunnhint, hummerpotensial, fredningsområder, dybdeoppslag og
   markeringer. Synkroniseringen med kontoen venter til du har nett.
 
@@ -786,8 +802,10 @@ oppdateres:
 Versjonen er en sjekksum av alle filene. Den regnes med samme type linjeskift
 overalt, så samme kode gir samme versjon på Windows, Mac og Linux. Telefonen ser at
 versjonen er ny neste gang appen åpnes med nett, laster ned den nye versjonen i
-bakgrunnen og viser
-«Ny versjon av appen er klar». GitHub Actions-workflowen (fase 7) kjører skriptet
+bakgrunnen og viser «Ny versjon av appen er klar». Hver fil har også sin egen sjekksum,
+så telefonen laster bare ned filene som er endret. Resten, som de 30 MB med kartdata,
+kopieres fra versjonen som ligger på telefonen. Hver fil som lastes ned, sjekkes mot
+sjekksummen, så en halvveis publisering aldri blir lagret. GitHub Actions-workflowen (fase 7) kjører skriptet
 automatisk ved publisering, så du ikke kan glemme det.
 
 På `localhost` henter service workeren filene fra testserveren først, så
@@ -800,10 +818,26 @@ siden på nytt.
 Appen ligger på **<https://b1lars1.github.io/lobsterApp/>**.
 
 Workflowen `.github/workflows/publiser.yml` publiserer mappen `app/` til GitHub
-Pages ved hver push til `main` som endrer appen. Den kjører først
-`scripts/lag_service_worker.py`, så telefonene får den nye versjonen. Du kan følge
+Pages ved hver push til `main` som endrer appen. Først sjekker den at koden og
+kartdataene ikke har åpenbare feil (syntaks i JavaScript og Python, gyldig JSON) og at
+fangstoversikten regner riktig (se «Tester» under). Feiler en sjekk, publiseres ingenting,
+og telefonene beholder versjonen de har. Så kjører den `scripts/lag_service_worker.py`,
+så telefonene får den nye versjonen. Du kan følge
 publiseringen under fanen **Actions** i repoet. Den tar et par minutter.
 Publisering kan også startes for hånd: **Actions → Publiser appen → Run workflow**.
+
+### Tester
+
+Fangstoversikten i appen og analysen (`scripts/analyser_fangst.py`) skal regne likt.
+`tests/` har noen oppdiktede markeringer (`fangst_testdata.geojson`) og fasiten for dem
+(`fangst_fasit.json`), og begge testes mot den:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests   # analysen
+node tests/regnemaate.test.mjs                              # appen (krever Node, kjøres i workflowen)
+```
+
+Endres regnemåten, må fasiten og begge stedene endres sammen.
 
 ### Engangsoppsett i GitHub
 
@@ -817,7 +851,7 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 ### Legg appen til på hjemskjermen
 
 Første gang må telefonen ha nett. Vent til meldingen «Appen er lagret og virker
-nå uten nett» kommer (lagrer ca. 40 MB).
+nå uten nett» kommer (lagrer ca. 30 MB).
 
 **Appen viser selv hvordan:** åpnes lenken i nettleseren på en telefon, kommer det
 opp et ark med fremgangsmåten for telefonen som brukes. På Android (Chrome) er det

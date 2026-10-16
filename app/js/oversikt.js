@@ -5,7 +5,8 @@
  * Bare hummersesongen vises: 1. oktober til og med 30. november. Perioden er alltid
  * innenfor sesongen som pågår, eller den siste som var (før 1. oktober: fjorårets).
  *
- * Samme regnemåte som scripts/analyser_fangst.py, men enklere:
+ * Samme regnemåte som scripts/analyser_fangst.py, men enklere (testet mot samme fasit i
+ * tests/, se tests/regnemaate.test.mjs og tests/test_regnemaate.py):
  *   - En teinesetting går fra teinen ble satt til den ble tatt opp, eller til nå.
  *   - Fangst hører til settingen via teine_id. Fangst uten teine får egen rad nederst.
  *   - Hummer per teinedøgn: hummer fra teinene delt på døgnene teinene har stått i
@@ -55,7 +56,7 @@ function dagerFra(ms, dager) {
  * (bruker-id eller null) av en teine eller fangst. «gruppe» er personens nøkkel i
  * oversikten: din bruker-id for alt som er ditt (se personer.erMeg), ellers eieren.
  */
-function lagSettinger(alle, naa, eierAv) {
+export function lagSettinger(alle, naa, eierAv) {
   const gruppe = (m) => {
     const eier = eierAv(m);
     return personer.erMeg(eier) ? personer.meg : eier ?? null;
@@ -82,7 +83,7 @@ function lagSettinger(alle, naa, eierAv) {
  * Bare tiden innenfor perioden teller, og bare fangst fra teinene teller i fangstraten.
  * Mistede teiner er ikke med: vi vet ikke hva de fanget.
  */
-function regnUt(periode, naa, iPerioden, fangstIPerioden) {
+export function regnUt(periode, naa, iPerioden, fangstIPerioden) {
   const sum = (liste, felt) => liste.reduce((s, f) => s + f[felt], 0);
   const telles = iPerioden.filter((t) => !t.mistet);
   const teinedogn = telles.reduce((s, t) =>
@@ -94,6 +95,8 @@ function regnUt(periode, naa, iPerioden, fangstIPerioden) {
     hummer: sum(fangstIPerioden, 'hummer'),
     beholdt: sum(fangstIPerioden, 'beholdt'),
     sattUt: sum(fangstIPerioden, 'satt_ut'),
+    teinedogn,
+    fraTeiner,
     rate: teinedogn > 0 ? komma(fraTeiner / teinedogn, 2) : '–',
     treff: telles.length ? `${Math.round((100 * med) / telles.length)} %` : '–',
     med,

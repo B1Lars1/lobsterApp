@@ -857,6 +857,9 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .utvidbar summary::-webkit-details-marker { display: none; }
 .utvidbar summary::before { content: '▸'; transition: transform 0.15s; }
 .utvidbar[open] summary::before { transform: rotate(90deg); }
+/* Tidligere sesonger inni «Fangstregistreringer» */
+.utvidbar .utvidbar { margin: 0; }
+.utvidbar .utvidbar summary { min-height: 48px; padding-left: 14px; font-size: 15px; }
 .symbol.slettet { filter: grayscale(1); opacity: 0.6; }
 
 /* «Endre» på fangstradene, og fangstradene i teinearket */

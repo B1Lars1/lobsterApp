@@ -1,15 +1,18 @@
-"""Lag små GeoJSON-filer med dybdedata for appen.
+"""Lag små filer med dybdedata for appen.
 
 Leser Kartverkets «Sjøkart – Dybdedata» (FGDB) fra data/raw/dybdedata/, klipper til
 kartområdet (land i utsnittet og sjø inntil SJO_AVSTAND_M fra land), forenkler,
 reprojiserer til EPSG:4326 og skriver til app/data/:
 
   dybdekurver.geojson  dybdekurver med egenskapen «dybde» (m)
-  kurveetiketter.geojson  punkter for dybdetall langs kurvene («dybde», «vinkel», «niva»)
+  kurveetiketter.json  punkter for dybdetall langs kurvene («dybde», «vinkel», «niva»)
   dybdeareal.geojson   dybdeområder med «min» og «maks» (m), for farger og dybdeoppslag
   land.geojson         land og tørrfall («kategori»), brukes som grunnkart offline
-  dybdetall.geojson    dybdepunkter og grunner («kategori», «dybde»)
+  dybdetall.json       dybdepunkter og grunner («kategori», «dybde»)
   kilder.json          kilde, lisens og nedlastingsdato
+
+Punktene (*.json) er i et kompakt format, ikke GeoJSON, fordi det er mange av dem
+(se skriv_punkter): { "felt": ["lon", "lat", ...], "punkter": [[lon, lat, ...], ...] }.
 
 Klippede data i full oppløsning (UTM32) lagres i data/processed/dybdedata_lillesand.gpkg
 for analyse i GeoPandas.
@@ -125,6 +128,24 @@ def skriv_geojson(gdf: gpd.GeoDataFrame, navn: str) -> None:
     print(f"  {navn:22s} {len(gdf):6d} objekter  {kb:6.0f} kB  ({kb_gz:4.0f} kB komprimert)")
 
 
+def skriv_punkter(gdf: gpd.GeoDataFrame, navn: str, felt: list[str]) -> None:
+    """Punkter i et kompakt format som appen leser raskere og med mindre minne enn GeoJSON
+    (dybdelag.js, lagPunkterFraListe): én rad [lon, lat, felt ...] per punkt."""
+    sti = APP_DATA_DIR / navn
+    gdf = gdf.to_crs(CRS_WGS84)
+    gdf = gdf[~gdf.is_empty]
+    kolonner = [gdf.geometry.x.round(PRESISJON).tolist(), gdf.geometry.y.round(PRESISJON).tolist(),
+                *(gdf[f].tolist() for f in felt)]
+    rader = [json.dumps(list(rad), ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+             for rad in zip(*kolonner)]
+    # Én rad per linje, så endringer kan leses i git
+    tekst = '{"felt": ' + json.dumps(["lon", "lat", *felt]) + ', "punkter": [\n' + ",\n".join(rader) + "\n]}\n"
+    sti.write_text(tekst, encoding="utf-8")
+    kb = sti.stat().st_size / 1e3
+    kb_gz = len(gzip.compress(sti.read_bytes())) / 1e3
+    print(f"  {navn:22s} {len(gdf):6d} punkter   {kb:6.0f} kB  ({kb_gz:4.0f} kB komprimert)")
+
+
 def main() -> int:
     ensure_dirs()
     # GDAL advarer om ytelse når et polygon har over 100 deler. Ufarlig her.
@@ -180,10 +201,10 @@ def main() -> int:
 
     print("Skriver til app/data/:")
     skriv_geojson(kurver, "dybdekurver.geojson")
-    skriv_geojson(lag_kurveetiketter(kurver), "kurveetiketter.geojson")
+    skriv_punkter(lag_kurveetiketter(kurver), "kurveetiketter.json", ["dybde", "vinkel", "niva"])
     skriv_geojson(dybdeareal, "dybdeareal.geojson")
     skriv_geojson(land, "land.geojson")
-    skriv_geojson(dybdetall, "dybdetall.geojson")
+    skriv_punkter(dybdetall, "dybdetall.json", ["kategori", "dybde"])
 
     # 5) Kildeinformasjon som appen viser
     logg_sti = KILDE_DIR / "nedlastinger.json"

@@ -8,8 +8,10 @@
 //                                  initialer: { uid: «BL» } }
 // lag/{kode}/markeringer/{id}      lagets felles markeringer. Alle medlemmene.
 // Koden (8 tegn) er dokument-id-en og fungerer som invitasjon: den som kjenner den,
-// kan legge seg selv til som medlem. Hver kan bare sette sine egne initialer. Alt annet er
-// stengt. Se app/js/sky.js og firebase.js.
+// kan legge seg selv til som medlem. Hver kan bare sette sine egne initialer og skrive sin
+// egen e-post. Markeringene i laget kan bare slettes helt av det siste medlemmet (når laget
+// slettes). Ellers er en sletting et dokument med slettet: true. Alt annet er stengt.
+// Se app/js/sky.js og firebase.js.
 rules_version = '2';
 
 service cloud.firestore {
@@ -21,17 +23,23 @@ service cloud.firestore {
 
     // En markering (teine eller fangst), eller en sletting (slettet: true).
     // Id-en er en UUID fra appen; andre tegn kunne blitt til HTML hos de andre i laget.
+    // Feltene er FELT i app/js/markeringer.js pluss lat, lon, slettet og oppdatert. Et nytt
+    // felt må legges til her, og reglene publiseres før appen.
     function gyldigMarkering(id) {
       let d = request.resource.data;
       return d.id == id
         && id.matches('^[A-Za-z0-9_-]{1,100}$')
-        && d.endret is string
+        && d.keys().hasOnly(['id', 'kategori', 'tid', 'endret', 'notat', 'dybde', 'noyaktighet',
+             'kilde', 'nummer', 'status', 'tatt_opp', 'beholdt', 'satt_ut', 'teine_id',
+             'registrert_av', 'mistet', 'lat', 'lon', 'slettet', 'oppdatert'])
+        && d.endret is string && d.endret.size() <= 40
         && d.slettet is bool
         && d.oppdatert == request.time      // settes av serveren (serverTimestamp)
-        && d.size() <= 20
         && (d.slettet
             || (d.kategori in ['teine', 'hummer'] && d.lat is number && d.lon is number))
-        && (!('notat' in d) || d.notat == null || (d.notat is string && d.notat.size() <= 2000));
+        && (!('notat' in d) || d.notat == null || (d.notat is string && d.notat.size() <= 2000))
+        && (!('registrert_av' in d) || d.registrert_av == null
+            || (d.registrert_av is string && d.registrert_av.size() <= 128));
     }
 
     match /brukere/{uid}/markeringer/{id} {
@@ -55,6 +63,16 @@ service cloud.firestore {
           && endring.removedKeys().hasOnly(fjernede.union([request.auth.uid].toSet()))
           && (!(request.auth.uid in etter)
               || (etter[request.auth.uid] is string && etter[request.auth.uid].matches('^[A-ZÆØÅ]{1,3}$')));
+      }
+
+      // E-postene: et medlem kan ikke legge til eller endre noens e-post, bare fjerne
+      // e-posten til dem som fjernes fra laget. Den eneste som skriver en e-post, er den som
+      // blir med (eller oppretter laget), med sin egen.
+      function eposterOk() {
+        let endring = request.resource.data.eposter.diff(resource.data.eposter);
+        let fjernede = resource.data.medlemmer.toSet().difference(request.resource.data.medlemmer.toSet());
+        return endring.addedKeys().size() == 0 && endring.changedKeys().size() == 0
+          && endring.removedKeys().hasOnly(fjernede);
       }
 
       allow read: if erMedlem();
@@ -84,18 +102,25 @@ service cloud.firestore {
             && request.resource.data.eposter[request.auth.uid] == request.auth.token.email
             && request.resource.data.navn == resource.data.navn)
           // Medlem: kan endre navnet og fjerne medlemmer (også seg selv), men ikke legge til andre
-          || (erMedlem() && resource.data.medlemmer.hasAll(request.resource.data.medlemmer))
+          || (erMedlem() && resource.data.medlemmer.hasAll(request.resource.data.medlemmer)
+              && eposterOk())
         );
 
       // Slett laget: bare når du er det siste medlemmet
       allow delete: if innlogget() && resource.data.medlemmer == [request.auth.uid];
 
       match /markeringer/{id} {
-        function medlemILaget() {
-          return innlogget()
-            && request.auth.uid in get(/databases/$(database)/documents/lag/$(kode)).data.medlemmer;
+        function medlemmene() {
+          return get(/databases/$(database)/documents/lag/$(kode)).data.medlemmer;
         }
-        allow read, delete: if medlemILaget();
+        function medlemILaget() {
+          return innlogget() && request.auth.uid in medlemmene();
+        }
+        allow read: if medlemILaget();
+        // Slette dokumenter helt kan bare det siste medlemmet, rett før laget slettes
+        // (fjernMedlem i firebase.js). En slik sletting når ikke de andre telefonene, og den
+        // inkrementelle sikkerhetskopien ser den ikke.
+        allow delete: if innlogget() && medlemmene() == [request.auth.uid];
         allow create, update: if medlemILaget() && gyldigMarkering(id);
       }
     }

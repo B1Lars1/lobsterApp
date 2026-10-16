@@ -3,8 +3,13 @@
  *
  * - Første gang appen åpnes med nett, lagres alle filene i FILER.
  * - Deretter hentes de alltid fra telefonen, uten nett også.
- * - Når VERSJON endres (ny versjon publisert), lastes alt ned på nytt neste gang
- *   appen åpnes med nett, og appen sier fra at den kan lastes inn på nytt.
+ * - Når VERSJON endres (ny versjon publisert), lagres den nye versjonen neste gang
+ *   appen åpnes med nett, og appen sier fra at den kan lastes inn på nytt. Bare filene
+ *   som er endret, lastes ned. Resten (som de 30 MB med kartdata) kopieres fra forrige
+ *   versjon på telefonen, ut fra sjekksummen hver fil har i FILER.
+ * - Hver fil som lastes ned, sjekkes mot sjekksummen. Stemmer den ikke (en gammel kopi
+ *   underveis i en publisering), avbrytes installeringen og prøves igjen senere, så en
+ *   feil fil aldri blir kopiert videre til neste versjon.
  * - På localhost hentes filene fra serveren først, så endringer vises med en gang
  *   når du utvikler. Lagret versjon brukes bare hvis serveren ikke svarer.
  *
@@ -12,71 +17,105 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '4511f6facbf3';
-const FILER = [
-  './',
-  'css/app.css',
-  'data/bunnhint.geojson',
-  'data/dybdeareal.geojson',
-  'data/dybdekurver.geojson',
-  'data/dybdetall.geojson',
-  'data/fredningsomrader.geojson',
-  'data/hummerpotensial.geojson',
-  'data/kilder.json',
-  'data/kurveetiketter.geojson',
-  'data/land.geojson',
-  'data/stedsnavn.geojson',
-  'data/tarekant.geojson',
-  'ikoner/apple-touch-icon.png',
-  'ikoner/favicon-32.png',
-  'ikoner/ikon-192.png',
-  'ikoner/ikon-512.png',
-  'ikoner/ikon-maskable-512.png',
-  'ikoner/teine-opptatt.svg',
-  'ikoner/teine.svg',
-  'index.html',
-  'js/app.js',
-  'js/dobbelttrykk.js',
-  'js/dra-ned.js',
-  'js/dybdelag.js',
-  'js/dybdeoppslag.js',
-  'js/firebase.js',
-  'js/fredning.js',
-  'js/gps.js',
-  'js/hjemskjerm.js',
-  'js/innstillinger.js',
-  'js/kartmarkeringer.js',
-  'js/konto.js',
-  'js/lager.js',
-  'js/markeringer.js',
-  'js/markeringsark.js',
-  'js/melding.js',
-  'js/oversikt.js',
-  'js/personer.js',
-  'js/sky.js',
-  'manifest.webmanifest',
-  'personvern.html',
-  'vendor/firebase-12.19.0/firebase-app.js',
-  'vendor/firebase-12.19.0/firebase-auth.js',
-  'vendor/firebase-12.19.0/firebase-firestore-lite.js',
-  'vendor/leaflet-1.9.4/images/layers-2x.png',
-  'vendor/leaflet-1.9.4/images/layers.png',
-  'vendor/leaflet-1.9.4/images/marker-icon-2x.png',
-  'vendor/leaflet-1.9.4/images/marker-icon.png',
-  'vendor/leaflet-1.9.4/images/marker-shadow.png',
-  'vendor/leaflet-1.9.4/leaflet.css',
-  'vendor/leaflet-1.9.4/leaflet.js'
-];
+const VERSJON = '9a3b50a4545d';
+// Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
+const FILER = {
+  './': '4361db8139fb',
+  'css/app.css': '1e2b3d115f81',
+  'data/bunnhint.geojson': '7dff6ecb1079',
+  'data/dybdeareal.geojson': 'dfaa36d0802f',
+  'data/dybdekurver.geojson': '35043cb8406f',
+  'data/dybdetall.json': '36e18f10e86b',
+  'data/fredningsomrader.geojson': '38942d10a30d',
+  'data/hummerpotensial.geojson': '8955665326b0',
+  'data/kilder.json': '38acc52abbb0',
+  'data/kurveetiketter.json': 'dd93b9e4b0af',
+  'data/land.geojson': 'aebf9580b0bc',
+  'data/stedsnavn.geojson': 'ba8f8284ee4e',
+  'data/tarekant.geojson': '6b1cd0891462',
+  'ikoner/apple-touch-icon.png': '8b471f3fa70f',
+  'ikoner/favicon-32.png': 'c707511f30c1',
+  'ikoner/ikon-192.png': 'f0dcb9a49eb9',
+  'ikoner/ikon-512.png': 'dd106a5cd7a2',
+  'ikoner/ikon-maskable-512.png': '1d78cbc5ffe9',
+  'ikoner/teine-opptatt.svg': '9eee59c46144',
+  'ikoner/teine.svg': 'cee886a00886',
+  'index.html': '4361db8139fb',
+  'js/app.js': 'f6abff4979ac',
+  'js/dobbelttrykk.js': '0a34a6673128',
+  'js/dra-ned.js': '39c76367ab2f',
+  'js/dybdelag.js': '98947146af4a',
+  'js/dybdeoppslag.js': '443fbeec51c7',
+  'js/firebase.js': '5ded7bbc4484',
+  'js/fredning.js': 'a01071ad418e',
+  'js/gps.js': '4a09b6aae3f5',
+  'js/hjemskjerm.js': '0b74cec06010',
+  'js/innstillinger.js': '3478d31ae64b',
+  'js/kartmarkeringer.js': '5f250f881e5b',
+  'js/konto.js': 'd4d1a483fc94',
+  'js/lager.js': 'aff648d08146',
+  'js/markeringer.js': 'ad5d55f50c43',
+  'js/markeringsark.js': 'dca302d835f2',
+  'js/melding.js': '612e55afbbb0',
+  'js/oversikt.js': '2674d3fe54c1',
+  'js/personer.js': '8b4e2a71e414',
+  'js/sky.js': '748336e34aa2',
+  'js/tema.js': '665d59d8188a',
+  'manifest.webmanifest': '19e7beb80bc1',
+  'personvern.html': '417addf0805d',
+  'vendor/firebase-12.19.0/firebase-app.js': '39a50952b5de',
+  'vendor/firebase-12.19.0/firebase-auth.js': '0f99fc82c189',
+  'vendor/firebase-12.19.0/firebase-firestore-lite.js': 'bb91d6218384',
+  'vendor/leaflet-1.9.4/leaflet.css': '337bfca5cabd',
+  'vendor/leaflet-1.9.4/leaflet.js': 'db49d009c841'
+};
 // </generert>
 
 const CACHE = `hummerkart-${VERSJON}`;
 const UTVIKLING = ['localhost', '127.0.0.1'].includes(self.location.hostname);
+// Sjekksummene til filene i et lager, så neste versjon vet hvilke den kan kopiere
+const SJEKKSUMMER = '__sjekksummer.json';
+
+// SHA-256 av innholdet, de 12 første tegnene (som i lag_service_worker.py)
+async function sjekksum(svar) {
+  const digest = await crypto.subtle.digest('SHA-256', await svar.clone().arrayBuffer());
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
+}
+
+// Lageret til forrige versjon og sjekksummene der, eller null (første gang, eller en
+// versjon fra før det fantes sjekksummer)
+async function forrigeVersjon() {
+  for (const navn of await caches.keys()) {
+    if (!navn.startsWith('hummerkart-') || navn === CACHE) continue;
+    const lager = await caches.open(navn);
+    const liste = await lager.match(SJEKKSUMMER);
+    if (liste) return { lager, sjekksummer: await liste.json() };
+  }
+  return null;
+}
 
 self.addEventListener('install', (hendelse) => {
   hendelse.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // cache: 'reload' sørger for ferske filer, ikke gamle kopier fra nettleserens buffer
-    await cache.addAll(FILER.map((fil) => new Request(fil, { cache: 'reload' })));
+    const forrige = await forrigeVersjon();
+    try {
+      await Promise.all(Object.entries(FILER).map(async ([fil, sum]) => {
+        if (forrige?.sjekksummer[fil] === sum) {
+          const lagret = await forrige.lager.match(fil);
+          if (lagret) return cache.put(fil, lagret); // uendret: ingen nedlasting
+        }
+        // cache: 'reload' sørger for ferske filer, ikke gamle kopier fra nettleserens buffer
+        const svar = await fetch(new Request(fil, { cache: 'reload' }));
+        if (!svar.ok) throw new Error(`Klarte ikke å hente ${fil} (${svar.status})`);
+        // På localhost kan filene ha Windows-linjeskift, så sjekksummen stemmer ikke der
+        if (!UTVIKLING && (await sjekksum(svar)) !== sum) throw new Error(`${fil} har feil innhold`);
+        return cache.put(fil, svar);
+      }));
+    } catch (feil) {
+      await caches.delete(CACHE); // ikke la et halvferdig lager ta plass på telefonen
+      throw feil; // installeringen prøves igjen neste gang appen åpnes med nett
+    }
+    await cache.put(SJEKKSUMMER, new Response(JSON.stringify(FILER)));
     await self.skipWaiting(); // ta i bruk den nye versjonen med en gang
   })());
 });

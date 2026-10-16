@@ -48,6 +48,10 @@ export const FELT = [
 // andre (et lag), og id-en havner i HTML-attributter og dokumentstier i Firestore.
 const GYLDIG_ID = /^[A-Za-z0-9_-]{1,100}$/;
 
+// Lengste notat. Samme grense som i firestore.rules: et lengre notat ville fått skyen til å
+// avvise hele batchen, og da stopper synkroniseringen.
+export const MAKS_NOTAT = 2000;
+
 const naa = () => new Date().toISOString();
 const nyId = () => crypto.randomUUID();
 const tallEllerNull = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -62,7 +66,7 @@ function normaliser(m) {
     lon: Number(m.lon),
     tid: m.tid || naa(),
     endret: m.endret || m.tid || naa(),
-    notat: m.notat ? String(m.notat) : '',
+    notat: m.notat ? String(m.notat).slice(0, MAKS_NOTAT) : '',
     dybde: tallEllerNull(m.dybde),
     noyaktighet: tallEllerNull(m.noyaktighet),
     kilde: m.kilde === 'gps' ? 'gps' : 'kart',
@@ -240,6 +244,7 @@ export class Markeringer {
 
   oppdater(id, endringer) {
     const m = { ...this.hent(id), ...endringer, endret: naa() };
+    if (typeof m.notat === 'string') m.notat = m.notat.slice(0, MAKS_NOTAT);
     if ('lat' in endringer || 'lon' in endringer) m.dybde = this._dybde(m.lat, m.lon); // flyttet
     return this._lagre(m);
   }

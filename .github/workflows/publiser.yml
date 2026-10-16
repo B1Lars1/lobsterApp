@@ -1,8 +1,9 @@
 # Publiserer appen (mappen app/) til GitHub Pages ved hver push til main som
 # endrer appen. Kan også startes for hånd under «Actions» → «Publiser appen» → «Run workflow».
 #
-# Før publisering oppdateres fillisten og versjonen i app/sw.js, så telefonen alltid
-# henter den nye versjonen (se scripts/lag_service_worker.py).
+# Før publisering sjekkes koden (syntaks, JSON og regnemåten i fangstoversikten, se tests/),
+# og fillisten og versjonen i app/sw.js oppdateres, så telefonen alltid henter den nye
+# versjonen (se scripts/lag_service_worker.py).
 
 name: Publiser appen
 
@@ -37,6 +38,30 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+
+      # En push publiseres rett til telefonene. Stopp her hvis noe er åpenbart galt.
+      - name: Sjekk koden før publisering
+        run: |
+          # Syntaks i JavaScript. Modulene sjekkes som .mjs, så de leses som ES-moduler i alle
+          # Node-versjoner. sw.js og tema.js er vanlige script.
+          mkdir -p "$RUNNER_TEMP/sjekk"
+          for fil in app/js/*.js; do
+            if grep -qE '^(import|export) ' "$fil"; then
+              cp "$fil" "$RUNNER_TEMP/sjekk/$(basename "$fil" .js).mjs"
+              node --check "$RUNNER_TEMP/sjekk/$(basename "$fil" .js).mjs"
+            else
+              node --check "$fil"
+            fi
+          done
+          node --check app/sw.js
+          # Syntaks i Python-skriptene og testene
+          python -m py_compile scripts/*.py tests/*.py
+          # Gyldig JSON i kartdataene og manifestet
+          python -c "import json, pathlib; [json.loads(p.read_text(encoding='utf-8')) for p in [*pathlib.Path('app/data').iterdir(), pathlib.Path('app/manifest.webmanifest')]]"
+          # Fangstoversikten regner som fasiten i tests/ (eldre Node trenger flagget for ES-moduler i .js)
+          FLAGG=""
+          node --experimental-detect-module -e "" 2>/dev/null && FLAGG="--experimental-detect-module"
+          node $FLAGG tests/regnemaate.test.mjs
 
       - name: Oppdater fillisten og versjonen i sw.js
         run: python scripts/lag_service_worker.py

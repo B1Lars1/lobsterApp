@@ -15,6 +15,7 @@
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
  */
 
+import { MAKS_NOTAT } from './markeringer.js';
 import { visMelding } from './melding.js';
 import { hummersesong } from './oversikt.js';
 import { personer } from './personer.js';
@@ -98,6 +99,8 @@ export class Markeringsark {
     this._utkastTittel = ''; // overskriften i arket for utkastet
     this._sikte = null;
     this._aapnetTid = 0;
+    this._eldreFangst = new Map(); // sesongår → fangst fra tidligere sesonger (teinelisten)
+    this._apneSesonger = new Set(); // de eldre sesongene som er åpnet i teinelisten
 
     for (const ark of [this.arkMarkering, this.arkVelg, this.arkTeiner, this.arkFredning]) {
       // Trykk på den mørke bakgrunnen utenfor arket lukker det.
@@ -138,6 +141,18 @@ export class Markeringsark {
 
     // Teinelisten
     this.arkTeiner.addEventListener('click', (e) => this._listeKlikk(e));
+    // En eldre sesong i fangstlisten åpnes eller lukkes («toggle» bobler ikke, så fang den
+    // på vei ned). Radene lages først når sesongen åpnes.
+    this.arkTeiner.addEventListener('toggle', (e) => {
+      const aar = e.target.dataset?.sesong;
+      if (!aar) return;
+      if (!e.target.open) {
+        this._apneSesonger.delete(aar);
+        return;
+      }
+      this._apneSesonger.add(aar);
+      if (!e.target.querySelector('li')) this._fyllSesong(e.target);
+    }, true);
 
     this.arkFredning.querySelector('[data-handling="lukk"]')
       .addEventListener('click', () => this.arkFredning.close());
@@ -351,7 +366,7 @@ export class Markeringsark {
       <div class="felter">
         <label class="felt smal">Nummer<input type="number" inputmode="numeric" min="1" data-felt="nummer"></label>
         ${iSjoen ? '<label class="felt ved-siden">Satt<input type="datetime-local" data-felt="tid"></label>' : ''}
-        <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
+        <label class="felt">Notat<textarea rows="2" maxlength="${MAKS_NOTAT}" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
       </div>
       <div class="knapper">
         ${hovedknapp}
@@ -445,7 +460,7 @@ export class Markeringsark {
     const el = fraMal(`
       <div class="ark-topp">
         <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></div>
-        <div class="ark-tittel"><h3>${tittel}</h3><p data-tekst="undertekst"></p></div>
+        <div class="ark-tittel"><h3 data-tekst="tittel"></h3><p data-tekst="undertekst"></p></div>
       </div>
       <div class="teller">
         <span>Beholdt</span>
@@ -462,7 +477,7 @@ export class Markeringsark {
       <div class="felter">
         <label class="felt">Tidspunkt<input type="datetime-local" data-felt="tid"></label>
         <label class="felt">Fra teine<select data-felt="teine_id"></select></label>
-        <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
+        <label class="felt">Notat<textarea rows="2" maxlength="${MAKS_NOTAT}" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
       </div>
       ${ny
         ? `<div class="knapper avbryt-ferdig">
@@ -475,6 +490,9 @@ export class Markeringsark {
             <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
           </div>`}`);
 
+    // Tittelen kan ha initialene eller e-posten til en annen i laget («Teine 3 (OL) tatt opp»),
+    // så den settes som tekst, aldri i HTML-malen.
+    el.querySelector('[data-tekst="tittel"]').textContent = tittel;
     // For ny fangst fylles underteksten inn av _visUtkastUndertekst()
     if (!ny) el.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(m.tid) + this._avTekst(m);
     el.querySelector('[data-tekst="beholdt"]').textContent = m.beholdt;
@@ -699,16 +717,53 @@ export class Markeringsark {
       `${personer.iLag ? 'Dine i sesongen' : 'Sesongen'} ${sesong.aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
 
     // All fangst, sist registrert først. Trykk åpner fangsten, så den kan rettes eller slettes.
+    // Fangsten fra sesongen som pågår (eller den siste, fra 1. oktober) vises med en gang.
+    // Tidligere sesonger ligger sammenslått under, og radene lages først når en åpnes, så
+    // listen holder seg rask etter flere år.
     const fangst = this.markeringer.alle().filter((m) => m.kategori === 'hummer')
       .sort((a, b) => b.tid.localeCompare(a.tid));
+    const sesongAar = (f) => hummersesong(Date.parse(f.tid)).aar;
+    const denne = fangst.filter((f) => sesongAar(f) >= sesong.aar);
+    this._eldreFangst = new Map();
+    for (const f of fangst) {
+      const aar = sesongAar(f);
+      if (aar < sesong.aar) {
+        if (!this._eldreFangst.has(aar)) this._eldreFangst.set(aar, []);
+        this._eldreFangst.get(aar).push(f);
+      }
+    }
     const fangstdel = this.arkTeiner.querySelector('[data-del="fangst"]');
     fangstdel.hidden = fangst.length === 0;
     fangstdel.querySelector('[data-tekst="antallFangst"]').textContent = fangst.length;
-    fangstdel.querySelector('[data-liste="fangst"]').replaceChildren(...fangst.map((f) => {
-      const rad = this._fangstRad(f);
-      rad.querySelector('.rad').dataset.vis = f.id;
-      return rad;
+    fangstdel.querySelector('[data-liste="fangst"]').replaceChildren(...denne.map((f) => this._fangstRadIListen(f)));
+    fangstdel.querySelector('[data-liste="eldre-fangst"]').replaceChildren(...[...this._eldreFangst].map(([aar, liste]) => {
+      const del = fraMal(`
+        <details class="utvidbar">
+          <summary><span>Sesongen <span data-tekst="aar"></span> (<span data-tekst="antall"></span>)</span></summary>
+          <ul class="liste"></ul>
+        </details>`).firstElementChild;
+      del.dataset.sesong = aar;
+      del.querySelector('[data-tekst="aar"]').textContent = aar;
+      del.querySelector('[data-tekst="antall"]').textContent = liste.length;
+      if (this._apneSesonger.has(String(aar))) {
+        this._fyllSesong(del);
+        del.open = true;
+      }
+      return del;
     }));
+  }
+
+  // Rad i fangstlisten: trykk åpner fangsten (data-vis, se _listeKlikk)
+  _fangstRadIListen(f) {
+    const rad = this._fangstRad(f);
+    rad.querySelector('.rad').dataset.vis = f.id;
+    return rad;
+  }
+
+  // Lag radene for en eldre sesong i fangstlisten (når den åpnes)
+  _fyllSesong(del) {
+    const liste = this._eldreFangst.get(Number(del.dataset.sesong)) ?? [];
+    del.querySelector('ul').replaceChildren(...liste.map((f) => this._fangstRadIListen(f)));
   }
 
   // Teinene i grupper per eier: «Mine» først, så de andre i laget (med initialene i sin farge),

@@ -22,7 +22,7 @@
  * etter endringer, og når telefonen får nett igjen.
  *
  * Tilstanden huskes i localStorage under egen nøkkel:
- *   { uid, rom, lag, sistHentet (ms), kjent: { id: endret }, sist, feil }
+ *   { uid, rom, lag, sistHentet: [sekunder, nanosekunder], kjent: { id: endret }, sist, feil }
  * Logger du ut, fjernes markeringene fra telefonen (de ligger i skyen). Logger en annen
  * konto inn på telefonen, spør appen før markeringene fra den forrige kontoen fjernes.
  */
@@ -47,6 +47,18 @@ function lagreTilstand(tilstand) {
     // Uten localStorage sendes alt på nytt neste gang. Det går fint, men koster litt mer.
   }
 }
+
+// Når det siste vi har hentet, ble skrevet: [sekunder, nanosekunder] fra serveren, eller null.
+// Eldre versjoner lagret millisekunder (et tall), som gjøres om her.
+function sistHentet(tilstand) {
+  const s = tilstand.sistHentet;
+  if (Array.isArray(s) && s.length === 2) return s;
+  if (typeof s === 'number') return [Math.floor(s / 1000), Math.floor((s % 1000) * 1e6)];
+  return null;
+}
+
+// Er tidspunktet a ([sekunder, nanosekunder]) senere enn b (eller null)?
+const senere = (a, b) => !b || a[0] > b[0] || (a[0] === b[0] && a[1] > b[1]);
 
 function tilDokument(m) {
   const data = { slettet: false, lat: m.lat, lon: m.lon };
@@ -251,12 +263,13 @@ export class Sky {
 
       // 2. Hent det som er endret i rommet siden sist
       const tilstand = hentTilstand();
-      const endringer = await this.tjeneste.hentEndringer(rom, tilstand.sistHentet ?? null);
+      tilstand.sistHentet = sistHentet(tilstand);
+      const endringer = await this.tjeneste.hentEndringer(rom, tilstand.sistHentet);
       const features = [];
       const slettet = [];
-      for (const { id, data, oppdatertMs } of endringer) {
+      for (const { id, data, oppdatert } of endringer) {
         tilstand.kjent[id] = data.endret;
-        if (oppdatertMs != null) tilstand.sistHentet = Math.max(tilstand.sistHentet ?? 0, oppdatertMs);
+        if (oppdatert && senere(oppdatert, tilstand.sistHentet)) tilstand.sistHentet = oppdatert;
         if (data.slettet) {
           slettet.push({ id, endret: data.endret });
         } else {

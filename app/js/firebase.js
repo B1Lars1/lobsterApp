@@ -117,16 +117,21 @@ export class FirestoreTjeneste {
     return type === 'lag' ? collection(db, 'lag', id, 'markeringer') : collection(db, 'brukere', id, 'markeringer');
   }
 
-  /** Dokumenter endret etter etterMs (millisekunder), eller alle. → [{ id, data, oppdatertMs }] */
-  async hentEndringer(rom, etterMs = null) {
+  /**
+   * Dokumenter endret etter «etter», eller alle. Tidspunktene er [sekunder, nanosekunder],
+   * nøyaktig slik serveren har dem (mikrosekunder). Millisekunder ville blitt rundet av, og
+   * da ble det siste dokumentet hentet på nytt annenhver gang.
+   * → [{ id, data, oppdatert: [sekunder, nanosekunder] | null }]
+   */
+  async hentEndringer(rom, etter = null) {
     const samling = this._samling(rom);
-    const sporring = etterMs == null
+    const sporring = etter == null
       ? query(samling, orderBy('oppdatert'))
-      : query(samling, where('oppdatert', '>', Timestamp.fromMillis(etterMs)), orderBy('oppdatert'));
+      : query(samling, where('oppdatert', '>', new Timestamp(etter[0], etter[1])), orderBy('oppdatert'));
     const svar = await getDocs(sporring);
     return svar.docs.map((d) => {
       const { oppdatert, ...data } = d.data();
-      return { id: d.id, data, oppdatertMs: oppdatert?.toMillis?.() ?? null };
+      return { id: d.id, data, oppdatert: oppdatert ? [oppdatert.seconds, oppdatert.nanoseconds] : null };
     });
   }
 
