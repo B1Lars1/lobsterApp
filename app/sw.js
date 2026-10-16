@@ -5,7 +5,7 @@
  * - Deretter hentes de alltid fra telefonen, uten nett også.
  * - Når VERSJON endres (ny versjon publisert), lagres den nye versjonen neste gang
  *   appen åpnes med nett, og appen sier fra at den kan lastes inn på nytt. Bare filene
- *   som er endret, lastes ned. Resten (som de 40 MB med kartdata) kopieres fra forrige
+ *   som er endret, lastes ned. Resten (som de 30 MB med kartdata) kopieres fra forrige
  *   versjon på telefonen, ut fra sjekksummen hver fil har i FILER.
  * - Hver fil som lastes ned, sjekkes mot sjekksummen. Stemmer den ikke (en gammel kopi
  *   underveis i en publisering), avbrytes installeringen og prøves igjen senere, så en
@@ -17,7 +17,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '8f3dfa3a3626';
+const VERSJON = 'cbe524d6db3b';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
   './': '9d188c11c32c',
@@ -25,11 +25,11 @@ const FILER = {
   'data/bunnhint.geojson': '7dff6ecb1079',
   'data/dybdeareal.geojson': 'dfaa36d0802f',
   'data/dybdekurver.geojson': '35043cb8406f',
-  'data/dybdetall.geojson': '7df2bb9ed855',
+  'data/dybdetall.json': '36e18f10e86b',
   'data/fredningsomrader.geojson': '38942d10a30d',
   'data/hummerpotensial.geojson': '8955665326b0',
   'data/kilder.json': '38acc52abbb0',
-  'data/kurveetiketter.geojson': 'd63200ba45b9',
+  'data/kurveetiketter.json': 'dd93b9e4b0af',
   'data/land.geojson': 'aebf9580b0bc',
   'data/stedsnavn.geojson': 'ba8f8284ee4e',
   'data/tarekant.geojson': '6b1cd0891462',
@@ -41,10 +41,10 @@ const FILER = {
   'ikoner/teine-opptatt.svg': '9eee59c46144',
   'ikoner/teine.svg': 'cee886a00886',
   'index.html': '9d188c11c32c',
-  'js/app.js': '6cdd31fd0361',
+  'js/app.js': 'df744110029e',
   'js/dobbelttrykk.js': '0a34a6673128',
   'js/dra-ned.js': '39c76367ab2f',
-  'js/dybdelag.js': '7ac35d895f1f',
+  'js/dybdelag.js': '98947146af4a',
   'js/dybdeoppslag.js': '443fbeec51c7',
   'js/firebase.js': '1e828d2e105b',
   'js/fredning.js': 'a01071ad418e',

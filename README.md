@@ -168,16 +168,20 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `dybdekurver.geojson` | Dybdekurver 2, 3, 5, 10, 15, 20, 30, 40, 50, 100 og 150 m | `dybde` |
 | `dybdeareal.geojson` | Dybdeområder mellom kurvene | `min`, `maks` |
 | `land.geojson` | Land og tørrfall, grunnkart når appen er offline | `kategori` |
-| `dybdetall.geojson` | Dybdepunkter og grunner (skjær er tatt ut, se «Kartet» under) | `kategori`, `dybde` |
-| `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
+| `dybdetall.json` | Dybdepunkter og grunner (skjær er tatt ut, se «Kartet» under) | `kategori`, `dybde` |
+| `kurveetiketter.json` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
 | `bunnhint.geojson` | Tareskog, ålegras og skjellsand som hint om bunnen (se under) | `kategori`, `navn`, `modellert`, `aar` |
 | `hummerpotensial.geojson` | Steder med høyt eller middels hummerpotensial, et anslag (se «Hummerpotensial») | `klasse` (`hoy`/`middels`) |
 | `tarekant.geojson` | Tarekanten: der tareskog møter sand eller ålegras | |
 | `kilder.json` | Kilde, lisens og nedlastingsdato | |
 
-Filene er til sammen ca. 38 MB, eller ca. 5,1 MB komprimert slik de sendes over
-nettet. Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
+Filene er til sammen ca. 29 MB, eller ca. 5 MB komprimert slik de sendes over
+nettet. Dybdetallene og tallene langs kurvene er ca. 90 000 punkter, så de lagres i et
+kompakt format i stedet for GeoJSON (en fjerdedel av størrelsen, og raskere å lese på
+telefonen): `{"felt": ["lon", "lat", "kategori", "dybde"], "punkter": [[8.381, 58.2405,
+"punkt", 23.0], …]}`. Full oppløsning ligger i GPKG-en for GeoPandas (se under).
+Dybdeareal, land og tørrfall forenkles samlet («coverage simplification»),
 så naboflatene fortsatt passer sammen uten sprekker.
 
 Samme data i full oppløsning (UTM32) lagres i
@@ -778,7 +782,7 @@ Appen er en PWA («progressiv web-app»): den kan legges til på hjemskjermen og
   dybdekurver. Teinesymbolene på kartet, `teine.svg` og `teine-opptatt.svg`, er tegnet
   for hånd i samme mappe.
 - `sw.js` (service worker) lagrer appen og alle kartdataene på telefonen første
-  gang den åpnes med nett, ca. 40 MB. Deretter virker appen helt uten nett:
+  gang den åpnes med nett, ca. 30 MB. Deretter virker appen helt uten nett:
   dybdekart, stedsnavn, bunnhint, hummerpotensial, fredningsområder, dybdeoppslag og
   markeringer. Synkroniseringen med kontoen venter til du har nett.
 
@@ -793,7 +797,7 @@ Versjonen er en sjekksum av alle filene. Den regnes med samme type linjeskift
 overalt, så samme kode gir samme versjon på Windows, Mac og Linux. Telefonen ser at
 versjonen er ny neste gang appen åpnes med nett, laster ned den nye versjonen i
 bakgrunnen og viser «Ny versjon av appen er klar». Hver fil har også sin egen sjekksum,
-så telefonen laster bare ned filene som er endret. Resten, som de 40 MB med kartdata,
+så telefonen laster bare ned filene som er endret. Resten, som de 30 MB med kartdata,
 kopieres fra versjonen som ligger på telefonen. Hver fil som lastes ned, sjekkes mot
 sjekksummen, så en halvveis publisering aldri blir lagret. GitHub Actions-workflowen (fase 7) kjører skriptet
 automatisk ved publisering, så du ikke kan glemme det.
@@ -825,7 +829,7 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 ### Legg appen til på hjemskjermen
 
 Første gang må telefonen ha nett. Vent til meldingen «Appen er lagret og virker
-nå uten nett» kommer (lagrer ca. 40 MB).
+nå uten nett» kommer (lagrer ca. 30 MB).
 
 **Appen viser selv hvordan:** åpnes lenken i nettleseren på en telefon, kommer det
 opp et ark med fremgangsmåten for telefonen som brukes. På Android (Chrome) er det

@@ -8,8 +8,11 @@
  * panorerer, så kartet holder seg raskt.
  *
  * Slik virker det:
- *  1. lastDybdedata() henter GeoJSON-filene og regner alle koordinater om til
- *     «verdenskoordinater» (Web Mercator, 0–1) én gang.
+ *  1. lastDybdedata() henter filene og regner alle koordinater om til
+ *     «verdenskoordinater» (Web Mercator, 0–1) én gang. Grunnkartet (soner, land, kurver
+ *     og stedsnavn) kommer først, så kartet kan tegnes. Resten (dybdetall, tall langs
+ *     kurvene, bunnhint, hummerpotensial og tarekant) hentes etterpå og tegnes inn i
+ *     flisene som allerede vises (settData).
  *  2. Et rutenett (romlig indeks) gjør at hver flis bare ser på objekter i nærheten.
  *  3. Dybdelag (en L.GridLayer) tegner en flis hver gang Leaflet ber om en.
  */
@@ -115,6 +118,18 @@ function lagPunkter(geojson, egenskaper) {
   });
 }
 
+// Punkter i det kompakte formatet fra lag_dybdekart.py (raskere å lese enn GeoJSON):
+// { felt: ['lon', 'lat', 'dybde', ...], punkter: [[lon, lat, dybde, ...], ...] }
+function lagPunkterFraListe(data, egenskaper) {
+  const felt = data.felt ?? [];
+  return (data.punkter ?? []).map((rad) => {
+    const [x, y] = tilVerden(rad[0], rad[1]);
+    const p = {};
+    for (let i = 2; i < felt.length; i++) p[felt[i]] = rad[i];
+    return { x, y, bbox: [x, y, x, y], ...egenskaper(p) };
+  });
+}
+
 const overlapper = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
 
 // ---------- Romlig indeks ----------
@@ -167,42 +182,65 @@ class Rutenett {
 
 // ---------- Lasting ----------
 
-export async function lastDybdedata(mappe = 'data/') {
+/**
+ * Hent dybdedataene i to trinn. Returnerer { grunnkart, alt }, to løfter med de samme
+ * nøklene (soner, land, kurver, stedsnavn, etiketter, dybdetall, bunnhint, potensial,
+ * tarekant). I grunnkart er de fem siste tomme. alt har alt, og hentes først når grunnkartet
+ * er laget, så kartet ikke venter på det. Dybdeoppslag (dybdeoppslag.js) skal bruke alt.
+ */
+export function lastDybdedata(mappe = 'data/') {
   const hent = async (navn) => {
     const svar = await fetch(mappe + navn);
     if (!svar.ok) throw new Error(`Klarte ikke å hente ${navn} (${svar.status})`);
     return svar.json();
   };
   const tom = { features: [] }; // valgfrie lag: kartet virker også uten dem
-  const [areal, land, kurver, etiketter, dybdetall, stedsnavn, bunnhint, potensial, tarekant] = await Promise.all([
+  const tomtRutenett = () => new Rutenett([]);
+
+  const grunnkart = Promise.all([
     hent('dybdeareal.geojson'),
     hent('land.geojson'),
     hent('dybdekurver.geojson'),
-    hent('kurveetiketter.geojson'),
-    hent('dybdetall.geojson'),
     hent('stedsnavn.geojson').catch(() => tom),
-    hent('bunnhint.geojson').catch(() => tom),
-    hent('hummerpotensial.geojson').catch(() => tom),
-    hent('tarekant.geojson').catch(() => tom),
-  ]);
-  return {
+  ]).then(([areal, land, kurver, stedsnavn]) => ({
     soner: new Rutenett(lagObjekter(areal, (p) => ({ sone: soneIndeks(p.min), min: p.min, maks: p.maks }))),
     land: new Rutenett(lagObjekter(land, (p) => ({ torrfall: p.kategori === 'torrfall' }))),
     kurver: new Rutenett(lagObjekter(kurver, (p) => ({
       viktig: VIKTIGE_KURVER.has(p.dybde), hoved: HOVEDKURVER.has(p.dybde),
     }))),
-    etiketter: new Rutenett(lagPunkter(etiketter, (p) => ({
-      tekst: String(p.dybde), vinkel: (p.vinkel * Math.PI) / 180, niva: p.niva,
-    }))),
-    dybdetall: new Rutenett(lagPunkter(dybdetall, (p) => ({ kategori: p.kategori, dybde: p.dybde }))),
     stedsnavn: new Rutenett(lagPunkter(stedsnavn, (p) => ({ tekst: p.navn, stil: p.stil, zoom: p.zoom }))),
-    bunnhint: new Rutenett(lagObjekter(bunnhint, (p) => ({
-      hard: p.kategori === 'hard', navn: p.navn, modellert: p.modellert, aar: p.aar,
-    }))),
-    // Hummerpotensial og tarekant (anslag fra scripts/lag_hummerpotensial.py)
-    potensial: new Rutenett(lagObjekter(potensial, (p) => ({ hoy: p.klasse === 'hoy' }))),
-    tarekant: new Rutenett(lagObjekter(tarekant, () => ({}))),
-  };
+    etiketter: tomtRutenett(),
+    dybdetall: tomtRutenett(),
+    bunnhint: tomtRutenett(),
+    potensial: tomtRutenett(),
+    tarekant: tomtRutenett(),
+  }));
+
+  const alt = grunnkart.then(async (forste) => {
+    // La kartet tegne de første flisene før de store filene leses
+    await new Promise((ok) => setTimeout(ok, 50));
+    const [etiketter, dybdetall, bunnhint, potensial, tarekant] = await Promise.all([
+      hent('kurveetiketter.json'),
+      hent('dybdetall.json'),
+      hent('bunnhint.geojson').catch(() => tom),
+      hent('hummerpotensial.geojson').catch(() => tom),
+      hent('tarekant.geojson').catch(() => tom),
+    ]);
+    return {
+      ...forste,
+      etiketter: new Rutenett(lagPunkterFraListe(etiketter, (p) => ({
+        tekst: String(p.dybde), vinkel: (p.vinkel * Math.PI) / 180, niva: p.niva,
+      }))),
+      dybdetall: new Rutenett(lagPunkterFraListe(dybdetall, (p) => ({ kategori: p.kategori, dybde: p.dybde }))),
+      bunnhint: new Rutenett(lagObjekter(bunnhint, (p) => ({
+        hard: p.kategori === 'hard', navn: p.navn, modellert: p.modellert, aar: p.aar,
+      }))),
+      // Hummerpotensial og tarekant (anslag fra scripts/lag_hummerpotensial.py)
+      potensial: new Rutenett(lagObjekter(potensial, (p) => ({ hoy: p.klasse === 'hoy' }))),
+      tarekant: new Rutenett(lagObjekter(tarekant, () => ({}))),
+    };
+  });
+  return { grunnkart, alt };
 }
 
 // Stedsnavn: skrift og plassering per stil. Sjønavn (grunner, båer) står i kursiv litt
@@ -307,6 +345,15 @@ export const Dybdelag = L.GridLayer.extend({
     this.redraw();
   },
 
+  // Ta i bruk alle dataene (lastDybdedata().alt). Flisene som vises, tegnes på nytt der de
+  // er, én om gangen, så kartet ikke blinker eller fryser.
+  settData(data) {
+    this._data = data;
+    for (const { el, coords } of Object.values(this._tiles ?? {})) {
+      setTimeout(() => this._tegnFlis(el, coords, el.width / FLIS), 0);
+    }
+  },
+
   createTile(coords, ferdig) {
     const lerret = document.createElement('canvas');
     const dpr = Math.min(window.devicePixelRatio || 1, 2); // skarp tekst, men maks 2x for å spare minne
@@ -321,7 +368,7 @@ export const Dybdelag = L.GridLayer.extend({
 
   _tegnFlis(lerret, c, dpr) {
     const ctx = lerret.getContext('2d');
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // også når flisa tegnes på nytt (settData)
     const p = PALETTER[this.options.tema];
     const z = c.z;
     const n = 2 ** z;

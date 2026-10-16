@@ -252,12 +252,20 @@ og hummerpotensial i et punkt. Dataene lages av skriptene i `scripts/`, og
 `DATAOMRADE` i `app/js/app.js`. Kartutsnittet går fra Søgne (vestgrensen til Kristiansand
 kommune, som dybdedataene for 4204 dekker) til Grimstad. Utvides det, må alle
 dataskriptene kjøres på nytt i rekkefølgen over (`lag_dybdekart.py` tar ca. 10 min), og
-appen lagrer alt for bruk uten nett (nå ca. 40 MB, ca. 120 MB minne i nettleseren). Mål
-lastetid og minne etter en utvidelse. Ligger nytt område i en annen kommune, må den legges
-til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`. Nytt valgfritt
-datalag: hent det i `lastDybdedata()` med `.catch(() => tom)`, så kartet virker uten
-filen, og tegn det i `_tegnFlis` i riktig rekkefølge (soner, hummerpotensial, kurver,
-bunnhint, tarekant, land, tekst). Skjær er tatt ut av `dybdetall.geojson` med vilje
+appen lagrer alt for bruk uten nett (nå ca. 30 MB, ca. 120 MB minne i nettleseren). Mål
+lastetid og minne etter en utvidelse (med CPU-struping 4× i Chromium: kartet vises etter
+ca. 4 s, dybdeoppslaget er klart etter ca. 6 s). Ligger nytt område i en annen kommune, må den legges
+til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`.
+`lastDybdedata()` gir `{ grunnkart, alt }`: grunnkartet (soner, land, kurver, stedsnavn)
+tegnes først, og resten hentes etterpå og tegnes inn i flisene som vises (`settData`, uten
+`redraw`, så kartet ikke blinker). Dybdeoppslaget (`dybdeI`) må bruke `alt`, ellers lagres
+dybden midt i sonen på markeringene. Nytt valgfritt datalag: hent det i `alt` med
+`.catch(() => tom)`, så kartet virker uten filen, og tegn det i `_tegnFlis` i riktig
+rekkefølge (soner, hummerpotensial, kurver, bunnhint, tarekant, land, tekst).
+`dybdetall.json` og `kurveetiketter.json` er i et kompakt format, ikke GeoJSON
+(`skriv_punkter` i `lag_dybdekart.py`, `lagPunkterFraListe` i `dybdelag.js`). Endres en
+fil i `app/data/`, kjør `lag_service_worker.py` før testing, ellers feiler installeringen
+av service workeren på den manglende filen. Skjær er tatt ut av `dybdetall.json` med vilje
 (brukeren syntes symbolene forstyrret kartet). Ikke legg dem til igjen uten at brukeren
 ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
 
