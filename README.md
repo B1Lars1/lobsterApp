@@ -584,6 +584,10 @@ Sjekk alltid gjeldende forskrift.
     nå), en rød prikk med antall hummer der fangst er registrert, en hul ring der
     teinen ble tatt opp tom, og et rødt «?» der en teine ble meldt mistet. Fangst uten
     teine står på raden «Uten».
+  - med **Sesong** får hver dag så god plass at prikkene ikke dekker hverandre, med dato
+    hver andre dag. Tidslinjen blir da bredere enn skjermen: dra den sideveis for å se
+    resten (teinenumrene og resten av arket står i ro). Årets sesong vises fra i dag og
+    bakover, en tidligere sesong fra 1. oktober. Kanten tones ut der det er mer å se.
 
   Den regner på samme måte som analysen (se «Analyse av fangst»), som har flere detaljer.
   Mistede teiner er ikke med i fangstraten eller andelen som ga hummer.

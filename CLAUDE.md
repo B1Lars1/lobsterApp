@@ -168,7 +168,11 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   teiner er utenfor. Tegnes på nytt bare når punktene er endret (`_signatur`). Analysen
   bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
-  (notater). Se «Sikkerhet».
+  (notater). Se «Sikkerhet». Den er to SVG-er: teinenumrene (`.tl-numre`) og selve
+  tidslinjen i `.tl-rull`, som med «Sesong» er minst `SESONG_PX_PER_DAG` per dag og
+  scrolles sideveis (`visKanter` toner ut kantene). `_tegn` beholder posisjonen når samme
+  periode tegnes på nytt (`_rullNokkel`). `dra-ned.js` lar en bevegelse som går mer til
+  siden enn ned, være scrolling, ellers ble arket dratt ned når tidslinjen ble scrollet.
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py`, `sikkerhetskopi.py` og brukerens analyser i GeoPandas.
   Ikke gi dem nye navn. Appen har ingen eksport lenger (fjernet sammen med Kartverkets

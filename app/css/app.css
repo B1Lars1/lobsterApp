@@ -943,8 +943,28 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .per-person small { color: var(--dempet); font-size: 12px; font-weight: 600; }
 
 /* Tidslinjen (SVG). Fargene er --tl-med og --tl-uten øverst i filen, og --hummer. */
-.tidslinje { min-height: 60px; }
+.tidslinje { display: flex; min-height: 60px; }
 .tidslinje svg { display: block; overflow: visible; }
+.tl-numre { flex: none; } /* teinenumrene står i ro når tidslinjen ved siden av scrolles */
+/* Selve tidslinjen: scrolles sideveis når den er bredere enn arket («Sesong», se oversikt.js).
+   Kanten tones ut der det er mer å se. */
+.tl-rull {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.tl-rull.mer-venstre,
+.tl-rull.mer-hoyre {
+  --venstre: #000;
+  --hoyre: #000;
+  -webkit-mask-image: linear-gradient(to right, var(--venstre), #000 28px, #000 calc(100% - 28px), var(--hoyre));
+  mask-image: linear-gradient(to right, var(--venstre), #000 28px, #000 calc(100% - 28px), var(--hoyre));
+}
+.tl-rull.mer-venstre { --venstre: transparent; }
+.tl-rull.mer-hoyre { --hoyre: transparent; }
 .tl-rutenett { stroke: var(--kant); stroke-width: 1; }
 .tl-idag { fill: var(--valgt); }
 .tl-dato { fill: var(--dempet); font-size: 11px; font-weight: 600; text-anchor: middle; }

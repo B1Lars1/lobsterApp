@@ -17,11 +17,11 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = 'eaaea13de3a3';
+const VERSJON = '6b791d519c84';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
   './': 'f3360c59a446',
-  'css/app.css': '789a9621039e',
+  'css/app.css': 'dc7fc1a9479f',
   'data/bunnhint.geojson': '7dff6ecb1079',
   'data/dybdeareal.geojson': 'dfaa36d0802f',
   'data/dybdekurver.geojson': '35043cb8406f',
@@ -43,7 +43,7 @@ const FILER = {
   'index.html': 'f3360c59a446',
   'js/app.js': '980854427976',
   'js/dobbelttrykk.js': '0a34a6673128',
-  'js/dra-ned.js': '39c76367ab2f',
+  'js/dra-ned.js': '9edf313a1b6d',
   'js/dybdelag.js': '8f9df82c100d',
   'js/dybdeoppslag.js': 'e0169adbe0b1',
   'js/firebase.js': '5ded7bbc4484',
@@ -57,7 +57,7 @@ const FILER = {
   'js/markeringer.js': 'ad5d55f50c43',
   'js/markeringsark.js': 'dca302d835f2',
   'js/melding.js': '612e55afbbb0',
-  'js/oversikt.js': '687e46748e23',
+  'js/oversikt.js': '6ee90ce8ff59',
   'js/personer.js': '8b4e2a71e414',
   'js/potensialjustering.js': 'db0ab063bdc1',
   'js/sky.js': '748336e34aa2',

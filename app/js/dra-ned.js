@@ -2,7 +2,8 @@
  * «Dra ned for å lukke» for arkene (dialog.ark) som kommer opp nedenfra.
  *
  * - På telefonen: dra nedover i håndtaket øverst, eller hvor som helst i arket når
- *   innholdet er scrollet helt opp. Scrolling inni arket virker som vanlig.
+ *   innholdet er scrollet helt opp. Scrolling inni arket virker som vanlig, også sideveis
+ *   (tidslinjen i fangstoversikten): går fingeren mer til siden enn ned, dras ikke arket.
  * - På PC: dra i håndtaket med musa.
  * Drar du langt nok, eller sveiper raskt nedover, lukkes arket. Ellers spretter det tilbake.
  */
@@ -15,6 +16,7 @@ const START_ETTER_PX = 6;   // bevegelse før vi bestemmer om det er dra eller s
 const erFelt = (el) => Boolean(el.closest('input, textarea, select'));
 
 export function draNedForALukke(ark) {
+  let startX = 0;
   let startY = null;
   let sisteY = 0;
   let sisteTid = 0;
@@ -22,8 +24,9 @@ export function draNedForALukke(ark) {
   let drar = false;
   let fraHandtak = false; // håndtaket kan alltid dras, uansett hvor langt arket er scrollet
 
-  function start(y, iHandtak) {
+  function start(x, y, iHandtak) {
     fraHandtak = iHandtak;
+    startX = x;
     startY = y;
     sisteY = y;
     sisteTid = performance.now();
@@ -32,11 +35,15 @@ export function draNedForALukke(ark) {
   }
 
   // Returnerer true hvis bevegelsen drar arket (og skal ikke scrolle innholdet).
-  function flytt(y) {
+  function flytt(x, y) {
     if (startY === null) return false;
     const dy = y - startY;
     if (!drar) {
       const oeverst = fraHandtak || ark.scrollTop <= 0;
+      if (!fraHandtak && Math.abs(x - startX) > Math.max(Math.abs(dy), START_ETTER_PX)) {
+        startY = null; // sideveis: scrolling (tidslinjen), ikke dra
+        return false;
+      }
       if (dy > START_ETTER_PX && oeverst) {
         drar = true;
         ark.classList.add('drar');
@@ -76,11 +83,11 @@ export function draNedForALukke(ark) {
   // Berøring (telefon)
   ark.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1 && !erFelt(e.target)) {
-      start(e.touches[0].clientY, Boolean(e.target.closest('.handtak')));
+      start(e.touches[0].clientX, e.touches[0].clientY, Boolean(e.target.closest('.handtak')));
     }
   }, { passive: true });
   ark.addEventListener('touchmove', (e) => {
-    if (flytt(e.touches[0].clientY)) e.preventDefault(); // hindre at siden scroller/spretter
+    if (flytt(e.touches[0].clientX, e.touches[0].clientY)) e.preventDefault(); // hindre at siden scroller/spretter
   }, { passive: false });
   ark.addEventListener('touchend', slutt);
   ark.addEventListener('touchcancel', slutt);
@@ -90,8 +97,8 @@ export function draNedForALukke(ark) {
   handtak?.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse') return;
     e.preventDefault();
-    start(e.clientY, true);
-    const ved = (m) => flytt(m.clientY);
+    start(e.clientX, e.clientY, true);
+    const ved = (m) => flytt(m.clientX, m.clientY);
     const opp = () => {
       window.removeEventListener('pointermove', ved);
       window.removeEventListener('pointerup', opp);
