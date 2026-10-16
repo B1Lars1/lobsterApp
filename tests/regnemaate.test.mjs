@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Markeringer } from '../app/js/markeringer.js';
-import { lagSettinger, regnUt } from '../app/js/oversikt.js';
+import { lagPeriode, lagSettinger, regnUt, sesongI, sesongerMedData } from '../app/js/oversikt.js';
 import { personer } from '../app/js/personer.js';
 
 const les = (navn) => JSON.parse(readFileSync(new URL(navn, import.meta.url), 'utf8'));
@@ -57,3 +57,27 @@ for (const [uid, forventet] of Object.entries(fasit.per_person)) {
   sammenlign(personer.kortnavn(uid), tall((x) => x.gruppe === gruppe), forventet);
 }
 console.log('Fangstoversikten regner som fasiten');
+
+// Sesongvalget: årets først, og bare tidligere sesonger med teiner eller fangst i 1. oktober–30. november
+{
+  const dag = (tekst) => new Date(tekst).getTime(); // lokal tid, som i appen
+  const naa = dag('2026-10-16T12:00');
+  const settinger = [
+    { fra: dag('2023-10-03T10:00'), til: dag('2023-10-05T10:00') },
+    { fra: dag('2025-09-20T10:00'), til: dag('2025-09-25T10:00') }, // før sesongen 2025
+  ];
+  const fangst = [{ ms: dag('2024-11-30T18:00') }];
+  assert.deepEqual(sesongerMedData(settinger, fangst, naa), [2026, 2024, 2023]);
+  assert.deepEqual(sesongerMedData([], [], naa), [2026]);
+  // Før 1. oktober er fjorårets sesong den siste
+  assert.deepEqual(sesongerMedData(settinger, fangst, dag('2026-09-01T12:00')), [2025, 2024, 2023]);
+
+  // En tidligere sesong vises hele, 1. oktober–30. november, og er over
+  assert.deepEqual(lagPeriode('sesong', naa, 2024), { ...sesongI(2024), over: true, sesong: true });
+  const iAar = lagPeriode('sesong', naa);
+  assert.equal(iAar.fra, sesongI(2026).fra);
+  assert.equal(iAar.over, false);
+  // 7 og 30 dager gjelder alltid sesongen som pågår
+  assert.equal(lagPeriode('7', naa, 2024).aar, 2026);
+}
+console.log('Sesongvalget i fangstoversikten virker');

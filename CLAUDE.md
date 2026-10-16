@@ -30,9 +30,10 @@ detalj. Denne filen er det en agent trenger i tillegg.
 
 Ingen byggesteg, ingen pakkehåndtering for JavaScript og ingen linter. Appen i `app/` er
 statiske filer. Testene i `tests/` sjekker at fangstoversikten og analysen regner som
-fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`), og
-regnestykket i `potensialjustering.js`. README viser kommandoene for Windows/PowerShell
-(`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
+fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`),
+sesongvalget i oversikten og regnestykket i `potensialjustering.js`. README viser
+kommandoene for Windows/PowerShell (`.\.venv\Scripts\python.exe`). På macOS/Linux er det
+`.venv/bin/python`.
 
 ```bash
 python scripts/testserver.py [port]     # appen på http://localhost:8000 (eller porten), uten mellomlagring
@@ -152,7 +153,10 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   per person og tidslinjen gruppert per person. Analysen viser det samme per person når
   flere har teiner i filen, og `--person` gir bare én persons teiner, som «Mine». Oversikten viser bare
   hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
-  brukes til sesongtallet i teinelisten). Kartet viser fangst og opptatte teiner bare fra
+  brukes til sesongtallet i teinelisten). Under «Sesong» kan en tidligere sesong velges
+  (`sesongerMedData`, `sesongI`, `lagPeriode`): valget vises bare når hele laget har teiner
+  eller fangst fra en tidligere sesong, og `vis()` setter det tilbake til årets. 7 og 30
+  dager gjelder alltid sesongen som pågår. Kartet viser fangst og opptatte teiner bare fra
   `hummersesong().fra` (`_synlig` i `kartmarkeringer.js`), og teinelisten lager radene for
   tidligere sesonger først når de åpnes (`_eldreFangst`, `_apneSesonger` i
   `markeringsark.js`). Symbolene er HTML-elementer, så alt fra flere år ville gjort kartet
@@ -164,7 +168,15 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   teiner er utenfor. Tegnes på nytt bare når punktene er endret (`_signatur`). Analysen
   bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
-  (notater). Se «Sikkerhet».
+  (notater). Se «Sikkerhet». Den er to SVG-er: teinenumrene (`.tl-numre`) og selve
+  tidslinjen i `.tl-rull`, som med «Sesong» er minst `SESONG_PX_PER_DAG` per dag og
+  scrolles sideveis (`kan-rulle`, `visKanter` toner ut kantene). 7 og 30 dager skal passe i
+  bredden og kan ikke scrolles. `_tegn` tegner på nytt hvis bredden endret seg (arkets
+  loddrette rullefelt på PC dukker opp først når tidslinjen er satt inn), og beholder
+  posisjonen når samme periode tegnes på nytt (`_rullNokkel`). Headless Chromium skjuler
+  rullefeltene: test slikt med `ignoreDefaultArgs: ['--hide-scrollbars']` i Playwright.
+  `dra-ned.js` lar en bevegelse som går mer til siden enn ned, være scrolling, ellers ble
+  arket dratt ned når tidslinjen ble scrollet.
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py`, `sikkerhetskopi.py` og brukerens analyser i GeoPandas.
   Ikke gi dem nye navn. Appen har ingen eksport lenger (fjernet sammen med Kartverkets
@@ -395,9 +407,9 @@ bakgrunn, med nummeret som HTML oppå.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
   ved hver endring. Derfor gjelder en ny standardverdi bare nye brukere. Skal den også
   gjelde dem som har brukt appen før, øk `VERSJON` i `innstillinger.js` og flytt verdien i
-  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2). Andre moduler som
-  husker noe i `localStorage`, bruker egen nøkkel (som `hummerkart.sky`), ellers blir
-  verdien overskrevet når innstillingene lagres.
+  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2, og fangst fra tidligere
+  sesonger i versjon 3). Andre moduler som husker noe i `localStorage`, bruker egen nøkkel
+  (som `hummerkart.sky`), ellers blir verdien overskrevet når innstillingene lagres.
 - Veiledningen for hjemskjermen (`hjemskjerm.js`) vises hver gang siden åpnes i
   nettleseren på telefon (brukeren vil det slik, ikke «vis igjen om en uke»). På PC
   skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste

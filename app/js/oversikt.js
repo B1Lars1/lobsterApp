@@ -4,6 +4,8 @@
  *
  * Bare hummersesongen vises: 1. oktober til og med 30. november. Perioden er alltid
  * innenfor sesongen som pågår, eller den siste som var (før 1. oktober: fjorårets).
+ * Med «Sesong» kan du også velge en tidligere sesong, hvis det finnes teiner eller fangst
+ * fra den. Årets er valgt hver gang oversikten åpnes.
  *
  * Samme regnemåte som scripts/analyser_fangst.py, men enklere (testet mot samme fasit i
  * tests/, se tests/regnemaate.test.mjs og tests/test_regnemaate.py):
@@ -16,7 +18,8 @@
  * Tidslinjen er SVG, med én rad per teinenummer: en stolpe per setting (blå = ga
  * hummer, grå = ingen), lysere med pil hvis den står i sjøen nå, en rød prikk med
  * antall for hver fangst, en hul ring for 0 hummer (tom teine) og et rødt «?» der en
- * teine ble meldt mistet.
+ * teine ble meldt mistet. Med «Sesong» får hver dag minst SESONG_PX_PER_DAG, så prikkene
+ * ikke dekker hverandre, og tidslinjen scrolles sideveis mens teinenumrene står i ro.
  *
  * Oversikten viser dine teiner og fangsten fra dem (personer.js, Markeringer.eierAv). I et
  * lag kan du velge «Laget»: alt i laget, en tabell med tallene per person, og tidslinjen
@@ -28,10 +31,12 @@ import { personer } from './personer.js';
 const DAG = 24 * 60 * 60 * 1000;
 const RAD = 30;      // høyde per rad
 const STOLPE = 14;   // høyde på stolpene
-const VENSTRE = 46;  // plass til teinenummeret
+const VENSTRE = 42;  // kolonnen med teinenumrene (står i ro når tidslinjen scrolles)
+const INNRYKK = 10;  // luft før første dag, så prikkene der ikke kuttes
 const HOYRE = 14;    // plass til pilen og prikkene ved «nå»
 const TOPP = 22;     // plass til «nå» over radene
 const BUNN = 36;     // plass til datoene under
+const SESONG_PX_PER_DAG = 24; // «Sesong»: minst så bredt per dag, og tidslinjen scrolles sideveis
 
 const ukedag = new Intl.DateTimeFormat('nb-NO', { weekday: 'short' });
 const kortDato = new Intl.DateTimeFormat('nb-NO', { day: 'numeric', month: 'numeric' });
@@ -115,7 +120,11 @@ const SESONG_SLUTT_MAANED = 11; // 1. desember, første dag etter sesongen
  */
 export function hummersesong(naa = Date.now()) {
   const d = new Date(naa);
-  const aar = d.getMonth() >= SESONG_START_MAANED ? d.getFullYear() : d.getFullYear() - 1;
+  return sesongI(d.getMonth() >= SESONG_START_MAANED ? d.getFullYear() : d.getFullYear() - 1);
+}
+
+/** Hummersesongen i et bestemt år: { aar, fra, til } som hummersesong(). */
+export function sesongI(aar) {
   return {
     aar,
     fra: new Date(aar, SESONG_START_MAANED, 1).getTime(),
@@ -124,11 +133,32 @@ export function hummersesong(naa = Date.now()) {
 }
 
 /**
+ * Sesongene som kan velges, nyeste først: den som pågår (eller den siste), og de tidligere
+ * med minst én teinesetting eller fangst innenfor 1. oktober–30. november.
+ */
+export function sesongerMedData(settinger, fangst, naa) {
+  const siste = hummersesong(naa).aar;
+  let forste = siste;
+  for (const ms of [...settinger.map((t) => t.fra), ...fangst.map((f) => f.ms)]) {
+    if (Number.isFinite(ms)) forste = Math.min(forste, new Date(ms).getFullYear());
+  }
+  const aarListe = [siste];
+  for (let aar = siste - 1; aar >= forste; aar--) {
+    const { fra, til } = sesongI(aar);
+    if (settinger.some((t) => t.til > fra && t.fra < til) || fangst.some((f) => f.ms >= fra && f.ms < til)) {
+      aarListe.push(aar);
+    }
+  }
+  return aarListe;
+}
+
+/**
  * Perioden som vises: hele dager innenfor sesongen, til og med i dag (eller 30. november
  * når sesongen er over). 7 og 30 dager er de siste dagene, men aldri før 1. oktober.
+ * «Sesong» er hele sesongen i året aar (årets hvis det ikke er oppgitt).
  */
-function lagPeriode(valg, naa) {
-  const sesong = hummersesong(naa);
+export function lagPeriode(valg, naa, aar = hummersesong(naa).aar) {
+  const sesong = valg === 'sesong' ? sesongI(aar) : hummersesong(naa);
   const til = Math.min(dagerFra(midnatt(naa), 1), sesong.til);
   const fra = valg === 'sesong' ? sesong.fra : Math.max(dagerFra(til, -Number(valg)), sesong.fra);
   return { fra, til, aar: sesong.aar, over: naa >= sesong.til, sesong: valg === 'sesong' };
@@ -139,6 +169,10 @@ export class Fangstoversikt {
     this.markeringer = markeringer;
     this.ark = document.getElementById('ark-oversikt');
     this.tidslinje = this.ark.querySelector('[data-tidslinje]');
+    this.sesongvalg = this.ark.querySelector('select[name="sesong"]');
+    // Kantene på tidslinjen tones ut der det er mer å scrolle til («scroll» bobler ikke, så
+    // fang den på vei ned)
+    this.tidslinje.addEventListener('scroll', (e) => visKanter(e.target), { capture: true, passive: true });
 
     this.ark.addEventListener('click', (e) => {
       if (e.target === this.ark || e.target.closest('[data-handling="lukk"]')) this.ark.close();
@@ -156,6 +190,8 @@ export class Fangstoversikt {
   }
 
   vis() {
+    this.sesongvalg.value = String(hummersesong().aar); // årets sesong hver gang oversikten åpnes
+    this._rullNokkel = null; // og tidslinjen scrolles dit den begynner (se _tegn)
     this.ark.showModal();
     this._tegn(); // etter showModal, så bredden på tidslinjen er kjent
   }
@@ -169,12 +205,13 @@ export class Fangstoversikt {
     const medtas = (x) => laget || x.gruppe === personer.meg;
 
     const { settinger, fangst, utenTeine } = lagSettinger(this.markeringer.alle(), naa, (m) => this.markeringer.eierAv(m));
-    const periode = lagPeriode(valg, naa);
+    const periode = lagPeriode(valg, naa, this._tegnSesongvalg(valg, settinger, fangst, naa));
     const iPerioden = settinger.filter((s) => medtas(s) && s.til > periode.fra && s.fra < periode.til);
     const fangstIPerioden = fangst.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
 
     this._tegnTall(periode, regnUt(periode, naa, iPerioden, fangstIPerioden));
     this._tegnPerPerson(laget ? { periode, naa, iPerioden, fangstIPerioden } : null);
+    const scrollet = this.tidslinje.querySelector('.tl-rull')?.scrollLeft;
     this.tidslinje.replaceChildren();
     if (!iPerioden.length && !fangstIPerioden.length) {
       const tom = document.createElement('p');
@@ -184,7 +221,36 @@ export class Fangstoversikt {
       return;
     }
     const utenIPerioden = utenTeine.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
+    const bredde = this.tidslinje.clientWidth;
     this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden, laget);
+    // Fikk arket et loddrett rullefelt av tidslinjen (PC, ikke iPhone), er det smalere nå.
+    // Tegn på nytt, ellers blir 7 og 30 dager bredere enn arket.
+    if (this.tidslinje.clientWidth !== bredde) {
+      this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden, laget);
+    }
+
+    // Tegnes samme periode på nytt (endringer, Mine/Laget), står tidslinjen der den var.
+    // Ellers vises årets sesong fra i dag (helt til høyre), og en tidligere fra 1. oktober.
+    const rull = this.tidslinje.querySelector('.tl-rull');
+    const rullNokkel = `${valg}|${periode.fra}`;
+    rull.scrollLeft = rullNokkel === this._rullNokkel && scrollet != null ? scrollet
+      : periode.over ? 0 : rull.scrollWidth;
+    this._rullNokkel = rullNokkel;
+    visKanter(rull);
+  }
+
+  // Valget av sesong under «Sesong», bare når det finnes data fra tidligere sesonger (hele
+  // laget, så listen ikke endres med Mine/Laget). Gir året som er valgt.
+  _tegnSesongvalg(valg, settinger, fangst, naa) {
+    const aarListe = sesongerMedData(settinger, fangst, naa);
+    const valgt = Number(this.sesongvalg.value) || aarListe[0];
+    if (this.sesongvalg.dataset.aar !== aarListe.join()) {
+      this.sesongvalg.dataset.aar = aarListe.join();
+      this.sesongvalg.replaceChildren(...aarListe.map((aar) => new Option(`Sesongen ${aar}`, aar)));
+      this.sesongvalg.value = String(aarListe.includes(valgt) ? valgt : aarListe[0]);
+    }
+    this.ark.querySelector('[data-sesongvalg]').hidden = valg !== 'sesong' || aarListe.length < 2;
+    return valg === 'sesong' ? Number(this.sesongvalg.value) : aarListe[0];
   }
 
   _tegnTall(periode, tall) {
@@ -237,9 +303,13 @@ export class Fangstoversikt {
   }
 
   // Tidslinjen som SVG. Alt som settes inn er tall vi har regnet ut selv, og fargene fra
-  // personer.js (konstanter). Med «Laget» grupperes radene per person.
+  // personer.js (konstanter). Med «Laget» grupperes radene per person. Teinenumrene er en
+  // egen smal SVG til venstre, og selve tidslinjen ligger i .tl-rull ved siden av, som kan
+  // scrolles sideveis når den er bredere enn arket («Sesong»).
   _svg(periode, naa, iPerioden, utenTeine, laget = false) {
-    const bredde = this.tidslinje.clientWidth || 340;
+    const synlig = Math.max((this.tidslinje.clientWidth || 340) - VENSTRE, 120);
+    const dager = Math.round((periode.til - periode.fra) / DAG);
+    const bredde = periode.sesong ? Math.max(synlig, INNRYKK + dager * SESONG_PX_PER_DAG + HOYRE) : synlig;
 
     // Én rad per teinenummer (sortert), per person i laget, og en rad nederst for fangst uten teine
     const grupper = laget ? personer.rekkefolge(iPerioden.map((t) => t.gruppe)) : [personer.meg];
@@ -252,14 +322,14 @@ export class Fangstoversikt {
     const hoyde = TOPP + rader * RAD + BUNN;
     const yFor = (rad) => TOPP + rad * RAD + RAD / 2;
 
-    const x0 = VENSTRE;
+    const x0 = INNRYKK;
     const x1 = bredde - HOYRE;
     const x = (ms) => x0 + ((ms - periode.fra) / (periode.til - periode.fra)) * (x1 - x0);
     const bunn = TOPP + rader * RAD;
     const deler = [];
+    const numre = []; // kolonnen til venstre
 
     // Datoer og rutenett. Er det plass, får hver dag en kolonne med ukedag og dato.
-    const dager = Math.round((periode.til - periode.fra) / DAG);
     const pxPerDag = (x1 - x0) / dager;
     if (pxPerDag >= 30) {
       for (let d = periode.fra; d < periode.til; d = dagerFra(d, 1)) {
@@ -279,7 +349,7 @@ export class Fangstoversikt {
       const start = periode.sesong ? periode.fra : dagerFra(periode.til, -1);
       const retning = periode.sesong ? 1 : -1;
       for (let i = 0, d = start; d >= periode.fra && d < periode.til; d = dagerFra(start, retning * steg * ++i)) {
-        const tx = Math.min(Math.max(x(d), x0 + 16), x1 - 16); // datoen skal ikke gå utenfor kanten
+        const tx = Math.min(Math.max(x(d), x0 + 9), x1 - 16); // datoen skal ikke gå utenfor kanten
         deler.push(`<line class="tl-rutenett" x1="${x(d)}" x2="${x(d)}" y1="${TOPP - 4}" y2="${bunn}"/>`);
         deler.push(`<text class="tl-dato" x="${tx}" y="${bunn + 18}">${kortDato.format(d)}</text>`);
       }
@@ -290,14 +360,16 @@ export class Fangstoversikt {
       const y = yFor(rad);
       const annen = laget && t.gruppe !== personer.meg;
       if (laget && rad > 0 && t.gruppe !== nokler[rad - 1].gruppe) {
-        deler.push(`<line class="tl-gruppe" x1="0" x2="${bredde}" y1="${y - RAD / 2}" y2="${y - RAD / 2}"/>`);
+        const strek = (b) => `<line class="tl-gruppe" x1="0" x2="${b}" y1="${y - RAD / 2}" y2="${y - RAD / 2}"/>`;
+        numre.push(strek(VENSTRE));
+        deler.push(strek(bredde));
       }
-      deler.push(`<rect class="tl-nummer" x="4" y="${y - 11}" width="34" height="22" rx="11"${annen
+      numre.push(`<rect class="tl-nummer" x="4" y="${y - 11}" width="34" height="22" rx="11"${annen
         ? ` style="fill: ${personer.farge(t.gruppe)}; stroke: #fff"` : ''}/>`);
-      deler.push(`<text class="tl-nummertekst${annen ? ' annen' : ''}" x="21" y="${y + 4.5}">${t.nummer || '?'}</text>`);
+      numre.push(`<text class="tl-nummertekst${annen ? ' annen' : ''}" x="21" y="${y + 4.5}">${t.nummer || '?'}</text>`);
     }
     if (utenTeine.length) {
-      deler.push(`<text class="tl-uten-teine" x="21" y="${yFor(nokler.length) + 4}">Uten</text>`);
+      numre.push(`<text class="tl-uten-teine" x="21" y="${yFor(nokler.length) + 4}">Uten</text>`);
     }
 
     // «Nå», bare mens sesongen pågår
@@ -340,7 +412,15 @@ export class Fangstoversikt {
       }
     }
 
-    return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="${bredde}" height="${hoyde}" role="img"
-      aria-label="Tidslinje for teinene i perioden">${deler.join('')}</svg>`;
+    return `<svg class="tl-numre" viewBox="0 0 ${VENSTRE} ${hoyde}" width="${VENSTRE}" height="${hoyde}"
+      aria-hidden="true">${numre.join('')}</svg><div class="tl-rull${periode.sesong ? ' kan-rulle' : ''}"><svg viewBox="0 0 ${bredde} ${hoyde}"
+      width="${bredde}" height="${hoyde}" role="img" aria-label="Tidslinje for teinene i perioden">${deler.join('')}</svg></div>`;
   }
+}
+
+// Tone ut kantene på tidslinjen der det er mer å scrolle til (.mer-venstre og .mer-hoyre i app.css)
+function visKanter(rull) {
+  if (!rull.classList?.contains('tl-rull')) return;
+  rull.classList.toggle('mer-venstre', rull.scrollLeft > 1);
+  rull.classList.toggle('mer-hoyre', rull.scrollLeft + rull.clientWidth < rull.scrollWidth - 1);
 }

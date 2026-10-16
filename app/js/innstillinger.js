@@ -7,7 +7,7 @@
 const NOKKEL = 'hummerkart.innstillinger';
 
 // Øk når en standardverdi endres for dem som har brukt appen før (se hentInnstillinger)
-const VERSJON = 2;
+const VERSJON = 3;
 
 const STANDARD = {
   versjon: VERSJON,
@@ -15,7 +15,7 @@ const STANDARD = {
   dybdetall: true,
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
-  visTidligere: true,   // vis fangst fra tidligere sesonger (tidligere.js)
+  visTidligere: false,  // vis fangst fra tidligere sesonger (tidligere.js)
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
@@ -29,9 +29,12 @@ export function hentInnstillinger() {
     // Fjernet: Kartverkets topokart (bakgrunn) og GeoJSON-eksporten (sistEksportert)
     delete lagret.bakgrunn;
     delete lagret.sistEksportert;
-    if (Object.keys(raa).length && (raa.versjon ?? 1) < 2) {
+    const versjon = raa.versjon ?? 1;
+    if (Object.keys(raa).length && versjon < VERSJON) {
       // Versjon 2: bunnhint er av som standard, også for dem som har brukt appen før
-      lagret.visBunnhint = false;
+      if (versjon < 2) lagret.visBunnhint = false;
+      // Versjon 3: det samme for fangst fra tidligere sesonger
+      if (versjon < 3) lagret.visTidligere = false;
       lagret.versjon = VERSJON;
       lagreInnstillinger(lagret);
     }
