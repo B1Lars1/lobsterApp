@@ -60,8 +60,13 @@
   <div id="laster" class="brikke laster" role="status">Laster dybdekart …</div>
   <div id="melding" class="melding" role="status" aria-live="polite"></div>
 
-  <!-- Høyre side: zoom og «finn meg» -->
+  <!-- Høyre side: synkronisering (bare når kontoen er koblet til skyen), zoom og «finn meg» -->
   <div class="kartknapper">
+    <button id="knapp-synk-kart" class="rund-knapp synk" type="button" aria-label="Synkroniser nå" hidden>
+      <!-- To piler i ring (tegnet for appen). Snurrer mens synkroniseringen pågår. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.1 10.6A8 8 0 0 1 19.5 9.3"/><path d="M15.9 7.6 19.5 9.3 21.2 5.6"/><path d="M19.9 13.4A8 8 0 0 1 4.5 14.7"/><path d="M8.1 16.4 4.5 14.7 2.8 18.4"/></svg>
+      <span class="merke" hidden></span>
+    </button>
     <button id="knapp-zoom-inn" class="rund-knapp" type="button" aria-label="Zoom inn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     </button>

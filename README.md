@@ -337,6 +337,9 @@ så et langt trykk ikke merker for eksempel målestokken på iPhone.
 **Innstillinger** (tannhjulet øverst til høyre) har hva som vises på kartet, tema,
 sikkerhetskopi, konto og lag.
 
+**Synkroniseringsknappen** (to piler i ring, over + og −) vises når kontoen er koblet til
+skyen, og synkroniserer med en gang (se «Konto»).
+
 **Kartet** er appens eget dybdekart, laget av Kartverkets dybdedata, med land, stedsnavn
 og dybder. Det er lagret på telefonen og virker uten nett. (Kartverkets topokart var med
 tidligere, men ga lite på sjøen og krevde nett, så det er fjernet.) Skjær har ikke eget
@@ -750,12 +753,18 @@ den som driver appen sletter dem.
 - **Hvor lenge:** du er logget inn til du logger ut, bytter passord (da må du logge inn
   på nytt på de andre telefonene) eller kontoen slettes. Uten nett er du fortsatt logget
   inn, og synkroniseringen venter til du har nett.
-- **Synkronisering** (koblet til skyen): når appen åpnes eller kommer fram igjen, kort tid
-  etter hver endring og når telefonen får nett igjen. **Synkroniser nå** gjør det med en
-  gang. Telefonen er hovedkopien, så alt virker uten nett, og endringene sendes når du får
-  nett. Nyeste versjon av hver markering vinner, og slettinger følger med til de andre
-  telefonene. Bare på telefonen sjekker appen bare om kontoen er koblet til et annet sted,
-  når den åpnes.
+- **Synkronisering** (koblet til skyen): når appen åpnes eller kommer fram igjen, når
+  telefonen får nett igjen, og med en gang hver endring er lagret (etter et halvt sekund, så
+  det som hører til samme handling, for eksempel fangsten og teinen som er tatt opp, sendes
+  samlet). **Synkroniseringsknappen** på kartet (to piler i ring, over zoomknappene) og
+  **Synkroniser nå** i innstillingene gjør det med en gang og henter det de andre har
+  endret. Knappen vises bare når kontoen er koblet til skyen. Den snurrer mens
+  synkroniseringen pågår, og et merke viser hvor mange endringer som ikke er sendt ennå
+  (uten nett), rødt (eller «!») hvis det gikk galt. Trykker du på den, får du en melding om
+  hvordan det gikk. Telefonen er hovedkopien, så alt virker uten nett, og endringene sendes
+  når du får nett. Nyeste versjon av hver markering vinner, og slettinger følger med til de
+  andre telefonene. Bare på telefonen sjekker appen bare om kontoen er koblet til et annet
+  sted, når den åpnes.
 - **Logg ut:** teinene og fangsten blir liggende på telefonen. Er kontoen koblet til
   skyen, sendes det som er endret, først (uten nett sendes det når du logger inn igjen).
   Logger du inn igjen med samme konto, fortsetter alt der det slapp.
@@ -796,7 +805,7 @@ person på en fiskedag:
 
 | Grense | Gratis | Rekker til omtrent |
 |---|---|---|
-| Lesinger i Firestore | 50 000 per døgn | 100 personer i skyen som fisker samme dag (ca. 500 lesinger hver i et lag på to). Hver synkronisering leser også kontoens valg. Kontoer som bare lagrer på telefonen, bruker én lesing hver gang appen åpnes |
+| Lesinger i Firestore | 50 000 per døgn | 100 personer i skyen som fisker samme dag (ca. 500 lesinger hver i et lag på to). Hver lagret endring synkroniseres med en gang, og hver synkronisering leser minst 3 dokumenter (kontoens valg, laget og endringene). Kontoer som bare lagrer på telefonen, bruker én lesing hver gang appen åpnes |
 | Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
 | Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
 | GitHub Pages | 100 GB per måned (mykt tak) | Mange tusen brukere: ca. 6 MB per telefon første gang, deretter bare filene som er endret (noen hundre kB for en ny versjon av koden, 6 MB hvis alle kartdataene er laget på nytt) |
@@ -1026,8 +1035,8 @@ Fangstoversikten i appen og analysen (`scripts/analyser_fangst.py`) skal regne l
 sesonger som kan velges i fangstoversikten. `potensialjustering.test.mjs` sjekker at
 justeringen av hummerpotensialet regner som beskrevet over. `sky.test.mjs` sjekker
 synkroniseringen med en falsk Firebase: at en ny konto bare lagrer på telefonen, at
-kontoen kan kobles til og fra skyen uten at noe går tapt, at et lag kobler den til, og at
-Logg ut beholder alt:
+kontoen kan kobles til og fra skyen uten at noe går tapt, at et lag kobler den til, at
+Logg ut beholder alt, og at endringer synkroniseres med en gang når det er noe å sende:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests   # analysen

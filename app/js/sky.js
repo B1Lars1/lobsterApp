@@ -36,7 +36,8 @@
  * telefonen over disse slettingene og sendes på nytt, selv om det er eldre.
  *
  * Synkroniserer når du logger inn, når appen åpnes eller kommer fram igjen, når telefonen
- * får nett igjen, og kort tid etter endringer (bare når kontoen er koblet til).
+ * får nett igjen, når du trykker på synkroniseringsknappen, og rett etter hver lagret
+ * endring (bare når kontoen er koblet til).
  *
  * Tilstanden huskes i localStorage under egen nøkkel:
  *   { uid, sky: true | false | null (ikke sjekket ennå), frakobler, rom, lag,
@@ -49,7 +50,9 @@
 import { FELT } from './markeringer.js';
 
 const NOKKEL = 'hummerkart.sky';
-const VENT_ETTER_ENDRING_MS = 10000;
+// Endringer sendes med en gang. Den korte ventetiden samler endringene fra én handling
+// (fangsten og teinen som er tatt opp, «Ta opp mine») i én synkronisering.
+const VENT_ETTER_ENDRING_MS = 500;
 
 function hentTilstand() {
   try {
@@ -90,6 +93,12 @@ function tilDokument(m) {
 }
 
 const endringer = (n) => (n === 1 ? '1 endring' : `${n} endringer`);
+
+/** Svaret fra en synkronisering som gikk bra ({ hentet, sendt }), til brukeren. */
+export function synkTekst({ hentet, sendt }) {
+  return `Synkronisert: ${hentet ? `${endringer(hentet)} hentet` : 'ingen nye endringer'}`
+    + `${sendt ? `, ${sendt} sendt` : ''}.`;
+}
 
 // Feil fra appen selv, med forklaringen til brukeren i «tekst» (se feilTekst)
 const appFeil = (tekst) => Object.assign(new Error(tekst), { tekst });
@@ -150,10 +159,11 @@ export class Sky {
     this._timer = null;
     this._frakoblet = null; // «endret» på slettingene fra da kontoen sist ble koblet fra skyen
 
-    // Synkroniser kort tid etter at noe er endret (ikke for hver lille endring). Under en
-    // synkronisering overses det, ellers ville importen av det som hentes, starte en ny.
+    // Synkroniser rett etter at noe er lagret, men bare hvis det er noe å sende (dybden som
+    // fylles inn, endrer ikke «endret»). Under en synkronisering overses det, ellers ville
+    // importen av det som hentes, starte en ny. Det som endres underveis, sendes etterpå.
     markeringer.naarEndret(() => {
-      if (this.koblet && !this.pagar) this.planlegg();
+      if (this.koblet && !this.pagar && this._usendte().length) this.planlegg();
     });
     // Når appen får nett eller kommer fram igjen: hent endringer fra andre telefoner, og
     // sjekk om kontoen er koblet til eller fra skyen et annet sted
@@ -181,6 +191,11 @@ export class Sky {
 
   get pagar() {
     return Boolean(this._pagaende);
+  }
+
+  /** Antall markeringer og slettinger som ikke er sendt til skyen ennå (0 uten skyen). */
+  get antallUsendte() {
+    return this.koblet ? this._usendte().length : 0;
   }
 
   /** Laget du er med i ({ id, navn, medlemmer, eposter, initialer }), eller null. */

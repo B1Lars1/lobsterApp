@@ -2,7 +2,8 @@
  * Synkroniseringen med skyen (app/js/sky.js), med erstatninger for Firebase og nettleseren:
  * en ny konto lagrer bare på telefonen, kontoen kan kobles til og fra skyen (valget følger
  * kontoen til alle telefonene), det som ligger på telefonen, vinner over slettingene fra
- * frakoblingen, et lag kobler kontoen til, og Logg ut beholder alt på telefonen.
+ * frakoblingen, et lag kobler kontoen til, Logg ut beholder alt på telefonen, og endringer
+ * synkroniseres med en gang, men bare når det er noe å sende.
  * Oppdiktede data.
  *
  * Kjør fra roten av repoet:  node tests/sky.test.mjs
@@ -342,5 +343,30 @@ f.svar = true;
 await f.loggInn(kari);
 assert.equal(await f.kjor(() => f.sky.innlogget), true);
 assert.deepEqual(f.numre(), [], 'fjernet når brukeren sier ja');
+
+// ---------- Endringer synkroniseres med en gang, men bare når det er noe å sende ----------
+
+const g = nyTelefon(new FalskTjeneste());
+let planlagt = 0;
+g.sky.planlegg = () => planlagt++;
+await g.loggInn(ola);
+await g.teine(1);
+assert.equal(planlagt, 0, 'bare på telefonen: ingen synkronisering etter endringer');
+await g.kjor(() => g.sky.kobleTil());
+assert.equal(await g.kjor(() => g.sky.antallUsendte), 0);
+planlagt = 0;
+await g.teine(2);
+assert.equal(planlagt, 1, 'koblet til: synkroniseres rett etter endringen');
+assert.equal(await g.kjor(() => g.sky.antallUsendte), 1);
+// Uten nett venter endringen, og synkroniseringsknappen viser at den ikke er sendt
+navigator.onLine = false;
+assert.equal(await g.synk(), null);
+assert.equal(await g.kjor(() => g.sky.antallUsendte), 1);
+navigator.onLine = true;
+assert.deepEqual(await g.synk(), { hentet: 0, sendt: 1 });
+assert.equal(await g.kjor(() => g.sky.antallUsendte), 0);
+// Dybden som fylles inn, endrer ikke «endret», så det er ingenting å sende
+await g.kjor(() => g.markeringer.settDybdeoppslag(() => 12));
+assert.equal(planlagt, 1, 'ingen synkronisering når ingenting skal sendes');
 
 console.log('Synkroniseringen med skyen virker som den skal');

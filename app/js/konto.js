@@ -11,7 +11,7 @@
  */
 
 import { GYLDIGE_INITIALER, personer } from './personer.js';
-import { feilTekst, rensKode, visKode } from './sky.js';
+import { feilTekst, rensKode, synkTekst, visKode } from './sky.js';
 
 const MODUS = {
   inn: {
@@ -209,11 +209,7 @@ export class Konto {
 
   async _synkroniserNaa() {
     const r = await this.sky.synkroniser();
-    if (r && !r.feil && !r.lokal) {
-      const hentet = r.hentet ? `${r.hentet} endringer hentet` : 'ingen nye endringer';
-      const sendt = r.sendt ? `, ${r.sendt} sendt` : '';
-      this.visStatus({ tilstand: 'ok', tekst: `Synkronisert: ${hentet}${sendt}.` });
-    }
+    if (r && !r.feil && !r.lokal) this.visStatus({ tilstand: 'ok', tekst: synkTekst(r) });
   }
 
   async _loggUt() {
