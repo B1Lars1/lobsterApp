@@ -36,7 +36,7 @@ import { Konto } from './konto.js';
 import { Sky } from './sky.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
-const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]); // samme som BBOX_WGS84 i scripts/config.py
+const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]);
 // Skauerøya i Lillesand: før GPS-en har funnet deg, og når du er langt fra sjøen
 const START = { senter: [58.2339, 8.3835], zoom: 13 };
 // Er du nærmere sjøen enn dette når appen åpnes, viser kartet deg i stedet (se gps.js)

@@ -246,7 +246,9 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   Actions der hver time fra 1. oktober til 15. desember og ellers hver natt (brukerens valg,
   fire `cron`-linjer i UTC), og lagrer alle rom som GeoJSON. Den committer bare når noe er
   endret, så ingen ny commit betyr ikke at den ikke kjørte (se Actions). Tidene står også i
-  innstillingene (`oppdaterDatainfo` i `app.js`) og `personvern.html`. `gjenopprett.py`
+  innstillingene (`oppdaterDatainfo` i `app.js`), `personvern.html`, kommentaren øverst i
+  `lager.js`, `hent_sikkerhetskopi()` i `analyser_fangst.py` og README. Endres de, oppdater
+  alle. `gjenopprett.py`
   gjør en gammel kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra
   kontoene i Auth og `lag`-samlingen) etter dokumenter med `oppdatert` nyere enn rommets
   merke i
