@@ -352,6 +352,14 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
   ved import. Samme regel står i `firestore.rules`. Navn fra laget (`personer.kortnavn`:
   initialer eller starten av e-posten) er også tekst fra skyen, så heller ikke `teinenavn()`
   kan settes inn i en mal (overskriften i fangstarket settes med `textContent`).
+- `index.html` har Content-Security-Policy (meta-taggen øverst), og `personvern.html` en
+  enklere. `script-src 'self'`: ingen script eller `onclick=` skrevet rett i HTML-en (temaet
+  settes derfor av `js/tema.js`). `connect-src` tillater bare `*.googleapis.com` og
+  `*.firebaseapp.com`. Tar appen i bruk en ny ekstern tjeneste, må den legges til der.
+  Slår brukeren på reCAPTCHA eller App Check i Firebase, laster Firebase-SDK-et script fra
+  `www.google.com`, og da stopper innloggingen til CSP-en er utvidet. Inline-stil er tillatt
+  fordi `kartmarkeringer.js` og `oversikt.js` bruker `style=`. Test endringer med
+  `securitypolicyviolation`-hendelser i nettleseren.
 - `firestore.rules` er det eneste som beskytter dataene i Firebase. Hold reglene strenge,
   og si fra til brukeren at de må limes inn på nytt. Agenten har ingen emulator (verken
   Java eller Node er installert), så be brukeren teste dem i Rules Playground i konsollen.

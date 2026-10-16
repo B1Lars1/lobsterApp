@@ -12,7 +12,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '5f74f82fa17c';
+const VERSJON = 'f0f8e0f52b18';
 const FILER = [
   './',
   'css/app.css',
@@ -54,6 +54,7 @@ const FILER = [
   'js/oversikt.js',
   'js/personer.js',
   'js/sky.js',
+  'js/tema.js',
   'manifest.webmanifest',
   'personvern.html',
   'vendor/firebase-12.19.0/firebase-app.js',

@@ -99,6 +99,9 @@ skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
 - Det som kommer fra skyen, vises som tekst i appen, aldri som HTML, og id-er med andre
   tegn enn bokstaver, tall, `-` og `_` avvises (i appen og i tilgangsreglene). Et
   lagmedlem kan derfor ikke lure inn kode hos de andre.
+- `index.html` har en Content-Security-Policy: bare appens egne filer kan kjøre som
+  script, og appen kan bare kontakte Firebase (Google). Skulle det likevel komme kode inn
+  i siden, kjøres den ikke.
 
 **Utenfor koden.** Den som kommer inn på Google-kontoen som eier Firebase-prosjektet,
 eller GitHub-kontoen `B1Lars1`, får tilgang til alt. Begge har totrinnsbekreftelse.
@@ -232,6 +235,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/dybdelag.js` | Tegner dybdekartet, bunnhint og hummerpotensial som kartfliser |
 | `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
 | `js/innstillinger.js` | Husker hva som vises på kartet, og tema i nettleseren |
+| `js/tema.js` | Setter lys eller mørk modus før siden tegnes, så den ikke blinker hvitt |
 | `js/markeringer.js` | Teiner og fangst: data, lagring og innlesing av GeoJSON (skyen og «Gjenopprett fra fil») |
 | `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
