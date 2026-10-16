@@ -21,7 +21,7 @@
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { dobbelttrykkForZoom } from './dobbelttrykk.js';
 import { draNedForALukke } from './dra-ned.js';
-import { lagBunnoppslag, lagDybdeoppslag, lagRaskDybde, naerSjoen } from './dybdeoppslag.js';
+import { lagBunnoppslag, lagDybdeoppslag, naerSjoen } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
 import { kanLeggesTil, settOppHjemskjerm, visHjemskjermVeiledning } from './hjemskjerm.js';
@@ -32,7 +32,7 @@ import { markeringer } from './markeringer.js';
 import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { Fangstoversikt } from './oversikt.js';
 import { personer } from './personer.js';
-import { fangstSettinger, justeringTekst, lagJustering } from './potensialjustering.js';
+import { dybdeFor, fangstSettinger, justeringTekst, lagJustering } from './potensialjustering.js';
 import { visMelding } from './melding.js';
 import { FirebaseInnlogging, FirestoreTjeneste } from './firebase.js';
 import { Konto } from './konto.js';
@@ -238,7 +238,7 @@ function oppdaterJustering({ tving = false } = {}) {
   justering = settinger
     ? lagJustering(settinger, alleDybdedata, {
       iFredning: (lat, lon) => Boolean(fredning.omradeFor(lat, lon)),
-      dybde: lagRaskDybde(alleDybdedata), // dybden teller der modellen sier lavt
+      dybde: dybdeFor(alleDybdedata), // fangsten følger dybden der den ble tatt
     })
     : null;
   dybdelag?.settJustering(justering);

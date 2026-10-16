@@ -70,7 +70,7 @@ export function lagSettinger(alle, naa, eierAv) {
     const til = t.status === 'i_sjoen' ? naa : Date.parse(t.tatt_opp ?? t.tid);
     const fangstHer = fangst.filter((f) => f.teine_id === t.id);
     return {
-      nummer: t.nummer, id: t.id, lat: t.lat, lon: t.lon, fra, til: Math.max(til, fra), iSjoen: t.status === 'i_sjoen',
+      nummer: t.nummer, id: t.id, lat: t.lat, lon: t.lon, dybde: t.dybde, fra, til: Math.max(til, fra), iSjoen: t.status === 'i_sjoen',
       mistet: t.mistet === true, fangst: fangstHer, hummer: fangstHer.reduce((s, f) => s + f.hummer, 0),
       gruppe: gruppe(t),
     };

@@ -1,8 +1,8 @@
 /*
  * Hummerpotensialet justert etter fangsten (app/js/potensialjustering.js): en fangst øker
- * anslaget mer enn en tom teine senker det, modellen teller mest, virkningen avtar med
- * avstanden og følger terrenget (modellens klasse, og dybden der modellen sier lavt), og
- * ruter i fredningsområdene tas ikke med. Oppdiktede data.
+ * anslaget mer enn en tom teine senker det, modellen teller mest (minst der den sier lavt),
+ * virkningen avtar med avstanden og følger terrenget (modellens klasse) og dybden der
+ * fangsten ble tatt, og ruter i fredningsområdene tas ikke med. Oppdiktede data.
  *
  * Kjør fra roten av repoet:  node tests/potensialjustering.test.mjs
  * (Kjøres også av workflowen før publisering.)
@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 globalThis.L = { GridLayer: { extend: (o) => o } };
 const { Rutenett, lagObjekter, tilVerden } = await import('../app/js/dybdelag.js');
 const {
-  DOGN_UTEN_TEINE, FORVENTET, MODELL_DOGN, TERRENG, dybdeverdi, justeringTekst, lagJustering,
+  DOGN_UTEN_TEINE, FORVENTET, MODELL_DOGN, TERRENG, dybdelikhet, justeringTekst, lagJustering,
 } = await import('../app/js/potensialjustering.js');
 
 // Modellen: én flate rundt punktet (eller ingen, for lavt potensial)
@@ -25,10 +25,12 @@ const modell = (klasse) => ({ potensial: new Rutenett(klasse
   ? lagObjekter({ features: [flate(klasse, 0.02)] }, (p) => ({ hoy: p.klasse === 'hoy' })) : []) });
 const naer = (a, b, melding) => assert.ok(Math.abs(a - b) < 1e-9, `${melding}: ${a}, ventet ${b}`);
 const ostover = (meter) => LON + meter / (111320 * Math.cos((LAT * Math.PI) / 180)); // lengdegrader
-const her = (hummer, dogn, utenTeine = false) => ({ lat: LAT, lon: LON, hummer, dogn, utenTeine });
+const her = (hummer, dogn, utenTeine = false, lon = LON) => ({ lat: LAT, lon, dybde: null, hummer, dogn, utenTeine });
 const dogn = (antall, hummer = 0, utenTeine = false) =>
   Array.from({ length: antall }, (_, i) => her(i < hummer ? 1 : 0, 1, utenTeine));
-const juster = (settinger, klasse, meter = 20) => lagJustering(settinger, modell(klasse), { dybde: () => meter });
+// dybde: et tall (flatt) eller en funksjon av x (verdenskoordinater)
+const juster = (settinger, klasse, dybde = 15) =>
+  lagJustering(settinger, modell(klasse), { dybde: typeof dybde === 'function' ? dybde : () => dybde });
 // Tegnes ruten i punktet (klassen er en annen enn modellens)?
 const tegnes = (j, lon = LON) => {
   const [x, y] = tilVerden(lon, LAT);
@@ -38,10 +40,11 @@ const tegnes = (j, lon = LON) => {
 // Gamma-Poisson med terrengvekt: middels teller med vekt TERRENG.middels
 const f = FORVENTET.middels;
 const v = TERRENG.middels;
+const md = MODELL_DOGN.middels;
 const enFangst = juster([her(1, 1)], 'middels').cellFor(LAT, LON);
 const ettTomt = juster([her(0, 1)], 'middels').cellFor(LAT, LON);
-naer(enFangst.rate, (f * MODELL_DOGN + v) / (MODELL_DOGN + v), 'én hummer på ett døgn');
-naer(ettTomt.rate, (f * MODELL_DOGN) / (MODELL_DOGN + v), 'ett tomt døgn');
+naer(enFangst.rate, (f * md + v) / (md + v), 'én hummer på ett døgn');
+naer(ettTomt.rate, (f * md) / (md + v), 'ett tomt døgn');
 assert.equal(enFangst.modell, 'middels');
 assert.ok(enFangst.rate - f > 3 * (f - ettTomt.rate), 'en fangst øker mye mer enn en tom teine senker');
 
@@ -65,21 +68,37 @@ const ved60 = j.cellFor(LAT, ostover(60));
 assert.ok(ved60.rate > f && ved60.rate < j.cellFor(LAT, LON).rate, `60 m unna: ${ved60.rate}`);
 assert.equal(j.cellFor(LAT, ostover(150)), null, '150 m unna er ikke justert');
 
-// Fangst uten teine teller som én teine i ett døgn. Der modellen sier lavt, teller fangsten
-// mindre (TERRENG.lav) og bare på riktig dybde: tre hummer på 20 m gir middels rett der, men
-// ikke 60 m unna, og ingenting på 50 m eller 3 m.
+// Der modellen sier lavt, teller den mindre (MODELL_DOGN.lav), og fangsten med TERRENG.lav.
+// Fangst uten teine teller som én teine i ett døgn: tre hummer gir middels rett der, men ikke
+// 80 m unna. Én hummer er fortsatt lavt, fire hummer gir høyt.
 const utenTeine = juster(dogn(3, 3, true), null);
 const c = utenTeine.cellFor(LAT, LON);
 assert.equal(c.modell, 'lav');
-const lavVekt = TERRENG.lav * dybdeverdi(20);
-naer(c.rate, (FORVENTET.lav * MODELL_DOGN + 3 * lavVekt) / (MODELL_DOGN + 3 * DOGN_UTEN_TEINE * lavVekt), 'tre hummer uten teine');
+const lav = TERRENG.lav;
+naer(c.rate, (FORVENTET.lav * MODELL_DOGN.lav + 3 * lav) / (MODELL_DOGN.lav + 3 * DOGN_UTEN_TEINE * lav), 'tre hummer uten teine');
 assert.equal(c.klasse, 'middels');
 assert.ok(tegnes(utenTeine), 'fangst uten teine tegnes');
-assert.equal(tegnes(utenTeine, ostover(60)), false, '60 m unna i lavt terreng tegnes ikke');
+assert.equal(tegnes(utenTeine, ostover(80)), false, '80 m unna tegnes ikke');
 assert.match(justeringTekst(c), /3 fangster uten teine, 3 hummer/);
-assert.equal(juster(dogn(3, 3, true), null, 50).cellFor(LAT, LON), null, 'for dypt');
-assert.equal(juster(dogn(3, 3, true), null, 3).cellFor(LAT, LON), null, 'for grunt');
-assert.equal(dybdeverdi(null), 0, 'land');
+assert.equal(juster([her(1, 1)], null).cellFor(LAT, LON).klasse, 'lav', 'én hummer i lavt');
+assert.equal(juster([her(4, 3)], null).cellFor(LAT, LON).klasse, 'hoy', 'fire hummer i lavt');
+
+// Tre hummer spredt over 100 m, der modellen sier lavt: middels langs hele strekningen
+const spredt = juster([0, 50, 100].map((m) => her(1, 2, false, ostover(m))), null);
+for (const m of [0, 50, 100]) assert.equal(spredt.cellFor(LAT, ostover(m)).klasse, 'middels', `${m} m langs`);
+assert.equal(tegnes(spredt, ostover(160)), false, 'utenfor strekningen');
+
+// Dybden: fangsten teller også grunt (der den ble tatt), men sprer seg bare til ruter med
+// omtrent samme dybde. I en skråning (1 m dypere per 3 m østover) når den ikke ut i dypet.
+assert.equal(juster(dogn(3, 3), null, 3).cellFor(LAT, LON).klasse, 'middels', 'grunt');
+const [X0] = tilVerden(LON, LAT);
+const meterPerEnhet = 111320 * 360 * Math.cos((LAT * Math.PI) / 180);
+const skraning = juster(dogn(3, 3), null, (x) => 15 + ((x - X0) * meterPerEnhet) / 3);
+assert.equal(skraning.cellFor(LAT, LON).klasse, 'middels');
+assert.equal(tegnes(skraning, ostover(60)), false, '20 m dypere tegnes ikke');
+assert.equal(dybdelikhet(10, 12), 1);
+assert.equal(dybdelikhet(10, 30), 0);
+assert.equal(dybdelikhet(null, 12), 0.5, 'ukjent dybde');
 
 // Ingen ruter i fredningsområdene
 const iFredning = lagJustering([her(3, 1)], modell('middels'), { iFredning: () => true });

@@ -300,19 +300,24 @@ ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
 **Justert potensial** (`potensialjustering.js`): appen justerer hummerpotensialet etter
 teinesettingene (alle sesonger, hele laget, `fangstSettinger`, der fangst uten teine teller
 som `DOGN_UTEN_TEINE` teinedøgn) med et gamma-Poisson-anslag:
-`(FORVENTET[klasse] × MODELL_DOGN + Σ vekt × hummer) / (MODELL_DOGN + Σ vekt × teinedøgn)`
-per rute på 20 m. Vekten er avstand (fullt innen 30 m, ingenting etter 100 m) ganger
-terreng (`TERRENG` etter modellens klasse i ruten, og der den er lav også `dybdeverdi`, en
-kopi av `DYBDE_M` i `lag_hummerpotensial.py`). Brukeren vil at modellen skal telle mest og
-at terrenget alltid skal telle, også i ruten der fangsten er registrert. Dybden er
-`lagRaskDybde` i `dybdeoppslag.js` (bare dybdepunktene): `lagDybdeoppslag` sjekker land og
-dybdesoner med store polygoner og tok over 2 s for et par tusen ruter med CPU 4× tregere. Kartet tegner bare ruter der
+`(FORVENTET[k] × MODELL_DOGN[k] + Σ vekt × hummer) / (MODELL_DOGN[k] + Σ vekt × teinedøgn)`
+per rute på 20 m, der k er modellens klasse i ruten (`MODELL_DOGN.lav` er lavere: der ser
+modellen bare ikke noe). Vekten er avstand (fullt innen 30 m, ingenting etter 100 m) ganger
+terreng (`TERRENG` etter klassen) ganger `dybdelikhet` mellom ruten og dybden der fangsten
+ble tatt (markeringens `dybde`, ellers oppslaget). Brukeren vil at modellen skal telle
+mest, at terrenget alltid skal telle (også i ruten med fangsten), og at 3 hummer innen 100 m
+der modellen sier lavt, skal gi minst middels. Dybden i rutene er `dybdeFor` (`lagRaskDybde`
+i `dybdeoppslag.js`, bare dybdepunktene innen 100 m): `lagDybdeoppslag` sjekker land og
+dybdesoner med store polygoner og tok over 2 s for et par tusen ruter med CPU 4× tregere,
+og med 60 m manglet 30 % av sjøen dybde. Kartet tegner bare ruter der
 klassen (`klasseFor`, også `svaert`) er en annen enn modellens: `dybdelag.js` klipper bort
 modellens flater der og fyller rutene (`settJustering`, `potSvaert` i paletten). `cellFor`
 gir alle ruter med merkbar endring, til teksten ved trykk i kartet. Regnes ut i `app.js`
 (`oppdaterJustering`) når dybdedataene og fredningsområdene er lastet, når valget endres,
 og kort tid etter endringer, men bare når de ferdige settingene er endret
-(`justeringNokkel`): med 2000 settinger tar det ca. 0,4 s med CPU 4× tregere. **Fangst skal aldri inn i den offentlige `hummerpotensial.geojson`** eller noe
+(`justeringNokkel`): med 2000 settinger tar det ca. 0,5 s første gang og 0,2 s etterpå med
+CPU 4× tregere. Modellens klasse og dybden i hver rute huskes mellom utregningene
+(`terrengLager`), og rutene har tall som nøkler (`nokkelFor`), ikke tekst. **Fangst skal aldri inn i den offentlige `hummerpotensial.geojson`** eller noe
 annet under `app/`: det ville vist alle hvor brukerne får hummer. Bare samlede tall (som
 `FORVENTET`) kan stå i koden. `tests/potensialjustering.test.mjs` tester regnestykket
 (stubber `L`, siden `dybdelag.js` trenger Leaflet).
