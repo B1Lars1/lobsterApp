@@ -100,6 +100,30 @@ export function lagDybdeoppslag(data) {
 }
 
 /**
+ * Et raskere, grovere dybdeoppslag: (x, y) i verdenskoordinater → snittet av dybdepunktene
+ * innen radiusM, vektet etter avstand, eller null uten punkter i nærheten (land, eller langt
+ * fra målinger). Sjekker ikke land og dybdesoner som lagDybdeoppslag, siden de store
+ * polygonene gjør det tregt når det trengs for tusenvis av punkter (potensialjustering.js).
+ */
+export function lagRaskDybde(data, radiusM = 60) {
+  return function raskDybde(x, y) {
+    const lat = (Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI;
+    const meter = perMeter(lat);
+    const r = radiusM * meter;
+    let sumVekt = 0;
+    let sumDybde = 0;
+    for (const p of data.dybdetall.sok([x - r, y - r, x + r, y + r])) {
+      const avstand2 = (p.x - x) ** 2 + (p.y - y) ** 2;
+      if (avstand2 > r * r) continue;
+      const vekt = 1 / Math.max(avstand2, meter * meter);
+      sumVekt += vekt;
+      sumDybde += vekt * p.dybde;
+    }
+    return sumVekt ? sumDybde / sumVekt : null;
+  };
+}
+
+/**
  * Er punktet på sjøen, eller nærmere sjøen enn radiusM? «Sjøen» er dybdeområdene, så
  * utenfor kartområdet er svaret alltid nei. Brukes når appen åpnes (se gps.js).
  */

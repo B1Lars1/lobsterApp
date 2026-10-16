@@ -21,7 +21,7 @@
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { dobbelttrykkForZoom } from './dobbelttrykk.js';
 import { draNedForALukke } from './dra-ned.js';
-import { lagBunnoppslag, lagDybdeoppslag, naerSjoen } from './dybdeoppslag.js';
+import { lagBunnoppslag, lagDybdeoppslag, lagRaskDybde, naerSjoen } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
 import { kanLeggesTil, settOppHjemskjerm, visHjemskjermVeiledning } from './hjemskjerm.js';
@@ -236,7 +236,10 @@ function oppdaterJustering({ tving = false } = {}) {
   if (!tving && nokkel === justeringNokkel) return;
   justeringNokkel = nokkel;
   justering = settinger
-    ? lagJustering(settinger, alleDybdedata, (lat, lon) => Boolean(fredning.omradeFor(lat, lon)))
+    ? lagJustering(settinger, alleDybdedata, {
+      iFredning: (lat, lon) => Boolean(fredning.omradeFor(lat, lon)),
+      dybde: lagRaskDybde(alleDybdedata), // dybden teller der modellen sier lavt
+    })
     : null;
   dybdelag?.settJustering(justering);
 }

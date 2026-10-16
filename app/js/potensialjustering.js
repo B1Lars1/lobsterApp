@@ -7,17 +7,25 @@
  * (bare for den som er logget inn). Den offentlige hummerpotensial.geojson røres ikke, ellers
  * kunne hvem som helst sett hvor dere får hummer.
  *
- * Metoden (gamma-Poisson, et «Bayes-anslag» for fangstrate):
- *   anslag = (FORVENTET × MODELL_DOGN + hummer) / (MODELL_DOGN + teinedøgn)
+ * Metoden (gamma-Poisson, et «Bayes-anslag» for fangstrate), for hver rute:
+ *   anslag = (FORVENTET × MODELL_DOGN + Σ vekt × hummer) / (MODELL_DOGN + Σ vekt × teinedøgn)
  * Modellen teller som MODELL_DOGN teinedøgn med fangsten den forventer for klassen, og egen
  * fangst legges oppå. Siden hummer er sjelden per teinedøgn, er én hummer et sterkt tegn
  * og en tom teine et svakt tegn, så en fangst øker anslaget mer enn en tom teine senker det,
- * uten egne tall for opp og ned. Eksempel, middels (0,2) og 10 modelldøgn: én hummer på ett
- * døgn gir 0,27 (+36 %), ett tomt døgn gir 0,18 (−9 %), ti tomme døgn gir 0,1 (lavt).
+ * uten egne tall for opp og ned. Modellen teller mye (MODELL_DOGN), så det trengs flere
+ * fangster før en rute bytter klasse (eksemplene står i README, «Justert etter fangsten»).
  *
- * Hver setting teller fullt i ruter innen FULL_VEKT_M fra teinen og mindre utover, til
- * ingenting ved RADIUS_M (agnet trekker hummer fra en stund unna). Rutene er RUTE_M store,
- * som rutenettet i lag_hummerpotensial.py. Anslaget deles i klasser som i modellen (lavt,
+ * Vekten er avstand × terreng:
+ *   - avstand: full innen FULL_VEKT_M fra teinen, så mindre, til ingenting ved RADIUS_M.
+ *   - terreng: hvor godt modellen mener terrenget i ruten er (TERRENG): full der den sier
+ *     høyt, mindre der den sier middels, og minst der den sier lavt. Der den sier lavt,
+ *     teller også dybden (dybdeverdi, som i modellen): ingenting grunnere enn 5 m, dypere
+ *     enn 40 m eller på land. Det gjelder også ruten der fangsten er registrert. Dybden er
+ *     det raske oppslaget fra dybdepunktene (lagRaskDybde): det vanlige sjekker land og
+ *     dybdesoner, og tok over 2 s for et par tusen ruter på telefonen.
+ * Fangsten trekker dermed opp bratt fjell og riktig dybde i nærheten, ikke sandflaten eller
+ * dypet ved siden av. Rutene er RUTE_M store, som rutenettet i lag_hummerpotensial.py.
+ * Anslaget deles i klasser som i modellen (lavt,
  * middels, høyt) pluss «svært høyt», der fangsten har vært god. Kartet tegner bare rutene der
  * klassen er en annen enn modellens. Mindre endringer vises i teksten når du trykker i
  * kartet (cellFor finner alle ruter der anslaget er endret merkbart). Ruter i
@@ -39,8 +47,14 @@ import { lagSettinger } from './oversikt.js';
 // Forventet fangst (hummer per teinedøgn) for klassene i modellen. «lav» er utenfor flatene.
 export const FORVENTET = { hoy: 0.3, middels: 0.2, lav: 0.1 };
 // Hvor mye modellen teller, i teinedøgn: etter så mange teinedøgn egen erfaring på et sted
-// teller fangsten like mye som modellen.
-export const MODELL_DOGN = 10;
+// (i godt terreng) teller fangsten like mye som modellen.
+export const MODELL_DOGN = 20;
+// Hvor mye fangsten teller i en rute, etter modellens klasse der. Der modellen sier lavt
+// ganges det også med dybdeverdien.
+export const TERRENG = { hoy: 1, middels: 0.7, lav: 0.5 };
+// Dybdeverdien: 0 → 1 fra 5 til 10 m, 1 til 30 m, 0 igjen ved 40 m (som DYBDE_M i
+// lag_hummerpotensial.py)
+const DYBDE_M = [5, 10, 30, 40];
 // Klassene etter justeringen: midt mellom de forventede verdiene, og «svært høyt» der
 // fangsten er klart bedre enn modellens høye
 export const GRENSER = { svaert: 0.4, hoy: 0.25, middels: 0.15 };
@@ -52,9 +66,9 @@ const RANG = { lav: 0, middels: 1, hoy: 2, svaert: 3 };
 export const DOGN_UTEN_TEINE = 1;
 
 const RUTE_M = 20;
-const FULL_VEKT_M = 50;
-const RADIUS_M = 150;
-const MERKBAR = 0.05; // ruter der anslaget er endret mindre enn 5 %, tegnes som før
+const FULL_VEKT_M = 30;
+const RADIUS_M = 100;
+const MERKBAR = 0.02; // ruter der anslaget er endret mindre enn 2 %, regnes som uendret
 const DAG = 24 * 60 * 60 * 1000;
 const JORDOMKRETS_M = 40075016.686;
 const perMeter = (lat) => 1 / (JORDOMKRETS_M * Math.cos((lat * Math.PI) / 180)); // verdenskoordinater
@@ -63,6 +77,15 @@ const RUTE = RUTE_M * perMeter(58.2); // rutestørrelsen i verdenskoordinater (m
 // Verdenskoordinater (Web Mercator, 0–1) tilbake til lon/lat
 function fraVerden(x, y) {
   return [x * 360 - 180, (Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI];
+}
+
+/** Dybdeverdien (0–1) for en dybde i meter, eller 0 uten dybde (land, utenfor dataene). */
+export function dybdeverdi(dybde) {
+  if (dybde == null) return 0;
+  const [a, b, c, d] = DYBDE_M;
+  if (dybde <= a || dybde >= d) return 0;
+  if (dybde < b) return (dybde - a) / (b - a);
+  return dybde <= c ? 1 : (d - dybde) / (d - c);
 }
 
 /** Klassen et anslag (hummer per teinedøgn) tilsvarer: 'svaert', 'hoy', 'middels' eller 'lav'. */
@@ -90,7 +113,10 @@ export function fangstSettinger(markeringer) {
  * Juster potensialet etter settingene.
  * @param {{lat, lon, hummer, dogn, utenTeine}[]} settinger  fra fangstSettinger()
  * @param {object} data  dybdedataene (lastDybdedata().alt), for modellens flater (data.potensial)
- * @param {(lat: number, lon: number) => boolean} iFredning
+ * @param {object} valg
+ * @param {(lat: number, lon: number) => boolean} valg.iFredning
+ * @param {(x: number, y: number) => number | null} valg.dybde  dybden i verdenskoordinater
+ *   (lagRaskDybde i dybdeoppslag.js, null på land). Uten den regnes alt som riktig dybde.
  * @returns {{ celler: Rutenett, cellFor: (lat, lon) => object | null }}
  *   celler: rutene der klassen er en annen enn modellens (de som tegnes). cellFor: ruten
  *   i et punkt der anslaget er endret merkbart, eller null.
@@ -98,10 +124,23 @@ export function fangstSettinger(markeringer) {
  *   hummer, dogn, kanter: { n, s, v, o } } der kantene er sidene som skal ha strek (høyt mot
  *   lavere). settinger og utenTeine er antallet innen RADIUS_M.
  */
-export function lagJustering(settinger, data, iFredning = () => false) {
-  const modellFor = (x, y) => {
-    const flate = data.potensial.sok([x, y, x, y]).find((o) => iFlate(x, y, o));
-    return flate ? (flate.hoy ? 'hoy' : 'middels') : 'lav';
+export function lagJustering(settinger, data, { iFredning = () => false, dybde = null } = {}) {
+  // Modellens klasse og terrengvekten i en rute, regnet én gang per rute
+  const terrengFor = new Map(); // «i,j» → { modell, vekt }
+  const terreng = (i, j) => {
+    const nokkel = `${i},${j}`;
+    let t = terrengFor.get(nokkel);
+    if (!t) {
+      const x = (i + 0.5) * RUTE;
+      const y = (j + 0.5) * RUTE;
+      const flate = data.potensial.sok([x, y, x, y]).find((o) => iFlate(x, y, o));
+      const modell = flate ? (flate.hoy ? 'hoy' : 'middels') : 'lav';
+      let vekt = TERRENG[modell];
+      if (modell === 'lav' && dybde) vekt *= dybdeverdi(dybde(x, y));
+      t = { modell, vekt };
+      terrengFor.set(nokkel, t);
+    }
+    return t;
   };
 
   // 1. Summer vektet fangst og teinedøgn i rutene rundt hver setting
@@ -114,7 +153,8 @@ export function lagJustering(settinger, data, iFredning = () => false) {
       for (let j = Math.floor((y - r) / RUTE); j <= Math.floor((y + r) / RUTE); j++) {
         const avstand = Math.hypot((i + 0.5) * RUTE - x, (j + 0.5) * RUTE - y) / m;
         if (avstand > RADIUS_M) continue;
-        const vekt = avstand <= FULL_VEKT_M ? 1 : (RADIUS_M - avstand) / (RADIUS_M - FULL_VEKT_M);
+        const vekt = (avstand <= FULL_VEKT_M ? 1 : (RADIUS_M - avstand) / (RADIUS_M - FULL_VEKT_M))
+          * terreng(i, j).vekt;
         const nokkel = `${i},${j}`;
         let rute = ruter.get(nokkel);
         if (!rute) {
@@ -136,7 +176,7 @@ export function lagJustering(settinger, data, iFredning = () => false) {
   for (const [nokkel, rute] of ruter) {
     const cx = (rute.i + 0.5) * RUTE;
     const cy = (rute.j + 0.5) * RUTE;
-    const modell = modellFor(cx, cy);
+    const { modell } = terreng(rute.i, rute.j);
     const forventet = FORVENTET[modell];
     const rate = (forventet * MODELL_DOGN + rute.vektetHummer) / (MODELL_DOGN + rute.vektetDogn);
     if (Math.abs(rate - forventet) / forventet < MERKBAR) continue;
@@ -155,7 +195,7 @@ export function lagJustering(settinger, data, iFredning = () => false) {
   // 4. Strek rundt høyt potensial, som rundt modellens flater: der naboen er lavere
   const hoyt = (i, j) => {
     const nabo = tegnes.get(`${i},${j}`);
-    return RANG[nabo ? nabo.klasse : modellFor((i + 0.5) * RUTE, (j + 0.5) * RUTE)] >= RANG.hoy;
+    return RANG[nabo ? nabo.klasse : terreng(i, j).modell] >= RANG.hoy;
   };
   for (const c of tegnes.values()) {
     const her = RANG[c.klasse] >= RANG.hoy;
@@ -179,8 +219,8 @@ const komma = (tall, desimaler) =>
   tall.toLocaleString('nb-NO', { minimumFractionDigits: desimaler, maximumFractionDigits: desimaler });
 
 /**
- * «Hummerpotensial etter fangsten: høyt (modellen: middels), ca. 0,27 per teinedøgn.
- * Innen 150 m: 1 teinesetting og 2 fangster uten teine, 4 hummer på 3,0 teinedøgn»
+ * «Hummerpotensial etter fangsten: høyt (modellen: middels), ca. 0,25 per teinedøgn.
+ * Innen 100 m: 1 teinesetting og 2 fangster uten teine, 4 hummer på 3,0 teinedøgn»
  */
 export function justeringTekst(c) {
   const modell = c.klasse === c.modell ? '' : ` (modellen: ${NAVN[c.modell]})`;

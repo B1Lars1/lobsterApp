@@ -395,35 +395,51 @@ Skriptet skriver også rutenettet med dybde, helning og poengsum til
 Der dere har fisket, vet dere mer enn modellen. Med **Juster potensialet etter fangsten**
 (i innstillingene, på som standard) justerer appen potensialet etter teinesettingene fra
 alle sesonger, også de andres i laget: en fangst øker det, en tom teine senker det litt.
-Det regnes ut på telefonen (`app/js/potensialjustering.js`). Den offentlige
-`hummerpotensial.geojson` røres ikke, ellers kunne hvem som helst sett hvor dere får hummer.
+Modellen teller fortsatt mest, og terrenget teller alltid. Det regnes ut på telefonen
+(`app/js/potensialjustering.js`). Den offentlige `hummerpotensial.geojson` røres ikke,
+ellers kunne hvem som helst sett hvor dere får hummer.
 
-Metoden er et vanlig statistisk anslag for fangstrate (gamma-Poisson):
+Metoden er et vanlig statistisk anslag for fangstrate (gamma-Poisson), for hver rute på
+20 × 20 m (som i modellen):
 
-> anslag = (forventet × 10 + hummer) / (10 + teinedøgn)
+> anslag = (forventet × 20 + Σ vekt × hummer) / (20 + Σ vekt × teinedøgn)
 
-Modellen teller som 10 teinedøgn med den fangsten den forventer: 0,3 hummer per teinedøgn
+Modellen teller som 20 teinedøgn med den fangsten den forventer: 0,3 hummer per teinedøgn
 for høyt, 0,2 for middels og 0,1 for lavt (utenfor flatene). Egen fangst legges oppå.
 Hummer er sjelden per teinedøgn, så én hummer er et sterkt tegn på at det er hummer der,
 mens en tom teine er et svakt tegn på at det ikke er det. Derfor øker en fangst anslaget
-mer enn en tom teine senker det, uten egne tall for opp og ned. Eksempler for middels:
+mer enn en tom teine senker det, uten egne tall for opp og ned.
 
-| Teinene her | Anslag | Klasse |
-|---|---|---|
-| Ingen data | 0,20 | middels (som modellen) |
-| Én hummer på ett døgn | 0,27 (+36 %) | høyt |
-| Ett tomt døgn | 0,18 (−9 %) | middels |
-| Ti tomme døgn | 0,10 | lavt |
-| Tre hummer på ett døgn | 0,45 | svært høyt |
+**Vekten** er avstand ganger terreng:
 
-Hver teinesetting teller fullt innen 50 m fra teinen og mindre utover, til ingenting ved
-150 m, fordi agnet trekker hummer fra en stund unna. Rutene er 20 × 20 m, som i modellen.
+- **Avstand:** full innen 30 m fra teinen, så mindre, og ingenting etter 100 m.
+- **Terreng:** hvor godt modellen mener terrenget i ruten er: 1 der den sier høyt, 0,7 der
+  den sier middels og 0,5 der den sier lavt. Der den sier lavt, ganges det også med
+  dybdeverdien fra modellen: full på 10–30 m, ingenting grunnere enn 5 m, dypere enn 40 m
+  eller på land. Det gjelder også ruten der fangsten er registrert.
+
+Fangsten trekker dermed opp bratt fjell og riktig dybde i nærheten, ikke sandflaten eller
+dypet ved siden av, og en enkelt fangst flytter lite. Eksempler, med teinene på samme sted:
+
+| Modellen | Teinene her | Anslag | Klasse |
+|---|---|---|---|
+| Middels | Ingen data | 0,20 | middels (som modellen) |
+| Middels | Én hummer på ett døgn | 0,23 (+13 %) | middels |
+| Middels | Ett tomt døgn | 0,19 (−3 %) | middels |
+| Middels | To hummer på to døgn | 0,25 | høyt |
+| Middels | Tolv tomme døgn | 0,14 | lavt |
+| Høyt | Fire tomme døgn | 0,25 | høyt |
+| Høyt | Seks tomme døgn | 0,23 | middels |
+| Høyt | Fire hummer på tre døgn | 0,43 | svært høyt |
+| Lavt, 20 m dypt | Tre hummer uten teine | 0,16 | middels (bare rett der) |
+| Lavt, 50 m dypt | Tre hummer uten teine | 0,10 | lavt (dybden er feil) |
+
 Anslaget deles i de samme klassene som modellen (grenser midt mellom: 0,15 og 0,25), pluss
 **svært høyt** (fra 0,4, mørkere lilla) der fangsten har vært god. Kartet tegner bare rutene
 der klassen er en annen enn modellens. Trykk i kartet (zoom 15 og mer) for å se anslaget og
 hva det bygger på, også der klassen ikke er endret, for eksempel «Hummerpotensial etter
-fangsten: høyt (modellen: middels), ca. 0,27 per teinedøgn. Innen 150 m: 1 teinesetting,
-1 hummer på 1,0 teinedøgn».
+fangsten: middels (modellen: lavt), ca. 0,16 per teinedøgn. Innen 100 m: 3 fangster uten
+teine, 3 hummer på 3,0 teinedøgn (fangst uten teine regnes som ett døgn)».
 
 Fangst uten teine («Fra teine: Ingen») er også med. Den har ingen teinedøgn, så den regnes
 som en teine som har stått ett døgn: et tegn på hummer, men ikke sterkere enn en teine med
@@ -431,9 +447,11 @@ samme fangst (i fangstoversikten og analysen er den ikke med i hummer per teined
 Mistede teiner og teiner som står i sjøen er ikke med, og heller ikke fredningsområdene.
 Justeringen vises fra zoom 14, som resten av hummerpotensialet.
 
-Tallene (`FORVENTET`, `MODELL_DOGN` og `GRENSER` øverst i `potensialjustering.js`) er
-forsiktige startverdier. Når det er nok fangst, kan `FORVENTET` settes etter tabellen
-«Fangst etter hummerpotensial» fra `analyser_fangst.py` (kolonnen per teinedøgn).
+Tallene (`FORVENTET`, `MODELL_DOGN`, `TERRENG` og `GRENSER` øverst i
+`potensialjustering.js`) er forsiktige startverdier. Vil du at fangsten skal telle mer
+eller mindre, er `MODELL_DOGN` tallet å endre (høyere: modellen teller mer). Når det er nok
+fangst, kan `FORVENTET` settes etter tabellen «Fangst etter hummerpotensial» fra
+`analyser_fangst.py` (kolonnen per teinedøgn).
 
 ## Fredningsområder og dybde
 

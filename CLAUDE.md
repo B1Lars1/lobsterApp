@@ -300,8 +300,13 @@ ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
 **Justert potensial** (`potensialjustering.js`): appen justerer hummerpotensialet etter
 teinesettingene (alle sesonger, hele laget, `fangstSettinger`, der fangst uten teine teller
 som `DOGN_UTEN_TEINE` teinedøgn) med et gamma-Poisson-anslag:
-`(FORVENTET[klasse] × MODELL_DOGN + hummer) / (MODELL_DOGN + teinedøgn)` per rute på 20 m,
-vektet med avstanden (fullt innen 50 m, ingenting etter 150 m). Kartet tegner bare ruter der
+`(FORVENTET[klasse] × MODELL_DOGN + Σ vekt × hummer) / (MODELL_DOGN + Σ vekt × teinedøgn)`
+per rute på 20 m. Vekten er avstand (fullt innen 30 m, ingenting etter 100 m) ganger
+terreng (`TERRENG` etter modellens klasse i ruten, og der den er lav også `dybdeverdi`, en
+kopi av `DYBDE_M` i `lag_hummerpotensial.py`). Brukeren vil at modellen skal telle mest og
+at terrenget alltid skal telle, også i ruten der fangsten er registrert. Dybden er
+`lagRaskDybde` i `dybdeoppslag.js` (bare dybdepunktene): `lagDybdeoppslag` sjekker land og
+dybdesoner med store polygoner og tok over 2 s for et par tusen ruter med CPU 4× tregere. Kartet tegner bare ruter der
 klassen (`klasseFor`, også `svaert`) er en annen enn modellens: `dybdelag.js` klipper bort
 modellens flater der og fyller rutene (`settJustering`, `potSvaert` i paletten). `cellFor`
 gir alle ruter med merkbar endring, til teksten ved trykk i kartet. Regnes ut i `app.js`
