@@ -23,6 +23,9 @@
   --bakteppe: rgba(0, 0, 0, 0.35);
   --tl-med: #2a78d6;   /* fangstoversikten: teinesetting med hummer */
   --tl-uten: #8b95a0;  /* og uten */
+  --kort: #f2f4f5;     /* kort med rader i arkene (kartlag, innstillinger) */
+  --bryter-av: rgba(13, 27, 38, 0.22);
+  --varsel-flate: #fcf0d0; /* gul boks: ingen sikkerhetskopi */
 }
 
 :root[data-tema="mork"] {
@@ -41,6 +44,9 @@
   --bakteppe: rgba(0, 0, 0, 0.55);
   --tl-med: #4a90e2;
   --tl-uten: #6f7b88;
+  --kort: #212c37;
+  --bryter-av: rgba(230, 237, 243, 0.24);
+  --varsel-flate: #3a3118;
 }
 
 * { box-sizing: border-box; }
@@ -402,16 +408,59 @@ button {
 
 .ark fieldset { margin: 0; padding: 0; border: none; }
 
-.bryter input { width: 24px; height: 24px; margin: 0; accent-color: var(--aksent); flex: none; }
-
-.bryter {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 52px;
-  padding: 0 4px;
-  font-size: 17px;
+/* Bryter (av/på) som på iPhone og Android: en vanlig avkrysningsboks uten nettleserens
+   utseende, så den ser lik ut i Safari og Chrome. Hele raden (etiketten) kan trykkes. */
+input.bryter {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border: none;
+  border-radius: 16px;
+  background: var(--bryter-av);
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
+input.bryter::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s;
+}
+input.bryter:checked { background: var(--aksent); }
+input.bryter:checked::before { transform: translateX(20px); }
+input.bryter:focus-visible { outline: 3px solid var(--aksent); outline-offset: 2px; }
+input.bryter:disabled { opacity: 0.4; cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  input.bryter,
+  input.bryter::before { transition: none; }
+}
+/* Høy kontrast (Windows): uten nettleserens utseende ville bryteren blitt usynlig */
+@media (forced-colors: active) {
+  input.bryter { border: 2px solid ButtonText; }
+  input.bryter::before { background: ButtonText; }
+  input.bryter:checked { background: Highlight; }
+}
+
+/* Rader i et kort (kartlagene, menyene i innstillingene, medlemmene i laget) */
+.gruppe {
+  margin: 10px 0 0;
+  padding: 0;
+  border-radius: 14px;
+  background: var(--kort);
+  overflow: hidden;
+}
+/* Strek mellom radene som vises (høyere spesifisitet enn «border: none» på knappene) */
+.ark .gruppe > :not([hidden]) ~ * { border-top: 1px solid var(--kant); }
 
 .segment {
   display: grid;
@@ -476,6 +525,16 @@ button {
  * ===================================================================== */
 
 .toppknapper { display: flex; gap: 10px; }
+/* Tannhjulet med kartlagknappen under */
+.knappekolonne { display: flex; flex-direction: column; gap: 10px; }
+/* Kolonnene er høyere enn knappene ved siden av (under listeknappen og ved siden av de
+   korte brikkene). Bare knappene og brikkene tar imot trykk, ellers ville et usynlig felt
+   stoppet trykk og dra i kartet der. */
+.statuskolonne,
+.toppknapper,
+.knappekolonne { pointer-events: none; }
+.statuskolonne > *,
+.toppknapper button { pointer-events: auto; }
 .rund-knapp { position: relative; }
 
 /* Antall teiner i sjøen på listeknappen */
@@ -1017,7 +1076,8 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 /* ---------- Konto (konto.js) ---------- */
 
 #skystatus:empty,
-#kontomelding:empty { display: none; }
+#kontomelding:empty,
+#lagmelding:empty { display: none; }
 .lagkode {
   display: flex;
   align-items: center;
@@ -1028,33 +1088,56 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   background: var(--valgt);
 }
 .lagkode span { color: var(--dempet); font-size: 14px; font-weight: 700; }
-.lagkode b { flex: 1; font-size: 22px; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
-.ark .lagkode button.liten { min-height: 40px; }
-.medlemmer { margin-bottom: 10px; }
-.medlemmer li { min-height: 52px; }
+/* Koden på én linje, også på smale telefoner */
+.lagkode b {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(18px, 5.6vw, 22px);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ark .lagkode button.liten { min-height: 44px; padding: 0 12px; }
+/* Medlemmene i et kort. Trykk på et annet medlem viser «Fjern fra laget». */
+.liste.medlemmer li { flex-wrap: wrap; min-height: 56px; padding: 6px 14px; border-bottom: none; }
+.medlemmer .rad { min-height: 44px; }
 .medlemmer .radtekst b { font-size: 16px; overflow-wrap: anywhere; }
-#knapp-forlat-lag { width: 100%; }
+.medlemmer .rad::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin: 0 6px 4px 0;
+  border: solid var(--dempet);
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+  transition: transform 0.15s;
+}
+.medlemmer .rad[aria-expanded="true"]::after { margin-bottom: -4px; transform: rotate(-135deg); }
 .fjern {
-  min-height: 40px;
+  flex: 1 1 100%;
+  min-height: 48px;
+  margin: 2px 0 6px;
   padding: 0 12px;
-  border: 2px solid var(--kant);
+  border: 2px solid var(--darlig);
   border-radius: 12px;
-  background: var(--flate);
+  background: transparent;
   color: var(--darlig);
+  font-size: 16px;
   font-weight: 800;
 }
+.fjern[hidden] { display: none; }
+:root[data-tema="mork"] .fjern { color: #ff6b7d; border-color: #ff6b7d; }
 #skystatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }
 #skystatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
-#knapp-logg-inn,
-#knapp-lagre-kopi,
-#knapp-slett-konto { width: 100%; }
-#knapp-slett-konto { margin-top: 10px; }
+#knapp-lagre-kopi { width: 100%; margin: 4px 0; }
 .konto-skjema .ark-tittel { margin: 6px 0 4px; }
 .konto-skjema .knapper > * { grid-column: 1 / -1; } /* også «Slett kontoen for godt» i full bredde */
 .svar.feil,
 .hjelp.feil { color: var(--darlig); font-weight: 700; }
-.initialer { margin: 4px 0 12px; }
-.initialer .felt { max-width: 140px; }
+.initialer { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; }
+.initialer .felt { flex: 0 0 96px; }
+.initialer .hjelp { margin: 0; }
 #felt-initialer { text-transform: uppercase; letter-spacing: 0.08em; }
 .konto-lenker { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; }
 .lenke {
@@ -1173,12 +1256,253 @@ body.flyttemodus .handlinger { visibility: hidden; }
 .regel { margin: 0 0 14px; font-size: 17px; line-height: 1.45; }
 
 /* =====================================================================
+ * Kartlag (ark-kartlag): én rad per lag med bryter, tegnforklaring og «i»
+ * ===================================================================== */
+
+#ark-kartlag .tegnforklaring { margin-top: 10px; }
+#ark-kartlag h2 { margin: 12px 0 6px; }
+.lag { padding: 0 8px 0 14px; }
+.lagrad { display: flex; align-items: center; gap: 4px; min-height: 50px; }
+.lagvalg {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.lagrad .bryter { margin-right: 6px; }
+.lag-ikon { width: 32px; height: 22px; flex: none; display: grid; place-items: center; }
+.lag-ikon.tall { border-radius: 6px; background: var(--valgt); font-size: 13px; font-weight: 800; }
+.lag-ikon .tegn { width: 32px; height: 22px; }
+.lag-ikon .symbol.hummer { width: 26px; height: 26px; border-width: 2px; box-shadow: none; }
+.lag-ikon .symbol.hummer .emoji { font-size: 14px; }
+.lag-ikon .symbol.teine { width: 32px; height: 22px; }
+.lagnavn { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lagnavn b { font-size: 17px; font-weight: 600; }
+.lagnavn small { color: var(--dempet); font-size: 14px; line-height: 1.3; }
+/* Tegnforklaringen vises bare når laget er på */
+.lag-forkl {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  color: var(--dempet);
+  font-size: 13.5px;
+  line-height: 1.3;
+}
+.lag:has(.bryter:checked) .lag-forkl { display: flex; }
+.lag:has(.bryter:disabled) .lag-forkl { display: none; }
+.lag-forkl.lang { flex-direction: column; }
+.lag-forkl span { display: flex; align-items: flex-start; gap: 6px; }
+.lag-forkl .tegn { width: 22px; height: 14px; margin-top: 2px; border-radius: 3px; }
+/* «Juster etter fangsten» er et underpunkt til hummerpotensialet */
+.lag.under .lagvalg { padding-left: 44px; }
+.nar-av { display: none; }
+.lag:has(.bryter:disabled) .nar-av { display: block; }
+.lag:has(.bryter:disabled) .lagnavn b { color: var(--dempet); }
+.lag:has(.bryter:disabled) .lagvalg { cursor: default; }
+/* «i»: viser forklaringen under raden */
+.info {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dempet);
+}
+.info::before {
+  content: "i";
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font: 800 13px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.info[aria-expanded="true"] { color: var(--aksent); }
+.lag-hjelp { margin: -2px 8px 12px 44px; color: var(--dempet); font-size: 14px; line-height: 1.45; }
+
+/* =====================================================================
+ * Innstillinger (ark-innstillinger): hovedsiden og undersidene
+ * ===================================================================== */
+
+#ark-innstillinger h3.ark-tittel,
+#ark-kartlag h3.ark-tittel { margin: 2px 0 8px; }
+#ark-innstillinger form > .ferdig,
+#ark-kartlag form > .ferdig { margin-top: 18px; }
+#ark-innstillinger section.inn { animation: side-inn 0.18s ease-out; }
+@keyframes side-inn { from { opacity: 0; transform: translateX(14px); } }
+@media (prefers-reduced-motion: reduce) {
+  #ark-innstillinger section.inn { animation: none; }
+}
+
+/* Kontoen øverst: initialer, e-post og om kontoen er koblet til skyen */
+.kontokort {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  margin: 0;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
+  background: var(--kort);
+  color: inherit;
+  text-align: left;
+}
+.kontokort .radtekst b { overflow-wrap: anywhere; }
+.avatar {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 2px solid #1c1300;
+  border-radius: 50%;
+  background: #fff7de;
+  color: #1c1300;
+  font-size: 16px;
+  font-weight: 800;
+}
+/* Ikke logget inn: et hode og skuldre i stedet for initialer */
+.avatar:empty {
+  border-color: transparent;
+  background: var(--valgt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234d5d6b' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8.5' r='4'/%3E%3Cpath d='M4.5 20.5c1.2-4 4.1-6 7.5-6s6.3 2 7.5 6'/%3E%3C/svg%3E") center / 26px no-repeat;
+}
+:root[data-tema="mork"] .avatar:empty {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aabbb' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8.5' r='4'/%3E%3Cpath d='M4.5 20.5c1.2-4 4.1-6 7.5-6s6.3 2 7.5 6'/%3E%3C/svg%3E");
+}
+.kontostatus::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--middels);
+  vertical-align: 1px;
+}
+.kontostatus[data-tilstand="av"]::before { display: none; }
+.kontostatus[data-tilstand="ok"]::before { background: var(--god); }
+.kontostatus[data-tilstand="pagar"]::before { background: var(--god); animation: blink 1.2s ease-in-out infinite; }
+.kontostatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
+.kontostatus[data-tilstand="feil"]::before { background: var(--darlig); }
+
+/* Gul boks når teinene og fangsten bare ligger på telefonen */
+.varselboks {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--varsel-flate);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.varselboks[hidden] { display: none; }
+.varselboks p { margin: 0 0 10px; }
+.ark .varselboks button { width: 100%; min-height: 48px; }
+
+/* Rad som åpner en underside (pil) eller en lenke (skrå pil) */
+.menyrad {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 8px 16px 8px 14px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  text-align: left;
+  text-decoration: none;
+}
+.menyrad[hidden] { display: none; }
+.menyrad > b,
+.menyrad > .radtekst { flex: 1; min-width: 0; }
+.menyrad b { font-weight: 600; }
+.menyrad .verdi {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dempet);
+  font-size: 15px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menyrad[data-gaa]::after,
+.kontokort::after {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: solid var(--dempet);
+  border-width: 2.5px 2.5px 0 0;
+  transform: rotate(45deg);
+}
+.menyrad.ekstern::after { content: "↗"; color: var(--dempet); font-size: 18px; font-weight: 700; }
+.menyrad:disabled { cursor: default; }
+.menyrad:disabled b { color: var(--dempet); }
+.menyrad.fare-rad b,
+.fare-tekst { color: var(--darlig); }
+:root[data-tema="mork"] .menyrad.fare-rad b,
+:root[data-tema="mork"] .fare-tekst { color: #ff6b7d; }
+
+/* «‹ Innstillinger» øverst på undersidene */
+.tilbake {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0 0 2px -2px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--aksent);
+  font-size: 17px;
+  font-weight: 700;
+}
+.tilbake::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border: solid currentColor;
+  border-width: 0 0 2.5px 2.5px;
+  transform: rotate(45deg);
+}
+
+/* Knapp som bare er tekst, f.eks. «Forlat laget» nederst */
+.tekstknapp {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  border: none;
+  background: none;
+  color: var(--aksent);
+  font-size: 17px;
+  font-weight: 700;
+}
+.tekstknapp.fare-tekst { color: var(--darlig); }
+:root[data-tema="mork"] .tekstknapp.fare-tekst { color: #ff6b7d; }
+
+/* =====================================================================
  * Tegnforklaring for bunnforhold (samme farger som i dybdelag.js)
  * ===================================================================== */
 
-.bunnforklaring { display: grid; gap: 6px; margin: 6px 0; font-size: 14px; }
-.bunnforklaring span { display: flex; align-items: center; gap: 10px; }
 .tegn { width: 34px; height: 20px; flex: none; border-radius: 4px; border: 1px solid var(--kant); }
+/* Fredningsområde: rød skravering og stiplet kant, som på kartet */
+.tegn.fredningstegn {
+  background: repeating-linear-gradient(45deg, rgba(208, 33, 58, 0.12) 0 4px, rgba(208, 33, 58, 0.5) 4px 6px);
+  border: 1.5px dashed #d0213a;
+}
 .tegn.hard {
   background: radial-gradient(circle, rgba(60, 92, 20, 0.9) 1.2px, transparent 1.7px) 0 0 / 6px 6px,
     rgba(74, 112, 30, 0.2);

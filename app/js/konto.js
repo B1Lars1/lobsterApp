@@ -1,13 +1,14 @@
 /*
- * Kontoen i appen: delen «Konto» i innstillingsarket (også om kontoen er koblet til skyen
- * eller bare lagrer på telefonen), og arket for å logge inn, få nytt passord og slette
- * kontoen. Innloggingen og synkroniseringen ligger i sky.js.
+ * Kontoen i appen: kontokortet øverst i innstillingsarket, undersidene Konto og Lag (også
+ * om kontoen er koblet til skyen eller bare lagrer på telefonen), og arket for å logge inn,
+ * få nytt passord og slette kontoen. Innloggingen og synkroniseringen ligger i sky.js, og
+ * navigeringen mellom undersidene i app.js.
  * Kontoer kan ikke opprettes i appen: den som driver appen, legger dem til i
  * Firebase-konsollen (se README, «Oppsett i Firebase»).
  *
  * Arkene er <dialog> med showModal(), så meldinger fra melding.js synes ikke mens et
- * ark er åpent. Svar vises derfor i arkene selv (feltet under knappene og
- * statuslinjen i innstillingene).
+ * ark er åpent. Svar vises derfor i arkene selv: feltet under knappene, statuslinjen på
+ * undersiden Konto (#skystatus) og linjen på undersiden Lag (#lagmelding).
  */
 
 import { GYLDIGE_INITIALER, personer } from './personer.js';
@@ -98,8 +99,8 @@ export class Konto {
       if (handling === 'lukk') this.ark.close();
     });
 
-    // Delen «Konto» i innstillingsarket
-    $('knapp-logg-inn').addEventListener('click', () => this.vis('inn'));
+    // Undersiden Konto i innstillingsarket (kontokortet på hovedsiden kobles opp i app.js)
+    this.innst = $('ark-innstillinger');
     $('knapp-slett-konto').addEventListener('click', () => this.vis('slett'));
     $('knapp-synk').addEventListener('click', () => this._synkroniserNaa());
     $('knapp-logg-ut').addEventListener('click', () => this._loggUt());
@@ -121,9 +122,19 @@ export class Konto {
     $('knapp-bli-med').addEventListener('click', () => this.visLagArk('blimed'));
     $('knapp-del-kode').addEventListener('click', () => this._delKode());
     $('knapp-forlat-lag').addEventListener('click', () => this._forlatLag());
-    document.querySelector('.konto [data-liste="medlemmer"]').addEventListener('click', (e) => {
+    // Trykk på et annet medlem viser «Fjern fra laget» under det
+    this._aapentMedlem = null;
+    this.innst.querySelector('[data-liste="medlemmer"]').addEventListener('click', (e) => {
       const uid = e.target.closest('[data-fjern]')?.dataset.fjern;
-      if (uid) this._fjernMedlem(uid);
+      if (uid) {
+        this._fjernMedlem(uid);
+        return;
+      }
+      const rad = e.target.closest('[data-medlem]');
+      if (!rad) return;
+      const apen = rad.getAttribute('aria-expanded') !== 'true';
+      this._aapentMedlem = apen ? rad.dataset.medlem : null;
+      this._visMedlemsvalg();
     });
     $('felt-initialer').addEventListener('change', () => this._lagreInitialer());
     $('felt-initialer').addEventListener('keydown', (e) => {
@@ -209,7 +220,7 @@ export class Konto {
 
   async _synkroniserNaa() {
     const r = await this.sky.synkroniser();
-    if (r && !r.feil && !r.lokal) this.visStatus({ tilstand: 'ok', tekst: synkTekst(r) });
+    if (r && !r.feil && !r.lokal) this._skystatus({ tilstand: 'ok', tekst: synkTekst(r) });
   }
 
   async _loggUt() {
@@ -219,20 +230,20 @@ export class Konto {
 
   async _kobleTil() {
     if (!navigator.onLine) {
-      this.visStatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble til skyen.' });
+      this._skystatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble til skyen.' });
       return;
     }
     if (!window.confirm(KOBLE_TIL(antallTekst(this.sky.markeringer)))) return;
     try {
       await this.sky.kobleTil(); // statuslinjen viser hvordan det gikk
     } catch (feil) {
-      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+      this._skystatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
     }
   }
 
   async _kobleFra() {
     if (!navigator.onLine) {
-      this.visStatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble fra skyen.' });
+      this._skystatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble fra skyen.' });
       return;
     }
     if (!window.confirm(KOBLE_FRA)) return;
@@ -242,67 +253,109 @@ export class Konto {
         this._melding('Koblet fra skyen. Teiner og fangst lagres bare på denne telefonen.');
       }
     } catch (feil) {
-      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+      this._skystatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
     }
   }
 
-  // Melding under kontodelen som blir stående etter at du har logget ut eller slettet kontoen
+  // Melding under kontokortet som blir stående etter at du har logget ut eller slettet kontoen
   _melding(tekst) {
     $('kontomelding').textContent = tekst;
   }
 
   /** Vis innlogget/utlogget i innstillingsarket. */
   visBruker(bruker) {
-    document.querySelector('.konto [data-vis="utlogget"]').hidden = Boolean(bruker);
-    document.querySelector('.konto [data-vis="innlogget"]').hidden = !bruker;
-    document.querySelector('.konto [data-tekst="epost"]').textContent = bruker?.epost ?? '';
+    for (const el of this.innst.querySelectorAll('[data-vis="utlogget"]')) el.hidden = Boolean(bruker);
+    for (const el of this.innst.querySelectorAll('[data-vis="innlogget"]')) el.hidden = !bruker;
+    this.innst.querySelector('[data-tekst="epost"]').textContent = bruker?.epost ?? '';
     if (bruker) this._melding('');
+    this._visKontokort();
+  }
+
+  // Kontokortet: initialene (fra laget, ellers første bokstav i e-posten), e-posten og om
+  // kontoen er koblet til skyen. Statusen er den siste fra sky.js (se visStatus).
+  _visKontokort() {
+    const bruker = this.sky.bruker;
+    const kort = $('knapp-konto');
+    const sett = (navn, tekst) => { kort.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
+    const status = this._sistStatus ?? this.sky.statusTekst();
+    let { tilstand, tekst } = status;
+    if (!bruker) {
+      tilstand = 'av';
+      tekst = 'for å sette teiner og registrere fangst';
+    } else if (tilstand === 'lokal' || (!this.sky.koblet && !['feil', 'venter'].includes(tilstand))) {
+      tilstand = 'lokal';
+      tekst = 'Bare på denne telefonen';
+    } else if (tilstand === 'ok' || tilstand === 'pagar') {
+      tekst = `Koblet til skyen · ${tekst.charAt(0).toLowerCase()}${tekst.slice(1)}`;
+    }
+    sett('avatar', bruker ? this.sky.lag?.initialer?.[bruker.uid] ?? (bruker.epost ?? '?').charAt(0).toUpperCase() : '');
+    sett('kontonavn', bruker ? bruker.epost : 'Logg inn');
+    sett('kontostatus', tekst.replace(/\.$/, ''));
+    kort.querySelector('[data-tekst="kontostatus"]').dataset.tilstand = tilstand;
+    kort.setAttribute('aria-label', bruker ? `Konto: ${bruker.epost}. ${tekst}` : 'Logg inn');
   }
 
   // ---------- Lag ----------
 
   /** Vis laget du er med i (eller valgene for å opprette og bli med) i innstillingsarket. */
   visLag(lag) {
-    const del = document.querySelector('.konto');
-    del.querySelector('[data-lag="uten"]').hidden = Boolean(lag);
-    del.querySelector('[data-lag="med"]').hidden = !lag;
+    const side = this.innst.querySelector('[data-side="lag"]');
+    side.querySelector('[data-lag="uten"]').hidden = Boolean(lag);
+    side.querySelector('[data-lag="med"]').hidden = !lag;
+    this.innst.querySelector('[data-tekst="lagverdi"]').textContent =
+      lag ? `${lag.navn} · ${lag.medlemmer.length}` : 'Ikke med i et lag';
     this._visSky();
+    this._visKontokort();
     if (!lag) return;
-    del.querySelector('[data-tekst="lagnavn"]').textContent = lag.navn;
-    del.querySelector('[data-tekst="lagkode"]').textContent = visKode(lag.id);
+    side.querySelector('[data-tekst="lagnavn"]').textContent = lag.navn;
+    side.querySelector('[data-tekst="lagkode"]').textContent = visKode(lag.id);
     const meg = this.sky.bruker?.uid;
     const rader = lag.medlemmer.map((uid) => {
       const li = document.createElement('li');
+      const epost = lag.eposter?.[uid] ?? 'Ukjent';
+      const initialer = lag.initialer?.[uid];
+      // Initialene i personens farge, ellers starten av e-posten, så alle står på linje
+      const merke = document.createElement('span');
+      merke.className = 'eier-merke';
+      merke.textContent = initialer ?? epost.slice(0, 2);
       const tekst = document.createElement('span');
       tekst.className = 'radtekst';
       const b = document.createElement('b');
-      b.textContent = lag.eposter?.[uid] ?? 'Ukjent';
+      b.textContent = epost;
+      const small = document.createElement('small');
+      small.textContent = uid === meg ? 'deg' : initialer ? '' : 'Har ikke satt initialer';
       tekst.append(b);
+      if (small.textContent) tekst.append(small);
       if (uid === meg) {
-        const small = document.createElement('small');
-        small.textContent = 'deg';
-        tekst.append(small);
+        merke.classList.add('min');
+        li.append(merke, tekst);
+        return li;
       }
-      const initialer = lag.initialer?.[uid];
-      if (initialer) {
-        const merke = document.createElement('span');
-        merke.className = 'eier-merke';
-        merke.textContent = initialer;
-        if (uid !== meg) merke.style.background = personer.farge(uid);
-        else merke.classList.add('min');
-        li.append(merke);
-      }
-      li.append(tekst);
-      if (uid !== meg) {
-        const knapp = document.createElement('button');
-        Object.assign(knapp, { type: 'button', className: 'fjern', textContent: 'Fjern' });
-        knapp.dataset.fjern = uid;
-        li.append(knapp);
-      }
+      merke.style.background = personer.farge(uid);
+      const rad = document.createElement('button');
+      Object.assign(rad, { type: 'button', className: 'rad' });
+      rad.dataset.medlem = uid;
+      rad.append(merke, tekst);
+      const fjern = document.createElement('button');
+      Object.assign(fjern, { type: 'button', className: 'fjern', textContent: 'Fjern fra laget' });
+      fjern.dataset.fjern = uid;
+      li.append(rad, fjern);
       return li;
     });
-    del.querySelector('[data-liste="medlemmer"]').replaceChildren(...rader);
+    side.querySelector('[data-liste="medlemmer"]').replaceChildren(...rader);
+    if (!lag.medlemmer.includes(this._aapentMedlem)) this._aapentMedlem = null;
+    this._visMedlemsvalg();
     if (document.activeElement !== $('felt-initialer')) $('felt-initialer').value = lag.initialer?.[meg] ?? '';
+  }
+
+  // «Fjern fra laget» under medlemmet som er trykket på (høyst ett om gangen). Huskes når
+  // listen tegnes på nytt ved synkroniseringen.
+  _visMedlemsvalg() {
+    for (const rad of this.innst.querySelectorAll('[data-medlem]')) {
+      const apen = rad.dataset.medlem === this._aapentMedlem;
+      rad.setAttribute('aria-expanded', String(apen));
+      rad.nextElementSibling.hidden = !apen;
+    }
   }
 
   // Initialene dine i laget: 1–3 bokstaver, lagres når feltet forlates. Tomt felt fjerner dem.
@@ -402,10 +455,10 @@ export class Konto {
         await navigator.share({ title: 'Hummerkart', text: tekst });
       } else {
         await navigator.clipboard.writeText(tekst);
-        this.visStatus({ tilstand: 'ok', tekst: 'Invitasjonen med koden er kopiert. Lim den inn i en melding.' });
+        this._lagmelding('Invitasjonen med koden er kopiert. Lim den inn i en melding.');
       }
     } catch (feil) {
-      if (feil?.name !== 'AbortError') this.visStatus({ tilstand: 'feil', tekst: `Koden er ${visKode(lag.id)}.` });
+      if (feil?.name !== 'AbortError') this._lagmelding(`Koden er ${visKode(lag.id)}.`, { feil: true });
     }
   }
 
@@ -418,7 +471,7 @@ export class Konto {
     try {
       await this.sky.forlatLag();
     } catch (feil) {
-      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+      this._lagmelding(`Feil: ${feilTekst(feil)}`, { feil: true });
     }
   }
 
@@ -429,24 +482,40 @@ export class Konto {
     try {
       await this.sky.fjernMedlem(uid);
     } catch (feil) {
-      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+      this._lagmelding(`Feil: ${feilTekst(feil)}`, { feil: true });
     }
   }
 
-  /** Statuslinjen for synkroniseringen i innstillingsarket. */
-  visStatus({ tilstand, tekst }) {
+  /** Statusen fra sky.js: i kontokortet og i statuslinjen på undersiden Konto. */
+  visStatus(status) {
+    this._sistStatus = status;
+    this._skystatus(status);
+    this._visKontokort();
+  }
+
+  // Statuslinjen på undersiden Konto, også for svar på det du gjør der
+  _skystatus({ tilstand, tekst }) {
     $('skystatus').textContent = tekst;
     $('skystatus').dataset.tilstand = tilstand;
     this._visSky();
+  }
+
+  // Linjen på undersiden Lag: svar på det du gjør der (kopiert invitasjon, feil)
+  _lagmelding(tekst, { feil = false } = {}) {
+    $('lagmelding').textContent = tekst;
+    $('lagmelding').classList.toggle('feil', feil);
   }
 
   // Koblet til skyen eller bare på telefonen: vis tekstene og knappene som gjelder.
   // Koble fra skyen går ikke i et lag.
   _visSky() {
     const koblet = this.sky.koblet;
-    document.querySelectorAll('.konto [data-sky]').forEach((el) => {
+    this.innst.querySelectorAll('[data-sky]').forEach((el) => {
       el.hidden = (el.dataset.sky === 'koblet') !== koblet;
     });
-    $('knapp-koble-fra').hidden = !koblet || Boolean(this.sky.lag);
+    const kobleFra = $('knapp-koble-fra');
+    kobleFra.disabled = Boolean(this.sky.lag);
+    kobleFra.querySelector('[data-tekst="kobleFra"]').textContent =
+      this.sky.lag ? 'Gå ut av laget først' : 'Lagre bare på denne telefonen';
   }
 }
