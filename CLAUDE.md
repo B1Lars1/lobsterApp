@@ -136,7 +136,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py`, `sikkerhetskopi.py` og brukerens analyser i GeoPandas.
   Ikke gi dem nye navn. Appen har ingen eksport lenger (fjernet sammen med Kartverkets
-  topokart): analysen leser den nattlige sikkerhetskopien, og «Gjenopprett fra fil» i
+  topokart): analysen leser sikkerhetskopien, og «Gjenopprett fra fil» i
   innstillingene (`importer`, sperret med `medKonto`) er bare for nødsfall.
 
 **Konto, lag og synkronisering** (`sky.js`, `konto.js`, `firebase.js`) bruker Firebase:
@@ -205,14 +205,17 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   kontroller antallene i skriptet før det endrer noe, og trykk «Synkroniser nå»
   (`#knapp-synk`) etterpå. Sikkerhetskopien og «Slettede markeringer» er angrestien.
   Data registrert før innlogging ble påkrevd, har `registrert_av` tom.
-- Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser den
-  nattlige sikkerhetskopien i `data/private/hummerkart-data/sikkerhetskopi/` (lagets fil
+- Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser
+  sikkerhetskopien i `data/private/hummerkart-data/sikkerhetskopi/` (lagets fil
   hvis det er nøyaktig ett lag, ellers oppgir brukeren filen) etter `git pull`. Test den
   med oppdiktede data i samme format og `--ut` til en mappe utenfor repoet.
 - **Sikkerhetskopi** ligger i det private repoet `B1Lars1/hummerkart-data` (klonet til
-  `data/private/hummerkart-data/`, ignorert her): `sikkerhetskopi.py` kjøres hver natt av
-  GitHub Actions der og lagrer alle rom som GeoJSON, og `gjenopprett.py` gjør en gammel
-  kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra kontoene i Auth og
+  `data/private/hummerkart-data/`, ignorert her): `sikkerhetskopi.py` kjøres av GitHub
+  Actions der hver time fra 1. oktober til 15. desember og ikke resten av året (brukerens
+  valg, to `cron`-linjer i UTC), og lagrer alle rom som GeoJSON. Den committer bare når noe
+  er endret, så ingen ny commit betyr ikke at den ikke kjørte. Tidene står også i
+  innstillingene (`oppdaterDatainfo` i `app.js`) og `personvern.html`. `gjenopprett.py`
+  gjør en gammel kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra kontoene i Auth og
   `lag`-samlingen) etter dokumenter med `oppdatert` nyere enn rommets merke i
   `sikkerhetskopi/tilstand.json`, og fletter dem inn i filene. Det fanger alt fordi
   reglene krever ny `oppdatert` ved hver skriving, og appen sletter dokumenter bare rom

@@ -210,8 +210,9 @@ markeringer.naarEndret(() => {
 
 // ---------- Sikkerhetskopi ----------
 
-// Alt lagres i kontoen og kopieres hver natt (README, «Sikkerhetskopi»). «Gjenopprett fra
-// fil» leser inn en fil fra sikkerhetskopien (gjør den klar med gjenopprett.py først).
+// Alt lagres i kontoen og kopieres hver time i sesongen (README, «Sikkerhetskopi»).
+// «Gjenopprett fra fil» leser inn en fil fra sikkerhetskopien (gjør den klar med
+// gjenopprett.py først).
 async function importer(fil) {
   try {
     const r = await markeringer.importer(JSON.parse(await fil.text()));
@@ -232,7 +233,7 @@ function oppdaterDatainfo() {
   $('datainfo').textContent =
     `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer. ` +
     (sky.lag ? `Alt deles i laget «${sky.lag.navn}»` : 'Alt lagres i kontoen din') +
-    ' og kopieres hver natt til en sikkerhetskopi.';
+    ' og kopieres til en sikkerhetskopi hver time fra 1. oktober til 15. desember.';
 }
 
 $('knapp-importer').addEventListener('click', medKonto(() => $('velg-fil').click()));

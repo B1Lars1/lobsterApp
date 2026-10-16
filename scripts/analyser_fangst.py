@@ -1,6 +1,6 @@
 """Analyse av hummerfangst: tidslinje, statistikk, og fangst mot dybde og bunnhint.
 
-Leser markeringene fra den nattlige sikkerhetskopien i det private repoet, klonet til
+Leser markeringene fra sikkerhetskopien i det private repoet, klonet til
 data/private/hummerkart-data/ (henter nyeste versjon med git pull først). Er du med i
 et lag, brukes lagets fil. Finnes det flere lag, eller ingen, viser skriptet filene, og
 du oppgir den du vil ha:
@@ -71,7 +71,7 @@ HELNINGSNAVN = ["0–5°", "5–10°", "10–20°", "20°+"]
 KANTGRENSER = [0, 50, 150, np.inf]
 KANTNAVN = ["Under 50 m", "50–150 m", "Over 150 m"]
 TERRENG_TIF = PROCESSED_DIR / "hummerpotensial.tif"
-# Klonen av det private repoet med den nattlige sikkerhetskopien (se README, «Sikkerhetskopi»)
+# Klonen av det private repoet med sikkerhetskopien (se README, «Sikkerhetskopi»)
 SIKKERHETSKOPI = PRIVATE_DIR / "hummerkart-data"
 TIDSSONE = "Europe/Oslo"
 FAA_TEINEDOGN = 30  # under dette: si tydelig fra at tallene er usikre
@@ -91,7 +91,8 @@ def hent_sikkerhetskopi() -> None:
     sist = subprocess.run([*git, "log", "-1", "--format=%cd", "--date=format:%d.%m.%Y %H:%M",
                            "--", "sikkerhetskopi"], capture_output=True, text=True).stdout.strip()
     if sist:
-        print(f"Sikkerhetskopien er fra {sist}. Nyere endringer kommer med etter neste natt.")
+        print(f"Sikkerhetskopien er fra {sist}. Nyere endringer kommer med i neste kopi "
+              "(hver time fra 1. oktober til 15. desember).")
 
 
 def finn_fil(oppgitt: str | None) -> Path | None:

@@ -12,7 +12,7 @@ til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 For å sette teiner og registrere fangst må du være logget inn (e-post og passord).
 Markeringene lagres på telefonen og i skyen, som sikkerhetskopi og for å bruke dem på
 flere telefoner, og i et lag deler du dem med dem du fisker med. Uten innlogging kan du
-bare se på kartet. Fangsten kan analyseres i GeoPandas fra den nattlige sikkerhetskopien.
+bare se på kartet. Fangsten kan analyseres i GeoPandas fra sikkerhetskopien.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
 > Bruk offisielle sjøkart.
@@ -32,7 +32,7 @@ bare se på kartet. Fangsten kan analyseres i GeoPandas fra den nattlige sikkerh
 | 9 | Finpuss: gjenoppretting av slettede markeringer, nye teinesymboler og app-ikon, dobbelttrykk for zoom, rettet plassering av symbolene | ✅ |
 | 10 | Fangstoversikt for sesongen i appen | ✅ |
 | 11 | Hummerpotensial og tarekant, og kartet utvidet vestover til Søgne | ✅ |
-| 12 | Konto i Firebase, lag for deling, mistet teine og nattlig sikkerhetskopi | ✅ |
+| 12 | Konto i Firebase, lag for deling, mistet teine og sikkerhetskopi | ✅ |
 | 13 | Sikkerhet og rydding: innlogging kreves for å lagre, uten «Opprett konto», topokartet og eksporten fjernet | ✅ |
 | 14 | Hver teine har en eier i laget: farget nummer, initialer, egne numre, statistikk for deg og for laget | ✅ |
 
@@ -490,7 +490,7 @@ Uten innlogging åpner **Sett teine**, **Hummer her**, langt trykk i kartet og
 
 ### Data i GeoPandas
 
-Den nattlige sikkerhetskopien (se «Sikkerhetskopi») har alle markeringene som GeoJSON,
+Sikkerhetskopien (se «Sikkerhetskopi») har alle markeringene som GeoJSON,
 én fil per lag eller konto. Hent nyeste versjon og les den inn:
 
 ```powershell
@@ -559,9 +559,12 @@ Kontoer kan ikke opprettes i appen. Den som driver appen, legger dem til i Fireb
 
 ### Sikkerhetskopi
 
-Hver natt tas en kopi av alle markeringene i Firebase (kontoer og lag) til det private
-repoet [B1Lars1/hummerkart-data](https://github.com/B1Lars1/hummerkart-data), med én
-versjon per dag i git-historikken. Det beskytter mot feil som sletter noe i alle
+Hver time fra 1. oktober til 15. desember tas en kopi av alle markeringene i Firebase
+(kontoer og lag) til det private repoet
+[B1Lars1/hummerkart-data](https://github.com/B1Lars1/hummerkart-data), med en ny versjon i
+git-historikken hver gang noe er endret. Resten av året tas det ingen kopi. Endrer du noe
+da, start den for hånd: **Actions → Sikkerhetskopi → Run workflow** i det private repoet.
+Kommer det ingen ny versjon, er ingenting endret siden forrige kopi. Det beskytter mot feil som sletter noe i alle
 telefonene, for eksempel at noen i laget sletter teiner, og mot at Firebase forsvinner.
 Skriptet, workflowen, oppsettet og hvordan du gjenoppretter står i README-en der.
 Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet). Fangstanalysen
@@ -569,8 +572,8 @@ leser kopien derfra, og **Gjenopprett fra fil** i innstillingene leser inn en fi
 Innstillingene viser hvor mye som er lagret, og om det deles i et lag.
 
 Kopien tas med en tjenestekonto som bare kan lese. Nøkkelen ligger som en hemmelighet
-i GitHub Actions i det private repoet og skal aldri inn i noe repo. Hver natt hentes bare
-det som er endret siden natten før, så kopien bruker lite av gratiskvoten (se under).
+i GitHub Actions i det private repoet og skal aldri inn i noe repo. Hver gang hentes bare
+det som er endret siden forrige kopi, så kopien bruker lite av gratiskvoten (se under).
 
 ### Hvor langt rekker gratisplanene?
 
@@ -585,7 +588,7 @@ person på en fiskedag:
 | Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
 | Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
 | GitHub Pages | 100 GB per måned (mykt tak) | 1 700 brukere med 10 nye versjoner i måneden (ca. 6 MB per telefon per versjon) |
-| GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 30 |
+| GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 750 i oktober (én kjøring i timen) |
 
 Kontoer har ingen grense, og det kan sendes 150 e-poster om nytt passord per døgn. Du
 og broren din bruker en liten brøkdel av alt dette.
@@ -682,11 +685,11 @@ tilgangsreglene slår opp i lagdokumentet for hver av dem.
 .\.venv\Scripts\python.exe scripts\analyser_fangst.py
 ```
 
-Skriptet leser den nattlige sikkerhetskopien i `data/private/hummerkart-data/` og
+Skriptet leser sikkerhetskopien i `data/private/hummerkart-data/` og
 henter nyeste versjon med `git pull` først. Er du med i ett lag, brukes lagets fil, og
-skriptet sier hvor gammel kopien er. Det som er registrert etter natten, kommer med
-neste natt (eller start kopien for hånd: Actions → Sikkerhetskopi → Run workflow i det
-private repoet). Finnes det flere lag eller ingen, viser skriptet filene, og du oppgir
+skriptet sier hvor gammel kopien er. Det som er registrert etter kopien, kommer med i
+neste (hver time fra 1. oktober til 15. desember, ellers start kopien for hånd: Actions →
+Sikkerhetskopi → Run workflow i det private repoet). Finnes det flere lag eller ingen, viser skriptet filene, og du oppgir
 den du vil ha: `python scripts/analyser_fangst.py sti/til/fil.geojson`.
 
 Fangst måles som **hummer per teinedøgn**: antall hummer (beholdt + satt ut) delt

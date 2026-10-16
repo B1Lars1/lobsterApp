@@ -3,7 +3,7 @@
  *
  * Dataene blir liggende til neste gang appen åpnes, også uten nett. De forsvinner
  * bare hvis nettleserdataene for siden slettes. De lagres også i kontoen (sky.js), og
- * kontoen kopieres hver natt til en sikkerhetskopi.
+ * kontoen kopieres hver time i hummersesongen til en sikkerhetskopi.
  *
  * To tabeller:
  *   markeringer  teiner og fangst
