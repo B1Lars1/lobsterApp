@@ -265,11 +265,19 @@ Innlesingen koster like mange skrivinger i Firestore som det er markeringer (kvo
 gang. Sikkerhetskopien tar også med demokontoen (en egen fil under `brukere/`), men
 fangstanalysen bruker fortsatt lagets fil.
 
-Skriptet lager de samme markeringene (samme id-er) hver gang. Kjør det på nytt senere i
-sesongen og les inn filen igjen, så fylles sesongen på fram til den dagen: teinene som sto
-i sjøen, blir tatt opp, nye trekk legges til, og resten er uendret. `--naa 2026-11-10T12:00`
-lager data fram til et annet tidspunkt (UTC). `--fro` gir andre plasser og annen fangst,
-men som nye markeringer i tillegg til de gamle, ikke i stedet for dem.
+**Demokontoen nullstilles hver natt** av en workflow i det private repoet
+(`nullstill_demo.py`, oppsett og detaljer i README der). Den som låner demokontoen, kan
+prøve å sette teiner og registrere fangst, men alt det slettes om natten, og demodata som
+er endret, flyttet eller slettet, settes tilbake. Ingen kan altså bruke demokontoen til sin
+egen fangst. Samtidig følger demodataene med i sesongen, så du slipper å lese dem inn på
+nytt. Går demokontoen inn i et lag, går den ut av det igjen om natten.
+
+Skriptet lager de samme markeringene (samme id-er) hver gang, og det er det nullstillingen
+bygger på. Kjør det på nytt senere i sesongen og les inn filen igjen, så fylles sesongen
+på fram til den dagen (det gjør nullstillingen også): teinene som sto i sjøen, blir tatt
+opp, nye trekk legges til, og resten er uendret. `--naa 2026-11-10T12:00` lager data fram
+til et annet tidspunkt (UTC). `--fro` gir andre plasser og annen fangst, men ikke bruk det
+for demokontoen: nullstillingen bruker standardfrøet og sletter alt annet.
 
 For å vise appen på telefonen: logg ut av din egen konto i appen og inn på demokontoen.
 Teinene dine ligger i skyen og kommer tilbake når du logger inn igjen. En annen telefon

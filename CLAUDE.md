@@ -296,7 +296,13 @@ oppdaterer bare teinene som sto i sjøen (nyere `endret`) og legger til resten. 
 Python-versjoner), og trekk tallene i samme rekkefølge, ellers får eksisterende id-er nytt
 innhold. Tidene skrives som `toISOString()` (millisekunder og `Z`), siden appen sammenligner
 dem som tekst. Demokontoens bruker-id (`--uid`) står i det private repoet og skal ikke inn
-her.
+her. `nullstill_demo.py` i det private repoet nullstiller demokontoen hver natt: logger inn
+som demokontoen (Identity Toolkit og Firestore over REST, så reglene gjelder), går ut av et
+eventuelt lag, kjører `lag_demodata.py --uid … --ut …` og sammenligner alle felt unntatt
+`endret` og `dybde`. Det som ikke er demodata, får et slettedokument, og endrede eller
+slettede demodata skrives med en `endret` som vinner. Endres kommandolinjen, filformatet
+eller id-ene i `lag_demodata.py`, må nullstillingen følge med (en ny id-ordning ville
+slettet og skrevet alt på nytt, og alle telefonene på demokontoen ville hentet alt igjen).
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
