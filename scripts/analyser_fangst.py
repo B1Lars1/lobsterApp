@@ -92,7 +92,7 @@ def hent_sikkerhetskopi() -> None:
                            "--", "sikkerhetskopi"], capture_output=True, text=True).stdout.strip()
     if sist:
         print(f"Sikkerhetskopien er fra {sist}. Nyere endringer kommer med i neste kopi "
-              "(hver time fra 1. oktober til 15. desember).")
+              "(hver time fra 1. oktober til 15. desember, ellers hver natt).")
 
 
 def finn_fil(oppgitt: str | None) -> Path | None:

@@ -46,7 +46,10 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
   `app/data/bunnhint.geojson`, `app/data/fredningsomrader.geojson`).
   De tre første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
   trenger bare `pip install pillow`.
-- Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`.
+- Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`. Kartet
+  flytter seg til posisjonen bare hvis den er nærmere sjøen enn `NAER_SJOEN_M` (`naerSjoen`
+  i `dybdeoppslag.js`, kalt fra `gps.js` ved første posisjon). Ellers står det på `START`
+  (Skauerøya). Simuler et punkt på sjøen for å se deg selv.
 - Uten innlogging kan ingenting lagres, og agenten kan ikke logge inn. Legg til
   `&utenkonto` for å teste teiner og fangst (virker bare på `localhost`, se `medKonto`).
 - Verifiser endringer i nettleseren med mobilstørrelse (ca. 375×812). Brukeren har
@@ -211,12 +214,13 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   med oppdiktede data i samme format og `--ut` til en mappe utenfor repoet.
 - **Sikkerhetskopi** ligger i det private repoet `B1Lars1/hummerkart-data` (klonet til
   `data/private/hummerkart-data/`, ignorert her): `sikkerhetskopi.py` kjøres av GitHub
-  Actions der hver time fra 1. oktober til 15. desember og ikke resten av året (brukerens
-  valg, to `cron`-linjer i UTC), og lagrer alle rom som GeoJSON. Den committer bare når noe
-  er endret, så ingen ny commit betyr ikke at den ikke kjørte. Tidene står også i
+  Actions der hver time fra 1. oktober til 15. desember og ellers hver natt (brukerens valg,
+  fire `cron`-linjer i UTC), og lagrer alle rom som GeoJSON. Den committer bare når noe er
+  endret, så ingen ny commit betyr ikke at den ikke kjørte (se Actions). Tidene står også i
   innstillingene (`oppdaterDatainfo` i `app.js`) og `personvern.html`. `gjenopprett.py`
-  gjør en gammel kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra kontoene i Auth og
-  `lag`-samlingen) etter dokumenter med `oppdatert` nyere enn rommets merke i
+  gjør en gammel kopi klar til import. Kopien er inkrementell: den spør hvert rom (fra
+  kontoene i Auth og `lag`-samlingen) etter dokumenter med `oppdatert` nyere enn rommets
+  merke i
   `sikkerhetskopi/tilstand.json`, og fletter dem inn i filene. Det fanger alt fordi
   reglene krever ny `oppdatert` ved hver skriving, og appen sletter dokumenter bare rom
   for rom (`slettAlle`, da forsvinner kontoen eller laget og filen fjernes). Begynner

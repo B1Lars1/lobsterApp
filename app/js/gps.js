@@ -16,10 +16,12 @@ export class Gps {
   /**
    * @param {L.Map} kart
    * @param {(status: object) => void} naarStatus  kalles ved ny posisjon, feil eller endret «følg»
+   * @param {(latlng: L.LatLng) => Promise<boolean>} naerSjoen  er posisjonen på eller nær sjøen?
    */
-  constructor(kart, naarStatus) {
+  constructor(kart, naarStatus, naerSjoen) {
     this.kart = kart;
     this.naarStatus = naarStatus;
+    this._naerSjoen = naerSjoen;
     this.posisjon = null; // { latlng, noyaktighet, fart, retning, tid }
     this.folger = false;
     this._vaktId = null;
@@ -107,10 +109,19 @@ export class Gps {
 
     if (this.folger) {
       this.kart.panTo(latlng);
-    } else if (forste && !this._brukerHarFlyttetKartet && this._innenforKartet(latlng)) {
-      this.kart.setView(latlng, Math.max(this.kart.getZoom(), 15));
+    } else if (forste && !this._brukerHarFlyttetKartet) {
+      this._visHvisNaerSjoen(latlng);
     }
     this.naarStatus({ type: 'posisjon', posisjon: this.posisjon });
+  }
+
+  // Når appen åpnes, flyttes kartet til deg bare hvis du er på eller nær sjøen. Ellers blir
+  // det stående over Lillesand (START i app.js), så du ikke ser en prikk midt på land.
+  // Svaret kommer når dybdedataene er lastet.
+  async _visHvisNaerSjoen(latlng) {
+    if (!(await this._naerSjoen(latlng))) return;
+    if (this.folger || this._brukerHarFlyttetKartet) return; // du har flyttet kartet selv imens
+    this.kart.setView(this.posisjon.latlng, Math.max(this.kart.getZoom(), 15));
   }
 
   _feil(f) {
@@ -120,11 +131,6 @@ export class Gps {
       3: 'Venter på GPS …',
     };
     this.naarStatus({ type: 'feil', kode: f.code, tekst: tekster[f.code] || f.message });
-  }
-
-  _innenforKartet(latlng) {
-    const grenser = this.kart.options.maxBounds;
-    return !grenser || grenser.contains(latlng);
   }
 
   /** Slå «følg meg» av eller på. Returnerer false hvis det ikke finnes noen posisjon ennå. */

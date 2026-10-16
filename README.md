@@ -274,6 +274,13 @@ punkter som ligger nærmere hverandre enn én piksel, og bare hovedkurvene (5, 1
 20 og 50 m) tegnes. Tall langs kurvene og dybdetall dukker opp gradvis når du
 zoomer inn.
 
+**Når appen åpnes:** er du på sjøen eller nærmere sjøen enn 200 m, viser kartet deg
+(zoom 15). Ellers, for eksempel hjemme eller utenfor kartområdet, åpnes kartet over
+Skauerøya i Lillesand (zoom 13), så du ikke ser en blå prikk midt på land. Trykk på
+GPS-knappen for å gå til deg likevel. Sjekken gjøres med dybdedataene når de er lastet,
+og tar et par millisekunder, så oppstarten blir ikke tregere. Avstanden er `NAER_SJOEN_M`
+og startstedet `START` øverst i `app/js/app.js`.
+
 **Batteri:** GPS-en er bare på mens appen er synlig. Den stoppes når skjermen
 slås av eller du bytter app.
 
@@ -559,12 +566,12 @@ Kontoer kan ikke opprettes i appen. Den som driver appen, legger dem til i Fireb
 
 ### Sikkerhetskopi
 
-Hver time fra 1. oktober til 15. desember tas en kopi av alle markeringene i Firebase
-(kontoer og lag) til det private repoet
+Hver time fra 1. oktober til 15. desember, og hver natt resten av året, tas en kopi av
+alle markeringene i Firebase (kontoer og lag) til det private repoet
 [B1Lars1/hummerkart-data](https://github.com/B1Lars1/hummerkart-data), med en ny versjon i
-git-historikken hver gang noe er endret. Resten av året tas det ingen kopi. Endrer du noe
-da, start den for hånd: **Actions → Sikkerhetskopi → Run workflow** i det private repoet.
-Kommer det ingen ny versjon, er ingenting endret siden forrige kopi. Det beskytter mot feil som sletter noe i alle
+git-historikken hver gang noe er endret. Kommer det ingen ny versjon, er ingenting endret
+siden forrige kopi. Kopien kan også startes for hånd: **Actions → Sikkerhetskopi → Run
+workflow** i det private repoet. Det beskytter mot feil som sletter noe i alle
 telefonene, for eksempel at noen i laget sletter teiner, og mot at Firebase forsvinner.
 Skriptet, workflowen, oppsettet og hvordan du gjenoppretter står i README-en der.
 Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet). Fangstanalysen
@@ -588,7 +595,7 @@ person på en fiskedag:
 | Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
 | Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
 | GitHub Pages | 100 GB per måned (mykt tak) | 1 700 brukere med 10 nye versjoner i måneden (ca. 6 MB per telefon per versjon) |
-| GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 750 i oktober (én kjøring i timen) |
+| GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 750 i oktober (én kjøring i timen) og ca. 30 i en måned utenom sesongen |
 
 Kontoer har ingen grense, og det kan sendes 150 e-poster om nytt passord per døgn. Du
 og broren din bruker en liten brøkdel av alt dette.
@@ -688,9 +695,10 @@ tilgangsreglene slår opp i lagdokumentet for hver av dem.
 Skriptet leser sikkerhetskopien i `data/private/hummerkart-data/` og
 henter nyeste versjon med `git pull` først. Er du med i ett lag, brukes lagets fil, og
 skriptet sier hvor gammel kopien er. Det som er registrert etter kopien, kommer med i
-neste (hver time fra 1. oktober til 15. desember, ellers start kopien for hånd: Actions →
-Sikkerhetskopi → Run workflow i det private repoet). Finnes det flere lag eller ingen, viser skriptet filene, og du oppgir
-den du vil ha: `python scripts/analyser_fangst.py sti/til/fil.geojson`.
+neste (hver time fra 1. oktober til 15. desember, ellers hver natt), eller start kopien for
+hånd: Actions → Sikkerhetskopi → Run workflow i det private repoet. Finnes det flere lag
+eller ingen, viser skriptet filene, og du oppgir den du vil ha:
+`python scripts/analyser_fangst.py sti/til/fil.geojson`.
 
 Fangst måles som **hummer per teinedøgn**: antall hummer (beholdt + satt ut) delt
 på antall døgn teinene har stått i sjøen. Da teller også teiner uten fangst, og en

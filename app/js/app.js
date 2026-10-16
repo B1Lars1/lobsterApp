@@ -19,7 +19,7 @@
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { dobbelttrykkForZoom } from './dobbelttrykk.js';
 import { draNedForALukke } from './dra-ned.js';
-import { lagBunnoppslag, lagDybdeoppslag } from './dybdeoppslag.js';
+import { lagBunnoppslag, lagDybdeoppslag, naerSjoen } from './dybdeoppslag.js';
 import { Fredning } from './fredning.js';
 import { Gps } from './gps.js';
 import { kanLeggesTil, settOppHjemskjerm, visHjemskjermVeiledning } from './hjemskjerm.js';
@@ -37,7 +37,10 @@ import { Sky } from './sky.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
 const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]); // samme som BBOX_WGS84 i scripts/config.py
-const START = { senter: [58.235, 8.39], zoom: 12 }; // Lillesand, før GPS-en har funnet deg
+// Skauerøya i Lillesand: før GPS-en har funnet deg, og når du er langt fra sjøen
+const START = { senter: [58.2339, 8.3835], zoom: 13 };
+// Er du nærmere sjøen enn dette når appen åpnes, viser kartet deg i stedet (se gps.js)
+const NAER_SJOEN_M = 200;
 
 // Kreditering for dybdedataene, nede til høyre i kartet.
 const KREDITERING = '© <a href="https://www.kartverket.no/">Kartverket</a> · <strong>Ikke for navigasjon</strong>';
@@ -62,6 +65,7 @@ L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(kart);
 // Kreditering helt nederst, under knappene (se app.css). Leaflet er kreditert i README.
 L.control.attribution({ position: 'bottomright', prefix: false }).addTo(kart);
 
+const dybdedata = lastDybdedata(); // hentes én gang, for kartet og GPS-en (se nederst)
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
 let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint
@@ -130,7 +134,9 @@ const gps = new Gps(kart, (s) => {
     $('knapp-meg').classList.toggle('aktiv', s.folger);
     $('knapp-meg').setAttribute('aria-pressed', String(s.folger));
   }
-});
+}, (latlng) => dybdedata
+  .then((data) => naerSjoen(data, latlng.lat, latlng.lng, NAER_SJOEN_M))
+  .catch(() => false));
 gps.start();
 
 // Vis tydelig hvis posisjonen er gammel (ingen oppdatering på 30 sekunder).
@@ -210,7 +216,7 @@ markeringer.naarEndret(() => {
 
 // ---------- Sikkerhetskopi ----------
 
-// Alt lagres i kontoen og kopieres hver time i sesongen (README, «Sikkerhetskopi»).
+// Alt lagres i kontoen og kopieres hver natt, og hver time i sesongen (README, «Sikkerhetskopi»).
 // «Gjenopprett fra fil» leser inn en fil fra sikkerhetskopien (gjør den klar med
 // gjenopprett.py først).
 async function importer(fil) {
@@ -233,7 +239,7 @@ function oppdaterDatainfo() {
   $('datainfo').textContent =
     `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer. ` +
     (sky.lag ? `Alt deles i laget «${sky.lag.navn}»` : 'Alt lagres i kontoen din') +
-    ' og kopieres til en sikkerhetskopi hver time fra 1. oktober til 15. desember.';
+    ' og kopieres til en sikkerhetskopi hver natt, og hver time fra 1. oktober til 15. desember.';
 }
 
 $('knapp-importer').addEventListener('click', medKonto(() => $('velg-fil').click()));
@@ -393,7 +399,7 @@ fredning.last()
   .catch((feil) => console.error(feil));
 beOmVarigLagring(); // be nettleseren ikke slette appen og dataene ved lite plass
 
-lastDybdedata()
+dybdedata
   .then((data) => {
     dybdelag = new Dybdelag(data, {
       bounds: DATAOMRADE,
