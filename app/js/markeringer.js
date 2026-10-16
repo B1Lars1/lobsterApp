@@ -2,8 +2,9 @@
  * Markeringer: teiner og hummerfangst.
  *
  * Holder alle markeringer i minnet, lagrer hver endring i IndexedDB (lager.js) og
- * leser GeoJSON fra skyen (sky.js) og fra en fil i sikkerhetskopien («Gjenopprett fra
- * fil»). Andre deler av appen kan lytte på endringer med naarEndret().
+ * leser GeoJSON fra skyen (sky.js) og fra en fil («Gjenopprett fra fil»). Kontoer som ikke
+ * er koblet til skyen, lagrer en kopi til fil med tilGeoJSON() («Lagre kopi til fil»).
+ * Andre deler av appen kan lytte på endringer med naarEndret().
  *
  * Feltene (de samme som i skyen og sikkerhetskopien, så du kjenner dem igjen i GeoPandas):
  *   id           unik id
@@ -307,14 +308,29 @@ export class Markeringer {
     return this._lagre({ ...m, endret: naa() });
   }
 
-  // ---------- GeoJSON (skyen og sikkerhetskopien) ----------
+  // ---------- GeoJSON (skyen, sikkerhetskopien og kopi til fil) ----------
+
+  /** Alle markeringene som GeoJSON, med feltene i FELT (samme format som sikkerhetskopien). */
+  tilGeoJSON() {
+    const runde = (v) => Math.round(v * 1e6) / 1e6; // ca. 0,1 m
+    return {
+      type: 'FeatureCollection',
+      features: this.alle()
+        .sort((a, b) => a.tid.localeCompare(b.tid))
+        .map((m) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [runde(m.lon), runde(m.lat)] },
+          properties: Object.fromEntries(FELT.map((f) => [f, m[f] ?? null])),
+        })),
+    };
+  }
 
   /** Alle slettinger ({ id, endret }) som skal med til skyen, også de uten kopi. */
   slettinger() {
     return [...this._slettinger.values()].map(({ id, endret }) => ({ id, endret }));
   }
 
-  /** Fjern alle markeringer og slettinger fra telefonen (brukes når du logger ut). */
+  /** Fjern alle markeringer og slettinger fra telefonen (når en annen konto logger inn). */
   async tomAlt() {
     this._alle.clear();
     this._slettinger.clear();

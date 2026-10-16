@@ -1,6 +1,7 @@
 /*
- * Kontoen i appen: delen «Konto» i innstillingsarket, og arket for å logge inn, få nytt
- * passord og slette kontoen. Innloggingen og synkroniseringen ligger i sky.js.
+ * Kontoen i appen: delen «Konto» i innstillingsarket (også om kontoen er koblet til skyen
+ * eller bare lagrer på telefonen), og arket for å logge inn, få nytt passord og slette
+ * kontoen. Innloggingen og synkroniseringen ligger i sky.js.
  * Kontoer kan ikke opprettes i appen: den som driver appen, legger dem til i
  * Firebase-konsollen (se README, «Oppsett i Firebase»).
  *
@@ -16,15 +17,15 @@ const MODUS = {
   inn: {
     tittel: 'Logg inn',
     knapp: 'Logg inn',
-    forklaring: 'Du må være logget inn for å sette teiner og registrere fangst. De lagres i kontoen din, '
-      + 'og du får dem på alle telefoner du logger inn på. Kontoer lages av den som driver appen. '
-      + 'Trykk Avbryt for å bare se på kartet.',
+    forklaring: 'Du må være logget inn for å sette teiner og registrere fangst. Som standard lagres de '
+      + 'bare på telefonen. I innstillingene kan du koble kontoen til skyen for sikkerhetskopi, flere '
+      + 'telefoner og lag. Kontoer lages av den som driver appen. Trykk Avbryt for å bare se på kartet.',
     passord: 'current-password',
   },
   slett: {
     tittel: 'Slett kontoen',
     knapp: 'Slett kontoen for godt',
-    forklaring: 'Kontoen og alle teiner og fangst i skyen slettes og kan ikke hentes tilbake. '
+    forklaring: 'Kontoen og det som ligger i den i skyen, slettes og kan ikke hentes tilbake. '
       + 'Det som ligger på denne telefonen, blir liggende. Skriv passordet for å bekrefte.',
     passord: 'current-password',
   },
@@ -36,18 +37,37 @@ const LAGMODUS = {
     etikett: 'Navn på laget',
     plassholder: 'F.eks. Båten vår',
     knapp: 'Opprett lag',
-    forklaring: (n) => `Alt du har (${n}) flyttes inn i laget. Etterpå får du en kode som de andre `
-      + 'skriver inn for å bli med. Alle i laget ser og kan endre alle teiner og all fangst.',
+    forklaring: (n, koblet) => `Alt du har (${n}) flyttes inn i laget${koblet ? '' : ' i skyen'}. `
+      + 'Etterpå får du en kode som de andre skriver inn for å bli med. Alle i laget ser og kan '
+      + `endre alle teiner og all fangst.${koblet ? '' : KOBLES_TIL}`,
   },
   blimed: {
     tittel: 'Bli med i lag',
     etikett: 'Kode',
     plassholder: 'ABCD-EFGH',
     knapp: 'Bli med',
-    forklaring: (n) => `Skriv koden du har fått. Alt du har (${n}) flyttes inn i laget, og du `
-      + 'får lagets teiner og fangst.',
+    forklaring: (n, koblet) => `Skriv koden du har fått. Alt du har (${n}) flyttes inn i laget, og du `
+      + `får lagets teiner og fangst.${koblet ? '' : KOBLES_TIL}`,
   },
 };
+
+// Til lagarket når kontoen bare lagrer på telefonen
+const KOBLES_TIL = ' Kontoen kobles til skyen, og det tas sikkerhetskopi.';
+
+// Spørsmålene før kontoen kobles til eller fra skyen (window.confirm)
+const KOBLE_TIL = (antall) => 'Koble til skyen?\n\n'
+  + `Teinene og fangsten din (${antall}), og alt du lagrer senere, lastes opp til kontoen din i skyen `
+  + '(Google Firebase, i EU). Du får dem på alle telefonene du logger inn på, og det tas '
+  + 'sikkerhetskopi hver natt, og hver time fra 1. oktober til 15. desember. Sikkerhetskopien '
+  + 'ligger hos den som driver appen.\n\nDu kan koble fra igjen senere.';
+const KOBLE_FRA = 'Lagre bare på denne telefonen?\n\n'
+  + '• Du kan ikke være med i et lag.\n'
+  + '• Det tas ingen sikkerhetskopi. Mister eller bytter du telefon, eller fjerner appen fra '
+  + 'hjemskjermen, er teinene og fangsten borte. Lagre en kopi til fil innimellom '
+  + '(Innstillinger → Sikkerhetskopi).\n'
+  + '• De kommer ikke lenger på andre telefoner. Hver telefon med kontoen beholder det den har.\n\n'
+  + 'Alt i kontoen din i skyen slettes, men det som ligger på telefonen, blir liggende. Eldre '
+  + 'sikkerhetskopier slettes ikke av seg selv. Be den som driver appen om det hvis du vil.';
 
 const $ = (id) => document.getElementById(id);
 
@@ -83,6 +103,8 @@ export class Konto {
     $('knapp-slett-konto').addEventListener('click', () => this.vis('slett'));
     $('knapp-synk').addEventListener('click', () => this._synkroniserNaa());
     $('knapp-logg-ut').addEventListener('click', () => this._loggUt());
+    $('knapp-koble-til').addEventListener('click', () => this._kobleTil());
+    $('knapp-koble-fra').addEventListener('click', () => this._kobleFra());
 
     // Lag
     this.lagArk = $('ark-lag');
@@ -187,7 +209,7 @@ export class Konto {
 
   async _synkroniserNaa() {
     const r = await this.sky.synkroniser();
-    if (r && !r.feil) {
+    if (r && !r.feil && !r.lokal) {
       const hentet = r.hentet ? `${r.hentet} endringer hentet` : 'ingen nye endringer';
       const sendt = r.sendt ? `, ${r.sendt} sendt` : '';
       this.visStatus({ tilstand: 'ok', tekst: `Synkronisert: ${hentet}${sendt}.` });
@@ -195,8 +217,36 @@ export class Konto {
   }
 
   async _loggUt() {
-    if (await this.sky.loggUt()) {
-      this._melding('Logget ut. Teiner og fangst er fjernet fra telefonen, men ligger i skyen.');
+    await this.sky.loggUt();
+    this._melding('Logget ut. Teiner og fangst ligger fortsatt på telefonen.');
+  }
+
+  async _kobleTil() {
+    if (!navigator.onLine) {
+      this.visStatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble til skyen.' });
+      return;
+    }
+    if (!window.confirm(KOBLE_TIL(antallTekst(this.sky.markeringer)))) return;
+    try {
+      await this.sky.kobleTil(); // statuslinjen viser hvordan det gikk
+    } catch (feil) {
+      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
+    }
+  }
+
+  async _kobleFra() {
+    if (!navigator.onLine) {
+      this.visStatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble fra skyen.' });
+      return;
+    }
+    if (!window.confirm(KOBLE_FRA)) return;
+    try {
+      const r = await this.sky.kobleFra();
+      if (!r?.feil && !this.sky.koblet) {
+        this._melding('Koblet fra skyen. Teiner og fangst lagres bare på denne telefonen.');
+      }
+    } catch (feil) {
+      this.visStatus({ tilstand: 'feil', tekst: `Feil: ${feilTekst(feil)}` });
     }
   }
 
@@ -220,6 +270,7 @@ export class Konto {
     const del = document.querySelector('.konto');
     del.querySelector('[data-lag="uten"]').hidden = Boolean(lag);
     del.querySelector('[data-lag="med"]').hidden = !lag;
+    this._visSky();
     if (!lag) return;
     del.querySelector('[data-tekst="lagnavn"]').textContent = lag.navn;
     del.querySelector('[data-tekst="lagkode"]').textContent = visKode(lag.id);
@@ -293,7 +344,7 @@ export class Konto {
     const sett = (navn, tekst) => { this.lagArk.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
     sett('tittel', m.tittel);
     sett('etikett', m.etikett);
-    sett('forklaring', m.forklaring(antallTekst(this.sky.markeringer)));
+    sett('forklaring', m.forklaring(antallTekst(this.sky.markeringer), this.sky.koblet));
     this._visLagSvar('');
     const felt = this.lagSkjema.elements.verdi;
     felt.placeholder = m.plassholder;
@@ -390,5 +441,16 @@ export class Konto {
   visStatus({ tilstand, tekst }) {
     $('skystatus').textContent = tekst;
     $('skystatus').dataset.tilstand = tilstand;
+    this._visSky();
+  }
+
+  // Koblet til skyen eller bare på telefonen: vis tekstene og knappene som gjelder.
+  // Koble fra skyen går ikke i et lag.
+  _visSky() {
+    const koblet = this.sky.koblet;
+    document.querySelectorAll('.konto [data-sky]').forEach((el) => {
+      el.hidden = (el.dataset.sky === 'koblet') !== koblet;
+    });
+    $('knapp-koble-fra').hidden = !koblet || Boolean(this.sky.lag);
   }
 }

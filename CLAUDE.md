@@ -31,7 +31,8 @@ detalj. Denne filen er det en agent trenger i tillegg.
 Ingen byggesteg, ingen pakkehåndtering for JavaScript og ingen linter. Appen i `app/` er
 statiske filer. Testene i `tests/` sjekker at fangstoversikten og analysen regner som
 fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`),
-sesongvalget i oversikten og regnestykket i `potensialjustering.js`. README viser
+sesongvalget i oversikten, regnestykket i `potensialjustering.js` og synkroniseringen i
+`sky.js` (med falsk Firebase, localStorage og IndexedDB). README viser
 kommandoene for Windows/PowerShell (`.\.venv\Scripts\python.exe`). På macOS/Linux er det
 `.venv/bin/python`.
 
@@ -43,6 +44,7 @@ python scripts/lag_demodata.py --uid UID  # oppdiktede teiner og fangst til demo
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
 node tests/regnemaate.test.mjs          # fangstoversikten (oversikt.js) mot fasiten
 node tests/potensialjustering.test.mjs  # justeringen av hummerpotensialet etter fangsten
+node tests/sky.test.mjs                 # synkroniseringen: bare på telefonen, koble til/fra, lag, logg ut
 python -m unittest discover -s tests    # analysen (analyser_fangst.py) mot samme fasit, krever requirements.txt
 ```
 
@@ -179,15 +181,38 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   arket dratt ned når tidslinjen ble scrollet.
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py`, `sikkerhetskopi.py` og brukerens analyser i GeoPandas.
-  Ikke gi dem nye navn. Appen har ingen eksport lenger (fjernet sammen med Kartverkets
-  topokart): analysen leser sikkerhetskopien, og «Gjenopprett fra fil» i
-  innstillingene (`importer`, sperret med `medKonto`) er bare for nødsfall.
+  Ikke gi dem nye navn. Analysen leser sikkerhetskopien. «Lagre kopi til fil»
+  (`lagreKopi` i `app.js`, `tilGeoJSON()`) vises bare når kontoen ikke er koblet til skyen
+  (også utlogget), siden det da er den eneste sikkerhetskopien. Filnavnet er
+  `markeringer-ÅÅÅÅ-MM-DD.geojson`, så `.gitignore` stopper den. «Gjenopprett fra fil»
+  (`importer`, sperret med `medKonto`) leser den inn igjen.
 
 **Konto, lag og synkronisering** (`sky.js`, `konto.js`, `firebase.js`) bruker Firebase:
 innlogging med e-post og passord, og Firestore med ett dokument per markering (feltene i
 `FELT` pluss `lat`, `lon`, `slettet` og `oppdatert`) i et «rom»: `bruker:{uid}` →
 `brukere/{uid}/markeringer/{id}`, eller `lag:{kode}` → `lag/{kode}/markeringer/{id}`.
 En sletting er et dokument `{ id, endret, slettet: true }`.
+- **Bare på telefonen er standard** (brukerens valg, for dem som ikke vil ha teineplasser
+  og fangst i skyen). En konto er koblet til skyen bare hvis brukeren trykker «Koble til
+  skyen», eller oppretter eller blir med i et lag (`_gaInnILag`). Valget gjelder kontoen:
+  `brukere/{uid}` = `{ sky, frakoblet, oppdatert }`, lest først i hver synkronisering
+  (`_sjekkKobling`), så alle telefonene følger det. Telefonen husker det som `sky` i
+  `hummerkart.sky` (`true`, `false`, `null` = ikke sjekket ennå). Kontoer uten dokumentet
+  (fra før valget) er koblet til hvis telefonen var det (tilstand med `uid` uten `sky`, se
+  `hentTilstand`), eller kontoen har et lag eller markeringer i skyen (`harMarkeringer`).
+  Ikke koblet til: ingenting sendes, `naarEndret` starter ingen synkronisering, og det
+  koster én lesing når appen åpnes eller kommer fram. `sky.lag` er `null`.
+- «Koble fra skyen» (`kobleFra`, ikke i et lag) synkroniserer først, setter `frakobler` i
+  tilstanden og fullføres av synkroniseringen (`_fullforFrakobling`), så den gjøres ferdig
+  hvis den blir avbrutt: valget `sky: false` først (så de andre telefonene stopper før
+  slettingene kommer), så slettedokumenter med samme `endret` (lagret som `frakoblet`) for
+  alt i rommet. Slettedokumenter, ikke `slettAlle`, fordi sikkerhetskopien er inkrementell
+  og ikke ser dokumenter som forsvinner. Kobles kontoen til igjen, overses slettinger med
+  `endret === frakoblet` for markeringer som finnes på telefonen (`_utveksle`), og de
+  sendes på nytt. Ellers ville de eldre markeringene tapt mot slettingene.
+- Logg ut beholder markeringene og tilstanden på telefonen (brukerens valg), så samme konto
+  fortsetter der den slapp. Logger en annen konto inn, spør `_brukerEndret` før `tomAlt()`.
+  Lå de bare på telefonen, advarer den om at de slettes for godt.
 - Telefonen er hovedkopien. `Sky` henter dokumenter med `oppdatert` (serverens tid)
   nyere enn `sistHentet`, slår dem sammen med `Markeringer.importer()` (nyeste `endret`
   vinner, slettinger følger med) og sender så det som er endret lokalt: der `endret`
@@ -214,14 +239,17 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
 - I et lag slår tilgangsreglene opp i `lag/{kode}` (`get()`) for hver markering, og en
   batch tillater maks 20 slike oppslag. Derfor `BATCH_LAG = 15` i `firebase.js`.
 - Gratiskvoten (Spark) er 50 000 lesinger og 20 000 skrivinger i døgnet, og 1 GiB. Hver
-  synkronisering koster minst 2 lesinger (`finnLag` og spørringen, også når ingenting er
-  endret), og hver telefon leser tilbake sine egne endringer. Ikke synkroniser oftere, og
+  synkronisering koster minst 3 lesinger (kontoens valg, `finnLag` og spørringen, også når
+  ingenting er endret), og hver telefon leser tilbake sine egne endringer. Ikke synkroniser oftere, og
   ikke les alt på nytt uten grunn. README («Hvor langt rekker gratisplanene?») har anslagene.
 - `naarEndret` overses mens en synkronisering pågår, ellers ville importen av det som
   hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
   rett etterpå.
 - Flere telefoner og eldre versjoner av appen deler dataene, så dokumentformatet må
-  forbli bakoverkompatibelt. Et dokument har 20 felt (`FELT` + `lat`, `lon`, `slettet`,
+  forbli bakoverkompatibelt. Eldre versjoner av appen kjenner ikke `brukere/{uid}` og
+  synkroniserer alltid: kobles kontoen fra skyen, henter en telefon med en eldre versjon
+  slettingene (og sletter markeringene på telefonen) og sender nye endringer, til den får
+  den nye versjonen. Et dokument har 20 felt (`FELT` + `lat`, `lon`, `slettet`,
   `oppdatert`), og reglene godtar bare dem (`d.keys().hasOnly([...])` i `gyldigMarkering`).
   Et nytt felt må legges til i listen der, og brukeren må publisere reglene før appen pushes.
   Reglene sjekker også at `registrert_av` er tekst eller null, og at `endret` er kort.
@@ -252,7 +280,10 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
 - Agenten kan ikke logge inn eller opprette kontoer i Firebase (ekstern tjeneste). Test
   logikken med erstatninger: `Sky` tar `innlogging` og `tjeneste` som parametre
   (se `FirebaseInnlogging`/`FirestoreTjeneste` i `firebase.js` for hvilke metoder som
-  trengs), og la brukeren teste ekte innlogging.
+  trengs, og `tests/sky.test.mjs`), og la brukeren teste ekte innlogging. For skjermbilder
+  av kontodelen: bytt ut `js/firebase.js` med `page.route` i Playwright (med
+  `serviceWorkers: 'block'`, ellers går forespørselen utenom) mot en modul med falsk
+  innlogging og tjeneste i minnet.
 - Ber brukeren om å rette ekte data i laget: brukeren logger selv inn på `localhost:8000`
   i nettleserpanelet (skriv aldri inn passordet). Les og endre så gjennom appen med
   `await import('/js/markeringer.js')` (samme instans som appen) og metodene i
@@ -303,6 +334,9 @@ eventuelt lag, kjører `lag_demodata.py --uid … --ut …` og sammenligner alle
 slettede demodata skrives med en `endret` som vinner. Endres kommandolinjen, filformatet
 eller id-ene i `lag_demodata.py`, må nullstillingen følge med (en ny id-ordning ville
 slettet og skrevet alt på nytt, og alle telefonene på demokontoen ville hentet alt igjen).
+Demokontoen må være koblet til skyen (`brukere/{uid}` med `sky: true`). Trykker noen
+«Koble fra skyen» på den, må nullstillingen sette valget tilbake, ellers blir nye telefoner
+på demokontoen stående med bare det som er på telefonen (tomt).
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi

@@ -1,9 +1,11 @@
 /*
  * Lagring av markeringer i nettleserens database (IndexedDB) på telefonen.
  *
- * Dataene blir liggende til neste gang appen åpnes, også uten nett. De forsvinner
- * bare hvis nettleserdataene for siden slettes. De lagres også i kontoen (sky.js), og
- * kontoen kopieres hver natt, og hver time i hummersesongen, til en sikkerhetskopi.
+ * Dataene blir liggende til neste gang appen åpnes, også uten nett, og når du logger ut.
+ * De forsvinner bare hvis nettleserdataene for siden slettes (eller appen fjernes fra
+ * hjemskjermen). Er kontoen koblet til skyen, lagres de også der (sky.js), og skyen
+ * kopieres hver natt, og hver time fra 1. oktober til 15. desember, til en sikkerhetskopi.
+ * Ellers ligger de bare her, og brukeren kan lagre en kopi til fil.
  *
  * To tabeller:
  *   markeringer  teiner og fangst
@@ -74,7 +76,7 @@ export const lagreSletting = (sletting) => transaksjon(SLETTINGER, 'readwrite', 
 
 export const fjernSletting = (id) => transaksjon(SLETTINGER, 'readwrite', (t) => t.delete(id));
 
-/** Tøm begge tabellene (når du logger ut av kontoen). */
+/** Tøm begge tabellene (når en annen konto logger inn på telefonen). */
 export async function tomAlt() {
   await transaksjon(MARKERINGER, 'readwrite', (t) => t.clear());
   await transaksjon(SLETTINGER, 'readwrite', (t) => t.clear());

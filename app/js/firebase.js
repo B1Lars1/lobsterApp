@@ -109,6 +109,10 @@ const lagFra = (d) => ({
  * Lagdokumentet lag/{kode} har { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet },
  * og initialer: { uid: «BL» } når noen har satt initialene sine. Koden er dokument-id-en og
  * fungerer som invitasjon (se firestore.rules).
+ *
+ * Kontoens valg ligger i brukere/{uid}: { sky: true/false, frakoblet, oppdatert }. sky er
+ * om kontoen er koblet til skyen (ellers lagres alt bare på telefonen), og frakoblet er
+ * «endret» på slettingene fra da den sist ble koblet fra (se sky.js).
  */
 export class FirestoreTjeneste {
   _samling(rom) {
@@ -148,6 +152,12 @@ export class FirestoreTjeneste {
     }
   }
 
+  /** Har rommet minst én markering som ikke er slettet? */
+  async harMarkeringer(rom) {
+    const svar = await getDocs(query(this._samling(rom), where('slettet', '==', false), limit(1)));
+    return !svar.empty;
+  }
+
   /** Slett alle markeringene i rommet (når kontoen slettes, eller det siste medlemmet går). */
   async slettAlle(rom) {
     const samling = this._samling(rom);
@@ -158,6 +168,27 @@ export class FirestoreTjeneste {
       for (const d of alle.slice(i, i + storrelse)) batch.delete(d.ref);
       await batch.commit();
     }
+  }
+
+  // ---------- Kontoens valg: koblet til skyen eller bare på telefonen ----------
+
+  /** { sky, frakoblet } fra brukere/{uid}, eller null for kontoer fra før valget fantes. */
+  async hentKonto(uid) {
+    koble();
+    const d = await getDoc(doc(db, 'brukere', uid));
+    return d.exists() ? { sky: d.data().sky === true, frakoblet: d.data().frakoblet ?? null } : null;
+  }
+
+  /** Lagre { sky } og eventuelt { frakoblet }. Felt som ikke er med, beholdes. */
+  async lagreKonto(uid, felt) {
+    koble();
+    await setDoc(doc(db, 'brukere', uid), { ...felt, oppdatert: serverTimestamp() }, { merge: true });
+  }
+
+  /** Slett valget (når kontoen slettes). */
+  async slettKonto(uid) {
+    koble();
+    await deleteDoc(doc(db, 'brukere', uid));
   }
 
   // ---------- Lag ----------

@@ -349,30 +349,40 @@
 
       <h2>Sikkerhetskopi</h2>
       <p id="datainfo" class="hjelp"></p>
-      <!-- Bare for nødsfall: leser inn en fil fra sikkerhetskopien (se README) -->
+      <!-- Når kontoen ikke er koblet til skyen: den eneste sikkerhetskopien (se app.js) -->
+      <button type="button" id="knapp-lagre-kopi" class="sekundar" hidden>Lagre kopi til fil</button>
+      <!-- Leser inn en kopi til fil, eller en fil fra sikkerhetskopien (se README) -->
       <button type="button" id="knapp-importer" class="lenke">Gjenopprett fra fil</button>
 
       <h2>Konto</h2>
       <div class="konto">
         <div data-vis="utlogget">
-          <p class="hjelp">Logg inn for å sette teiner og registrere fangst. De lagres i
-            kontoen din, så du har en sikkerhetskopi og får dem på alle telefonene dine. Uten
-            innlogging kan du bare se på kartet.</p>
+          <p class="hjelp">Logg inn for å sette teiner og registrere fangst. Som standard lagres
+            de bare på telefonen, men du kan koble kontoen til skyen for sikkerhetskopi, flere
+            telefoner og lag. Uten innlogging kan du bare se på kartet.</p>
           <button type="button" id="knapp-logg-inn" class="sekundar">Logg inn</button>
         </div>
         <div data-vis="innlogget" hidden>
-          <p class="hjelp">Logget inn som <b data-tekst="epost"></b>. Teiner og fangst lagres
-            i skyen og synkroniseres med de andre telefonene dine.</p>
+          <p class="hjelp">Logget inn som <b data-tekst="epost"></b>.</p>
+          <!-- Koblet til skyen eller bare på telefonen (se sky.js og konto.js) -->
+          <p class="hjelp" data-sky="lokal"><b>Bare på denne telefonen.</b> Teiner og fangst
+            sendes ikke til skyen, og det tas ingen sikkerhetskopi. Koble til skyen for å få
+            sikkerhetskopi og dem på alle telefonene dine, eller bli med i et lag.</p>
+          <p class="hjelp" data-sky="koblet" hidden><b>Koblet til skyen.</b> Teiner og fangst
+            lagres i skyen, med sikkerhetskopi, og synkroniseres med de andre telefonene dine.</p>
           <div class="knapperad">
-            <button type="button" id="knapp-synk" class="sekundar">Synkroniser nå</button>
+            <button type="button" id="knapp-koble-til" class="sekundar" data-sky="lokal">Koble til skyen</button>
+            <button type="button" id="knapp-synk" class="sekundar" data-sky="koblet" hidden>Synkroniser nå</button>
             <button type="button" id="knapp-logg-ut" class="sekundar">Logg ut</button>
           </div>
           <p id="skystatus" class="hjelp" data-tilstand="av"></p>
+          <button type="button" id="knapp-koble-fra" class="lenke" hidden>Koble fra skyen</button>
 
           <h2>Lag</h2>
           <div data-lag="uten">
             <p class="hjelp">Del teiner og fangst med dem du fisker med. Alle i laget ser og kan
-              endre alt, som én felles logg. Det du har, flyttes inn i laget.</p>
+              endre alt, som én felles logg. Det du har, flyttes inn i laget<span data-sky="lokal">,
+              og kontoen kobles til skyen</span>.</p>
             <div class="knapperad">
               <button type="button" id="knapp-opprett-lag" class="sekundar">Opprett lag</button>
               <button type="button" id="knapp-bli-med" class="sekundar">Bli med i lag</button>
