@@ -138,7 +138,11 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   per person og tidslinjen gruppert per person. Analysen viser det samme per person når
   flere har teiner i filen, og `--person` gir bare én persons teiner, som «Mine». Oversikten viser bare
   hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
-  brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG
+  brukes til sesongtallet i teinelisten). Kartet viser fangst og opptatte teiner bare fra
+  `hummersesong().fra` (`_synlig` i `kartmarkeringer.js`), og teinelisten lager radene for
+  tidligere sesonger først når de åpnes (`_eldreFangst`, `_apneSesonger` i
+  `markeringsark.js`). Symbolene er HTML-elementer, så alt fra flere år ville gjort kartet
+  og listen trege. Analysen bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
   (notater). Se «Sikkerhet».
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med

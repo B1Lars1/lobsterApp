@@ -465,7 +465,8 @@ Sjekk alltid gjeldende forskrift.
   er derfor gjemt under teinesymbolet på kartet. Du finner den i teinearket (under
   faktaboksene) og under **Fangstregistreringer** nederst i listen, sist registrert
   først. Trykk på en fangst for å endre antall beholdt og satt ut, tidspunkt, teine
-  eller notat, flytte den eller slette den.
+  eller notat, flytte den eller slette den. Fangsten fra tidligere sesonger ligger
+  sammenslått nederst i den delen («Sesongen 2025 (…)»). Trykk for å åpne en sesong.
 - **0 hummer** vises med en grå hake og «Ingen hummer» i teinearket og under
   Fangstregistreringer, og som en hul ring i tidslinjen i analysen.
 - **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
@@ -492,10 +493,14 @@ Sjekk alltid gjeldende forskrift.
 - **En annens teine i laget:** samme teine, men nummeret er farget (blått, grønt osv., én
   farge per person). Dine egne ser ut som før.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
-  når «Teiner som er tatt opp» er slått på i innstillingene.
+  når «Teiner tatt opp i sesongen» er slått på i innstillingene.
 - **Mistet teine:** samme grå teine med et rødt «?». Vises alltid, til den er funnet.
 - **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
   Stiplet kant betyr at alle ble satt ut igjen.
+- **Bare sesongen:** fangst og opptatte teiner vises bare fra hummersesongen som pågår
+  (eller den siste), altså fra 1. oktober. Over flere år ville kartet ellers fått
+  tusenvis av symboler og blitt tregt. Eldre fangst finnes i listen og i analysen.
+  Teiner i sjøen og mistede teiner vises alltid.
 - **Ingen hummer:** hvit sirkel med grå hake, der en teine ble tatt opp tom.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.

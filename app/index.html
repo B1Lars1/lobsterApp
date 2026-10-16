@@ -133,6 +133,8 @@
     <details class="utvidbar" data-del="fangst" hidden>
       <summary><span>Fangstregistreringer (<span data-tekst="antallFangst">0</span>)</span></summary>
       <ul class="liste" data-liste="fangst"></ul>
+      <!-- Tidligere sesonger, én sammenslått del per sesong (se markeringsark.js) -->
+      <div data-liste="eldre-fangst"></div>
     </details>
     <details class="utvidbar" data-del="slettede" hidden>
       <summary><span>Slettede markeringer (<span data-tekst="antallSlettede">0</span>)</span></summary>
@@ -298,8 +300,8 @@
         grunner (grunneste punkt). Understreket tall er tørrfall over sjøkartnull.</p>
 
       <h2>Vis på kartet</h2>
-      <label class="bryter"><input type="checkbox" name="visFangst"> Hummerfangst</label>
-      <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner som er tatt opp</label>
+      <label class="bryter"><input type="checkbox" name="visFangst"> Hummerfangst i sesongen</label>
+      <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner tatt opp i sesongen</label>
       <label class="bryter"><input type="checkbox" name="visFredning"> Fredningsområder for hummer</label>
       <label class="bryter"><input type="checkbox" name="visBunnhint"> Bunnhint: tare, ålegras og skjellsand</label>
       <div class="bunnforklaring">
