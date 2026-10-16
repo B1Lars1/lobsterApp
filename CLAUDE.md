@@ -54,6 +54,11 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
   `&utenkonto` for å teste teiner og fangst (virker bare på `localhost`, se `medKonto`).
 - Verifiser endringer i nettleseren med mobilstørrelse (ca. 375×812). Brukeren har
   iPhone og bruker appen fra hjemskjermen.
+- Steng alltid localhost når du er ferdig: stopp testserveren (Ctrl+C, eller stopp
+  launch-konfigurasjonen eller bakgrunnsprosessen) på alle porter du har brukt (8000, 8001
+  osv.), og sjekk at porten er ledig igjen. På Linux/macOS treffer `pkill -f testserver.py`
+  også skallet som kjører kommandoen (mønsteret står i kommandolinjen). Bruk
+  `pkill -f "[t]estserver.py"`.
 - Repoets vane er å kjøre `lag_service_worker.py` og committe den oppdaterte `sw.js`
   sammen med endringer i `app/`. Workflowen gjør det også ved publisering.
   Sjekksummen regnes med LF-linjeskift (git sjekker ut CRLF på Windows), så samme kode
