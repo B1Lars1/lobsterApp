@@ -40,7 +40,7 @@ bare se på kartet. Fangsten kan analyseres i GeoPandas fra sikkerhetskopien.
 
 ```
 app/                  Web-appen (statiske filer, publiseres på GitHub Pages)
-  data/               Ferdige GeoJSON-filer som appen leser (i git)
+  data/               Ferdige kartdata som appen leser (i git)
   vendor/             Leaflet og Firebase, så appen ikke henter kode fra andre steder
   personvern.html     Personvernerklæringen
 data/
@@ -49,7 +49,8 @@ data/
   private/            Dine egne markeringer og analyser (ALDRI i git)
     hummerkart-data/  Klone av det private repoet med sikkerhetskopien
 scripts/              Python-skript for databehandling
-.github/workflows/    Publisering på GitHub Pages
+tests/                Oppdiktede markeringer og fasit: appen og analysen regner likt
+.github/workflows/    Sjekk og publisering på GitHub Pages
 firestore.rules       Tilgangsreglene for Firestore (limes inn i Firebase-konsollen)
 LICENSE               Opphavsrett: alle rettigheter forbeholdt
 CLAUDE.md             Instruksjoner for kodeagenter (Claude Code) som jobber i repoet
@@ -817,10 +818,26 @@ siden på nytt.
 Appen ligger på **<https://b1lars1.github.io/lobsterApp/>**.
 
 Workflowen `.github/workflows/publiser.yml` publiserer mappen `app/` til GitHub
-Pages ved hver push til `main` som endrer appen. Den kjører først
-`scripts/lag_service_worker.py`, så telefonene får den nye versjonen. Du kan følge
+Pages ved hver push til `main` som endrer appen. Først sjekker den at koden og
+kartdataene ikke har åpenbare feil (syntaks i JavaScript og Python, gyldig JSON) og at
+fangstoversikten regner riktig (se «Tester» under). Feiler en sjekk, publiseres ingenting,
+og telefonene beholder versjonen de har. Så kjører den `scripts/lag_service_worker.py`,
+så telefonene får den nye versjonen. Du kan følge
 publiseringen under fanen **Actions** i repoet. Den tar et par minutter.
 Publisering kan også startes for hånd: **Actions → Publiser appen → Run workflow**.
+
+### Tester
+
+Fangstoversikten i appen og analysen (`scripts/analyser_fangst.py`) skal regne likt.
+`tests/` har noen oppdiktede markeringer (`fangst_testdata.geojson`) og fasiten for dem
+(`fangst_fasit.json`), og begge testes mot den:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests   # analysen
+node tests/regnemaate.test.mjs                              # appen (krever Node, kjøres i workflowen)
+```
+
+Endres regnemåten, må fasiten og begge stedene endres sammen.
 
 ### Engangsoppsett i GitHub
 

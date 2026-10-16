@@ -26,8 +26,9 @@ detalj. Denne filen er det en agent trenger i tillegg.
 
 ## Kommandoer
 
-Ingen byggesteg, ingen pakkehåndtering for JavaScript, ingen tester og ingen linter.
-Appen i `app/` er statiske filer. README viser kommandoene for Windows/PowerShell
+Ingen byggesteg, ingen pakkehåndtering for JavaScript og ingen linter. Appen i `app/` er
+statiske filer. Testene i `tests/` sjekker bare at fangstoversikten og analysen regner som
+fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`). README viser kommandoene for Windows/PowerShell
 (`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
 
 ```bash
@@ -35,7 +36,11 @@ python scripts/testserver.py [port]     # appen på http://localhost:8000 (eller
 python scripts/lag_service_worker.py    # oppdater VERSJON og FILER i app/sw.js etter endringer i app/
 python scripts/lag_ikoner.py            # app-ikonene (PNG) i app/ikoner/, krever bare Pillow
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
+node tests/regnemaate.test.mjs          # fangstoversikten (oversikt.js) mot fasiten
+python -m unittest discover -s tests    # analysen (analyser_fangst.py) mot samme fasit, krever requirements.txt
 ```
+
+Node finnes ikke på brukerens maskin, men i workflowen (og som regel hos agenten).
 
 - Dataskriptene (`last_ned_dybdedata.py`, `lag_dybdekart.py`, `lag_stedsnavn.py`,
   `lag_bunnhint.py`, `lag_hummerpotensial.py`, `lag_fredningsomrader.py`,
@@ -68,7 +73,10 @@ python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/privat
 ## Publisering
 
 Push til `main` som endrer `app/` starter `.github/workflows/publiser.yml`, som
-publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>.
+publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>. Først sjekker
+den syntaksen (`node --check` på JS, modulene kopiert til `.mjs`, og `py_compile`), at
+`app/data/*` og manifestet er gyldig JSON, og kjører `tests/regnemaate.test.mjs`. Feiler
+noe, publiseres ingenting. Python-testen kjøres ikke der (den trenger GeoPandas).
 Telefonen får ny versjon neste gang appen åpnes med nett («Ny versjon av appen er
 klar» → «Last inn»). `gh` er ikke installert på brukerens maskin. Følg kjøringen med
 det offentlige API-et (uten innlogging):
@@ -133,7 +141,8 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   «Ta opp mine» tar bare opp dine.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
-  (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder. Det samme gjelder
+  (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder, og fasiten i
+  `tests/fangst_fasit.json` må stemme med begge (kjør begge testene). Det samme gjelder
   hvem fangsten hører til. I et lag har oversikten «Mine | Laget»: «Laget» har en tabell
   per person og tidslinjen gruppert per person. Analysen viser det samme per person når
   flere har teiner i filen, og `--person` gir bare én persons teiner, som «Mine». Oversikten viser bare

@@ -1,0 +1,285 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.401,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "t1",
+    "kategori": "teine",
+    "tid": "2026-10-01T08:00:00.000Z",
+    "endret": "2026-10-02T08:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": 1,
+    "status": "tatt_opp",
+    "tatt_opp": "2026-10-02T08:00:00.000Z",
+    "beholdt": null,
+    "satt_ut": null,
+    "teine_id": null,
+    "registrert_av": "uid-anne",
+    "mistet": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.401,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "f1",
+    "kategori": "hummer",
+    "tid": "2026-10-02T08:00:00.000Z",
+    "endret": "2026-10-02T08:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": null,
+    "status": null,
+    "tatt_opp": null,
+    "beholdt": 2,
+    "satt_ut": 1,
+    "teine_id": "t1",
+    "registrert_av": "uid-anne",
+    "mistet": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.402,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "t2",
+    "kategori": "teine",
+    "tid": "2026-10-02T08:00:00.000Z",
+    "endret": "2026-10-04T20:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": 2,
+    "status": "tatt_opp",
+    "tatt_opp": "2026-10-04T20:00:00.000Z",
+    "beholdt": null,
+    "satt_ut": null,
+    "teine_id": null,
+    "registrert_av": "uid-anne",
+    "mistet": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.402,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "f2",
+    "kategori": "hummer",
+    "tid": "2026-10-04T20:00:00.000Z",
+    "endret": "2026-10-04T20:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": null,
+    "status": null,
+    "tatt_opp": null,
+    "beholdt": 0,
+    "satt_ut": 0,
+    "teine_id": "t2",
+    "registrert_av": "uid-anne",
+    "mistet": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.403,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "t3",
+    "kategori": "teine",
+    "tid": "2026-10-03T10:00:00.000Z",
+    "endret": "2026-10-05T10:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": 3,
+    "status": "tatt_opp",
+    "tatt_opp": "2026-10-05T10:00:00.000Z",
+    "beholdt": null,
+    "satt_ut": null,
+    "teine_id": null,
+    "registrert_av": "uid-anne",
+    "mistet": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.404,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "t4",
+    "kategori": "teine",
+    "tid": "2026-10-01T12:00:00.000Z",
+    "endret": "2026-10-03T00:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": 1,
+    "status": "tatt_opp",
+    "tatt_opp": "2026-10-03T00:00:00.000Z",
+    "beholdt": null,
+    "satt_ut": null,
+    "teine_id": null,
+    "registrert_av": "uid-bjorn",
+    "mistet": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.404,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "f3",
+    "kategori": "hummer",
+    "tid": "2026-10-03T00:00:00.000Z",
+    "endret": "2026-10-03T00:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": null,
+    "status": null,
+    "tatt_opp": null,
+    "beholdt": 1,
+    "satt_ut": 0,
+    "teine_id": "t4",
+    "registrert_av": "uid-anne",
+    "mistet": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.405,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "t5",
+    "kategori": "teine",
+    "tid": "2026-10-04T06:00:00.000Z",
+    "endret": "2026-10-05T06:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": 2,
+    "status": "tatt_opp",
+    "tatt_opp": "2026-10-05T06:00:00.000Z",
+    "beholdt": null,
+    "satt_ut": null,
+    "teine_id": null,
+    "registrert_av": "uid-bjorn",
+    "mistet": false
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.405,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "f4",
+    "kategori": "hummer",
+    "tid": "2026-10-05T06:00:00.000Z",
+    "endret": "2026-10-05T06:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": null,
+    "status": null,
+    "tatt_opp": null,
+    "beholdt": 0,
+    "satt_ut": 3,
+    "teine_id": "t5",
+    "registrert_av": "uid-bjorn",
+    "mistet": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     8.406,
+     58.22
+    ]
+   },
+   "properties": {
+    "id": "f5",
+    "kategori": "hummer",
+    "tid": "2026-10-04T12:00:00.000Z",
+    "endret": "2026-10-04T12:00:00.000Z",
+    "notat": "",
+    "dybde": 15.0,
+    "noyaktighet": 5,
+    "kilde": "gps",
+    "nummer": null,
+    "status": null,
+    "tatt_opp": null,
+    "beholdt": 1,
+    "satt_ut": 0,
+    "teine_id": null,
+    "registrert_av": "uid-anne",
+    "mistet": null
+   }
+  }
+ ]
+}

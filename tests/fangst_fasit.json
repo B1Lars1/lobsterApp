@@ -1,0 +1,56 @@
+{
+  "forklaring": "Fasit for tests/fangst_testdata.geojson, regnet ut for hånd. Både fangstoversikten (app/js/oversikt.js) og analysen (scripts/analyser_fangst.py) skal gi disse tallene.",
+  "naa": "2026-10-06T00:00:00.000Z",
+  "lag": {
+    "id": "TESTLAG1",
+    "navn": "Testlaget",
+    "medlemmer": [
+      "uid-anne",
+      "uid-bjorn"
+    ],
+    "eposter": {
+      "uid-anne": "anne@eksempel.no",
+      "uid-bjorn": "bjorn@eksempel.no"
+    },
+    "initialer": {
+      "uid-anne": "AN",
+      "uid-bjorn": "BJ"
+    }
+  },
+  "meg": "uid-anne",
+  "laget": {
+    "settinger": 4,
+    "mistet": 1,
+    "med_hummer": 3,
+    "teinedogn": 6.0,
+    "hummer": 8,
+    "beholdt": 4,
+    "satt_ut": 4,
+    "hummer_fra_teiner": 7,
+    "per_teinedogn": 1.1666666666666667
+  },
+  "per_person": {
+    "uid-anne": {
+      "settinger": 2,
+      "mistet": 1,
+      "med_hummer": 1,
+      "teinedogn": 3.5,
+      "hummer": 4,
+      "beholdt": 3,
+      "satt_ut": 1,
+      "hummer_fra_teiner": 3,
+      "per_teinedogn": 0.8571428571428571
+    },
+    "uid-bjorn": {
+      "settinger": 2,
+      "mistet": 0,
+      "med_hummer": 2,
+      "teinedogn": 2.5,
+      "hummer": 4,
+      "beholdt": 1,
+      "satt_ut": 3,
+      "hummer_fra_teiner": 4,
+      "per_teinedogn": 1.6
+    }
+  }
+}
