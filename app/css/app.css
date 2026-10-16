@@ -685,8 +685,7 @@ input.bryter:disabled { opacity: 0.4; cursor: default; }
   margin-top: 16px;
 }
 .knapper .stor,
-.knapper .ferdig,
-.knapper .bred { grid-column: 1 / -1; }
+.knapper .ferdig { grid-column: 1 / -1; }
 /* Teinearket: Flytt, Mistet og Slett på én rad under hovedknappen, mindre enn den */
 .smaa-knapper {
   grid-column: 1 / -1;
