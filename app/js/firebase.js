@@ -95,7 +95,10 @@ function nyKode() {
   return [...tall].map((t) => KODETEGN[t % KODETEGN.length]).join('');
 }
 
-const lagFra = (d) => ({ id: d.id, navn: d.data().navn, medlemmer: d.data().medlemmer, eposter: d.data().eposter ?? {} });
+const lagFra = (d) => ({
+  id: d.id, navn: d.data().navn, medlemmer: d.data().medlemmer, eposter: d.data().eposter ?? {},
+  initialer: d.data().initialer ?? {},
+});
 
 /**
  * Markeringene i skyen, ett dokument per markering, i et «rom»:
@@ -103,8 +106,9 @@ const lagFra = (d) => ({ id: d.id, navn: d.data().navn, medlemmer: d.data().medl
  *   'lag:{kode}'    et lag (felles logg): lag/{kode}/markeringer/{id}
  * Serveren setter «oppdatert» ved hver skriving, så vi kan hente bare det som er endret.
  *
- * Lagdokumentet lag/{kode} har { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet }.
- * Koden er dokument-id-en og fungerer som invitasjon (se firestore.rules).
+ * Lagdokumentet lag/{kode} har { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet },
+ * og initialer: { uid: «BL» } når noen har satt initialene sine. Koden er dokument-id-en og
+ * fungerer som invitasjon (se firestore.rules).
  */
 export class FirestoreTjeneste {
   _samling(rom) {
@@ -191,6 +195,12 @@ export class FirestoreTjeneste {
     return d.exists() ? lagFra(d) : null;
   }
 
+  /** Sett initialene dine i laget (null fjerner dem). Reglene tillater bare dine egne. */
+  async settInitialer(kode, uid, initialer) {
+    koble();
+    await updateDoc(doc(db, 'lag', kode), { [`initialer.${uid}`]: initialer ?? deleteField() });
+  }
+
   /** Fjern et medlem (også deg selv). Er det siste medlemmet, slettes laget og alt i det. */
   async fjernMedlem(kode, uid) {
     koble();
@@ -200,7 +210,9 @@ export class FirestoreTjeneste {
       await this.slettAlle(`lag:${kode}`);
       await deleteDoc(doc(db, 'lag', kode));
     } else {
-      await updateDoc(doc(db, 'lag', kode), { medlemmer: arrayRemove(uid), [`eposter.${uid}`]: deleteField() });
+      const endring = { medlemmer: arrayRemove(uid), [`eposter.${uid}`]: deleteField() };
+      if (lag.initialer[uid]) endring[`initialer.${uid}`] = deleteField(); // ikke la initialene bli liggende
+      await updateDoc(doc(db, 'lag', kode), endring);
     }
   }
 }

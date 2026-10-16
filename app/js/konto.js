@@ -9,6 +9,7 @@
  * statuslinjen i innstillingene).
  */
 
+import { GYLDIGE_INITIALER, personer } from './personer.js';
 import { feilTekst, rensKode, visKode } from './sky.js';
 
 const MODUS = {
@@ -101,6 +102,13 @@ export class Konto {
     document.querySelector('.konto [data-liste="medlemmer"]').addEventListener('click', (e) => {
       const uid = e.target.closest('[data-fjern]')?.dataset.fjern;
       if (uid) this._fjernMedlem(uid);
+    });
+    $('felt-initialer').addEventListener('change', () => this._lagreInitialer());
+    $('felt-initialer').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // ikke send skjemaet (det lukker innstillingene)
+        e.target.blur();
+      }
     });
   }
 
@@ -228,6 +236,15 @@ export class Konto {
         small.textContent = 'deg';
         tekst.append(small);
       }
+      const initialer = lag.initialer?.[uid];
+      if (initialer) {
+        const merke = document.createElement('span');
+        merke.className = 'eier-merke';
+        merke.textContent = initialer;
+        if (uid !== meg) merke.style.background = personer.farge(uid);
+        else merke.classList.add('min');
+        li.append(merke);
+      }
       li.append(tekst);
       if (uid !== meg) {
         const knapp = document.createElement('button');
@@ -238,6 +255,35 @@ export class Konto {
       return li;
     });
     del.querySelector('[data-liste="medlemmer"]').replaceChildren(...rader);
+    if (document.activeElement !== $('felt-initialer')) $('felt-initialer').value = lag.initialer?.[meg] ?? '';
+  }
+
+  // Initialene dine i laget: 1–3 bokstaver, lagres når feltet forlates. Tomt felt fjerner dem.
+  async _lagreInitialer() {
+    const felt = $('felt-initialer');
+    const initialer = felt.value.toUpperCase().replace(/[^A-ZÆØÅ]/g, '');
+    const hjelp = $('initialer-hjelp');
+    if (initialer && !GYLDIGE_INITIALER.test(initialer)) {
+      hjelp.textContent = 'Initialene kan ha 1–3 bokstaver, for eksempel BL.';
+      hjelp.classList.add('feil');
+      return;
+    }
+    felt.value = initialer;
+    if (initialer === (this.sky.lag?.initialer?.[this.sky.bruker?.uid] ?? '')) return;
+    if (!navigator.onLine) {
+      hjelp.textContent = 'Du må ha nett for å lagre initialene.';
+      hjelp.classList.add('feil');
+      return;
+    }
+    try {
+      await this.sky.settInitialer(initialer || null);
+      hjelp.textContent = initialer ? `Lagret. De andre i laget ser ${initialer} på teinene dine.` : 'Initialene er fjernet.';
+      hjelp.classList.remove('feil');
+    } catch (feil) {
+      console.error(feil);
+      hjelp.textContent = feilTekst(feil);
+      hjelp.classList.add('feil');
+    }
   }
 
   visLagArk(modus) {

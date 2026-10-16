@@ -6,10 +6,13 @@
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
  *   ingen hummer    hvit sirkel med grå hake: fangst med 0 hummer (teinen var tom)
  *   rødt «!»        teinen ligger i et fredningsområde
+ *   farget nummer   teinen er en annens i laget (fargen er personens, se personer.js)
  *
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
  * markeringer. Kartet oppdateres automatisk når markeringene endres.
  */
+
+import { personer } from './personer.js';
 
 export class Kartmarkeringer {
   /**
@@ -28,6 +31,7 @@ export class Kartmarkeringer {
     this.flytter = null; // id til markeringen som flyttes nå
     this.iFredning = () => false; // settes når fredningsområdene er lastet
     markeringer.naarEndret(() => this.tegn());
+    personer.naarEndret(() => this.tegn()); // laget eller initialene er endret
   }
 
   settValg({ visOpptatte, visFangst }) {
@@ -48,7 +52,8 @@ export class Kartmarkeringer {
     for (const m of this.markeringer.alle()) {
       if (!this._synlig(m)) continue;
       synlige.add(m.id);
-      const { html, klasse, storrelse, z } = symbol(m, this.iFredning(m));
+      const annen = m.kategori === 'teine' && !this.markeringer.erMin(m) ? personer.farge(m.registrert_av) : null;
+      const { html, klasse, storrelse, z } = symbol(m, this.iFredning(m), annen);
       const noekkel = html + klasse;
       const finnes = this._markorer.get(m.id);
       if (finnes) {
@@ -107,13 +112,15 @@ function ikon(html, klasse, [bredde, hoyde]) {
   return L.divIcon({ html, className: `symbol ${klasse}`, iconSize: [bredde, hoyde] });
 }
 
-function symbol(m, iFredning) {
+// annen: fargen til eieren hvis teinen er en annens i laget (en konstant fra personer.js), ellers null
+function symbol(m, iFredning, annen = null) {
   if (m.kategori === 'teine') {
     const iSjoen = m.status === 'i_sjoen';
     let varsel = iSjoen && iFredning ? '<b class="varsel" title="I fredningsområde">!</b>' : '';
     if (m.mistet) varsel = '<b class="varsel" title="Mistet">?</b>';
+    const nummer = annen ? `<span class="annen" style="--eier: ${annen}">` : '<span>';
     return {
-      html: `<span>${m.nummer ?? '?'}</span>${varsel}`,
+      html: `${nummer}${m.nummer ?? '?'}</span>${varsel}`,
       klasse: iSjoen ? 'teine' : 'teine opptatt',
       storrelse: [58, 40], // bredere enn høy, som tegningen av teinen
       z: iSjoen ? 500 : m.mistet ? 100 : -200,

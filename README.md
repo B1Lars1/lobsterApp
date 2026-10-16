@@ -34,6 +34,7 @@ bare se på kartet. Fangsten kan analyseres i GeoPandas fra den nattlige sikkerh
 | 11 | Hummerpotensial og tarekant, og kartet utvidet vestover til Søgne | ✅ |
 | 12 | Konto i Firebase, lag for deling, mistet teine og nattlig sikkerhetskopi | ✅ |
 | 13 | Sikkerhet og rydding: innlogging kreves for å lagre, uten «Opprett konto», topokartet og eksporten fjernet | ✅ |
+| 14 | Hver teine har en eier i laget: farget nummer, initialer, egne numre, statistikk for deg og for laget | ✅ |
 
 ## Mappestruktur
 
@@ -235,7 +236,8 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/lager.js` | Lagring i nettleserens database (IndexedDB) |
 | `js/kartmarkeringer.js` | Symbolene for teiner og fangst på kartet |
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
-| `js/oversikt.js` | Fangstoversikten: nøkkeltall og tidslinje for teinene |
+| `js/oversikt.js` | Fangstoversikten: nøkkeltall og tidslinje for teinene (dine, eller laget) |
+| `js/personer.js` | Hvem som eier teinene i laget: initialer og farger |
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
@@ -394,8 +396,9 @@ Sjekk alltid gjeldende forskrift.
 ## Markeringer
 
 - **Sett teine:** ett trykk markerer en teine der du er (GPS). Den får nummeret til
-  teinen som sist ble tatt opp (de siste 12 timene) hvis det er ledig, ellers laveste
-  ledige nummer. Nummeret kan endres.
+  teinen du sist tok opp (de siste 12 timene) hvis det er ledig, ellers ditt laveste
+  ledige nummer. Nummeret kan endres. I et lag er teinen din, med mindre den du sist tok
+  opp, var en annens: da settes den ut igjen som den andres teine (se «Lag»).
 - **Hummer her:** ett trykk åpner et ark for ny fangst der du er. Fangsten knyttes
   til nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −, og
   trykk **Ferdig** for å registrere den. Trykker du **Avbryt**, drar arket ned eller
@@ -409,17 +412,25 @@ Sjekk alltid gjeldende forskrift.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
   ta opp med fangst, melde teinen mistet, flytte eller slette.
+- **Eier** (bare i et lag): teinearket viser hvem teinen tilhører, som en merkelapp ved
+  siden av tittelen («Meg» eller initialene i personens farge). Trykk på den for å gi teinen
+  til en annen i laget, for eksempel hvis du satte teinen til broren din fra din telefon.
 - **Endre når teinen ble satt:** mens teinen står i sjøen, har teinearket feltet
   **Satt** ved siden av nummeret. Endre det hvis du satte teinen uten å registrere den
   med en gang. Teinedøgn, fangstoversikten og analysen regnes fra dette tidspunktet.
   Et tidspunkt frem i tid godtas ikke (det gjelder også tidspunktet for fangst).
 - **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
-  Tallet på knappen er antall teiner i sjøen.
+  Tallet på knappen er antall teiner i sjøen. I et lag er listen delt: «Mine» først, så
+  de andre med initialene sine.
 - **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt
   over hummersesongen, 1. oktober–30. november. Velg de siste 7 eller 30 dagene eller
   hele sesongen. Datoer utenfor sesongen vises aldri: 30 dager tidlig i oktober
   begynner 1. oktober, og etter 30. november (og før 1. oktober) vises den siste
   sesongen. Tallet på knappen («Sesongen 2026: …») gjelder også bare sesongen.
+  Oversikten og tallet på knappen viser bare dine teiner og fangsten fra dem (også fangst
+  en annen i laget registrerte fra teinen din). I et lag kan du velge **Mine** eller
+  **Laget** øverst. «Laget» viser tallene for alle, en tabell med de samme tallene per
+  person, og tidslinjen gruppert per person med nummeret i personens farge.
   Oversikten viser:
   - tre nøkkeltall: antall hummer (beholdt og satt ut), fangstrate (hummer per
     teinedøgn) og hvor mange av teinesettingene som ga hummer
@@ -442,7 +453,8 @@ Sjekk alltid gjeldende forskrift.
   med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
   og teinen tas opp (forsvinner fra kartet, men tas vare på i historikken). **Ta opp
   alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt.
-  **Slett** fjerner markeringen helt (for feil). Begge kan angres.
+  I et lag heter knappen **Ta opp mine** og tar bare opp dine egne. **Slett** fjerner
+  markeringen helt (for feil). Begge kan angres.
 - **Mistet teine** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
   som tatt opp, men fangsten er ukjent, så den er ikke med i fangstraten, andelen med
   hummer eller analysen. Den blir stående på kartet, grå med et rødt «?», så du kan
@@ -458,6 +470,8 @@ Sjekk alltid gjeldende forskrift.
 
 - **Teine i sjøen:** svart bøyleteine sett fra siden, med nummeret midt på og hvit
   kant rundt. Tegningen er `app/ikoner/teine.svg`.
+- **En annens teine i laget:** samme teine, men nummeret er farget (blått, grønt osv., én
+  farge per person). Dine egne ser ut som før.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
   når «Teiner som er tatt opp» er slått på i innstillingene.
 - **Mistet teine:** samme grå teine med et rødt «?». Vises alltid, til den er funnet.
@@ -500,7 +514,7 @@ Lagkoden står i `sikkerhetskopi/lag.json`. Filene har disse feltene:
 | `kilde` | `gps` eller `kart` |
 | `nummer`, `status`, `tatt_opp` | Teinenummer, `i_sjoen`/`tatt_opp`, tidspunkt tatt opp (teiner) |
 | `beholdt`, `satt_ut`, `teine_id` | Antall hummer og hvilken teine fangsten kom fra (fangst) |
-| `registrert_av` | Intern bruker-id til den som satte teinen eller registrerte fangsten (tom uten konto) |
+| `registrert_av` | Intern bruker-id, tom uten konto. Teine: eieren (den som satte den, kan endres i teinearket). Fangst: den som registrerte den. Fangsten hører likevel til eieren av teinen den kom fra |
 | `mistet` | `true` hvis teinen er meldt mistet (teiner) |
 
 **Gjenopprett fra fil** (nederst under Sikkerhetskopi i innstillingene) leser inn en
@@ -577,8 +591,8 @@ og broren din bruker en liten brøkdel av alt dette.
 ### Lag (dele med dem du fisker med)
 
 Et lag er en **felles logg**: alle medlemmene ser og kan endre alle teiner og all fangst,
-som om dere har én felles app. Den ene kan ta opp teinen den andre satte, og teinenumrene
-er felles, så nye teiner får alltid et ledig nummer.
+som om dere har én felles app. Den ene kan ta opp teinen den andre satte. Hver teine har
+likevel en eier, med egne numre og egen statistikk (se under).
 
 1. **Opprett lag** (Innstillinger → Konto → Lag) og gi det et navn. Det du har, flyttes
    inn i laget. Du får en kode på 8 tegn, for eksempel `ABCD-EFGH`.
@@ -586,9 +600,21 @@ er felles, så nye teiner får alltid et ledig nummer.
 3. Den andre logger inn i sin app og velger **Bli med i lag** og skriver koden. Det hen
    har, flyttes også inn, og hen får lagets teiner og fangst.
 
-- Teinearket, fangstarket og listene viser «av …» på det en annen i laget har registrert.
-- Hadde dere teiner med samme nummer før dere slo dere sammen, får begge beholde
-  nummeret sitt. Endre nummeret i teinearket hvis det blir forvirrende.
+- **Hver teine har en eier.** Teinene er personlige, selv om dere deler loggen. Den som
+  setter en teine, eier den. Hver person har sine egne numre, så begge kan ha en teine 3.
+  De andres teiner har nummeret i sin farge på kartet og i listene, og initialene i navnet
+  («Teine 3 (OL)»). Dine egne ser ut som før.
+- **Dere kan fortsatt ta opp hverandres teiner.** Fangsten teller for eieren av teinen,
+  uansett hvem som registrerte den. Trykker du **Sett teine** rett etter at du tok opp
+  brorens teine 3, settes den ut igjen som hans teine 3. **Sett ut igjen her** beholder også
+  eieren. Ble det feil, endrer du eieren i teinearket.
+- **Initialer:** under Lag i innstillingene skriver du initialene dine (1–3 bokstaver, for
+  eksempel BL). De vises på teinene dine hos de andre. Uten initialer brukes starten av
+  e-posten. Fangstarket og listen over fangst viser «av …» på fangst en annen har registrert.
+- **Statistikken** (fangstoversikten og sesongtallet i listen) viser dine teiner. Velg
+  «Laget» i fangstoversikten for alle, og tallene per person.
+- Teiner fra før dere hadde konto har ingen eier og står som «Ukjent». Gi dem en eier i
+  teinearket.
 - Under Lag står medlemmene. **Fjern** tar noen ut av laget. **Forlat laget** tar deg
   ut. Den som går ut eller blir fjernet, får en kopi av lagets teiner og fangst i sin
   egen konto. Går det siste medlemmet, slettes laget og alt i det.
@@ -611,9 +637,10 @@ Konto). Appen bruker ikke Google Analytics eller annen sporing.
    Må gjøres på nytt hver gang filen endres. Reglene sier at bare brukeren selv kan lese
    og skrive sine egne markeringer (`brukere/{uid}/markeringer/{id}`), og bare
    medlemmene i et lag kan lese og skrive lagets (`lag/{kode}/markeringer/{id}`).
-   Lagdokumentet `lag/{kode}` har navnet, medlemmene og e-postene deres. Den som kjenner
-   koden, kan bare legge seg selv til, med sin egen e-post. Id-en til en markering kan
-   bare ha bokstaver, tall, `-` og `_`.
+   Lagdokumentet `lag/{kode}` har navnet, medlemmene, e-postene deres og initialene de har
+   satt. Den som kjenner koden, kan bare legge seg selv til, med sin egen e-post, og hver
+   kan bare endre sine egne initialer. Id-en til en markering kan bare ha bokstaver, tall,
+   `-` og `_`.
 
 Gjort i tillegg 15. oktober 2026 (se «Sikkerhet»):
 
@@ -669,13 +696,25 @@ teine for å telle med. Det skjer automatisk når du trykker «Hummer her» ved 
 
 På Mac og Linux: `.venv/bin/python scripts/analyser_fangst.py`.
 
+**Lag:** fangst hører til eieren av teinen den kom fra, som i appen. Har flere i laget
+teiner, viser skriptet en tabell per person (settinger, hummer, teinedøgn og hummer per
+teinedøgn), og tidslinjen har én rad per person og teinenummer («ben 3», «ole 3»). For
+bare dine teiner, som «Mine» i appen:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\analyser_fangst.py --person din@epost.no
+```
+
+`--person` tar e-posten, starten av den (før @) eller initialene. Navnene hentes fra
+`lag.json` og `brukere.json` i sikkerhetskopien.
+
 Resultatet skrives i terminalen og til `data/private/analyse/` (aldri i git):
 
 | Fil | Innhold |
 |---|---|
 | `tidslinje.png` | Tidslinje, statistikk og teinesettinger med og uten hummer (se under) |
 | `dybde_og_bunn.png` | Fangst etter dybde, hver teinesetting mot dybde, fangst etter bunnhint, hummerpotensial og helning, og fangst per dag (beholdt og satt ut) |
-| `teinesettinger.csv` | Én rad per teinesetting: tid, om den er mistet, døgn i sjøen, dybde, bunnhint, helning, hummerpotensial (klasse og poengsum), avstand til tarekanten, antall hummer, hvem som satte den og posisjon |
+| `teinesettinger.csv` | Én rad per teinesetting: nummer, eier, tid, om den er mistet, døgn i sjøen, dybde, bunnhint, helning, hummerpotensial (klasse og poengsum), avstand til tarekanten, antall hummer og posisjon |
 
 **Tidslinjen** har én rad per teinenummer. Hver gang teinen er satt, vises en stolpe
 fra den ble satt til den ble tatt opp, eller frem til nå hvis den står i sjøen (lysere

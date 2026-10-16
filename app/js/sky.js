@@ -134,16 +134,9 @@ export class Sky {
     return Boolean(this._pagaende);
   }
 
-  /** Laget du er med i ({ id, navn, medlemmer, eposter }), eller null. */
+  /** Laget du er med i ({ id, navn, medlemmer, eposter, initialer }), eller null. */
   get lag() {
     return this.bruker ? hentTilstand().lag ?? null : null;
-  }
-
-  /** Kort navn på den som registrerte en markering, hvis det er en annen enn deg. */
-  navnFor(uid) {
-    if (!uid || !this.bruker || uid === this.bruker.uid) return null;
-    const epost = this.lag?.eposter?.[uid];
-    return epost ? epost.split('@')[0] : 'tidligere medlem';
   }
 
   async _brukerEndret(bruker) {
@@ -329,6 +322,15 @@ export class Sky {
     if (lag) await this.tjeneste.fjernMedlem(lag.id, this.bruker.uid);
     this._byttRom(`bruker:${this.bruker.uid}`, null);
     return this.synkroniser();
+  }
+
+  /** Sett initialene dine i laget («BL»), eller fjern dem (null). De andre ser dem på teinene dine. */
+  async settInitialer(initialer) {
+    const lag = this.lag;
+    if (!lag) return;
+    await this.tjeneste.settInitialer(lag.id, this.bruker.uid, initialer);
+    const oppdatert = await this.tjeneste.hentLag(lag.id);
+    this._byttRom(`lag:${lag.id}`, oppdatert);
   }
 
   /** Fjern et annet medlem fra laget. */

@@ -23,8 +23,10 @@
  *   beholdt      antall hummer beholdt                          (hummer)
  *   satt_ut      antall hummer satt ut igjen                    (hummer)
  *   teine_id     id til teinen fangsten kom fra, eller null     (hummer)
- *   registrert_av  bruker-id (Firebase) til den som satte teinen eller registrerte
- *                fangsten, eller null (uten konto). Brukes i lag (sky.js).
+ *   registrert_av  bruker-id (Firebase), eller null (uten konto). Teine: eieren, den som
+ *                satte den (kan endres i teinearket, og følger teinen når den settes ut
+ *                igjen). Fangst: den som registrerte den. Fangsten hører likevel til
+ *                eieren av teinen den kom fra (eierAv). Brukes i lag (personer.js).
  * Posisjonen lagres som lat/lon og blir geometrien i GeoJSON.
  *
  * Slettede markeringer huskes (id og tidspunkt), så en sletting også gjelder for
@@ -33,6 +35,7 @@
  */
 
 import * as lager from './lager.js';
+import { personer } from './personer.js';
 
 // Feltene i skyen og i sikkerhetskopien (sikkerhetskopi.py har en kopi). En kontrakt med
 // analyser_fangst.py og brukerens analyser i GeoPandas: ikke gi dem nye navn.
@@ -162,21 +165,43 @@ export class Markeringer {
       .sort((a, b) => (a.nummer ?? 0) - (b.nummer ?? 0));
   }
 
+  /** Hvem teinen eller fangsten hører til: teinens eier, også for fangst fra teinen. */
+  eierAv(m) {
+    const teine = m.kategori === 'hummer' ? this.hent(m.teine_id) : null;
+    return (teine ?? m).registrert_av;
+  }
+
+  /** Er teinen eller fangsten din (se personer.js)? */
+  erMin(m) {
+    return personer.erMeg(this.eierAv(m));
+  }
+
+  /** Står det en teine med dette nummeret og denne eieren i sjøen (unntatt utenId)? */
+  nummerBrukt(nummer, eier, utenId = null) {
+    return this.teinerISjoen().some((t) => t.nummer === nummer && t.id !== utenId
+      && (t.registrert_av ?? null) === (eier ?? null));
+  }
+
   /**
-   * Nummeret en ny teine får. Er en teine tatt opp de siste 12 timene og nummeret dens er
-   * ledig, får den nye teinen det (sist tatt opp først): tas en teine opp og settes ut igjen,
-   * beholder den nummeret. Ellers laveste ledige nummer blant teinene i sjøen.
+   * Nummer og eier for en ny teine. Hver eier har sine egne numre. Har du tatt opp en teine
+   * de siste 12 timene (din, eller en annens som du registrerte fangst fra) og nummeret er
+   * ledig, får den nye teinen nummeret og eieren (sist tatt opp først): tas en teine opp og
+   * settes ut igjen, er den den samme teinen. Ellers ditt laveste ledige nummer.
    */
-  nesteTeinenummer() {
-    const brukt = new Set(this.teinerISjoen().map((t) => t.nummer));
+  nesteTeine() {
+    const meg = this.registrertAv;
     const siden = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const tokOpp = (t) => this.erMin(t) || (meg != null && this.alle().some((f) =>
+      f.kategori === 'hummer' && f.teine_id === t.id && f.registrert_av === meg));
     const sistTattOpp = this.alle()
-      .filter((t) => t.kategori === 'teine' && t.tatt_opp >= siden && t.nummer >= 1 && !brukt.has(t.nummer))
+      .filter((t) => t.kategori === 'teine' && t.tatt_opp >= siden && t.nummer >= 1
+        && !this.nummerBrukt(t.nummer, t.registrert_av) && tokOpp(t))
       .sort((a, b) => b.tatt_opp.localeCompare(a.tatt_opp))[0];
-    if (sistTattOpp) return sistTattOpp.nummer;
+    if (sistTattOpp) return { nummer: sistTattOpp.nummer, registrert_av: sistTattOpp.registrert_av };
+    const brukt = new Set(this.teinerISjoen().filter((t) => this.erMin(t)).map((t) => t.nummer));
     let n = 1;
     while (brukt.has(n)) n++;
-    return n;
+    return { nummer: n, registrert_av: meg };
   }
 
   /** Nærmeste teine i sjøen innen maksMeter fra latlng, ellers null. */
@@ -193,10 +218,13 @@ export class Markeringer {
     return beste;
   }
 
-  nyTeine({ lat, lon, noyaktighet = null, kilde = 'gps', nummer = this.nesteTeinenummer() }) {
+  /** Uten nummer får teinen nummer og eier fra nesteTeine(). Med nummer er eieren deg, hvis ikke oppgitt. */
+  nyTeine({ lat, lon, noyaktighet = null, kilde = 'gps', ...valg }) {
+    const { nummer, registrert_av } = valg.nummer != null
+      ? { registrert_av: this.registrertAv, ...valg }
+      : this.nesteTeine();
     return this._lagre(normaliser({
-      kategori: 'teine', lat, lon, noyaktighet, kilde, nummer, dybde: this._dybde(lat, lon),
-      registrert_av: this.registrertAv,
+      kategori: 'teine', lat, lon, noyaktighet, kilde, nummer, dybde: this._dybde(lat, lon), registrert_av,
     }));
   }
 

@@ -32,7 +32,7 @@
 <body>
 <main>
   <h1>Personvern i Hummerkart</h1>
-  <p class="dempet">Sist endret 15. oktober 2026</p>
+  <p class="dempet">Sist endret 16. oktober 2026</p>
 
   <h2>Kort fortalt</h2>
   <ul>
@@ -57,8 +57,9 @@
       kryptert (som en hash) av Google, og appen ser det aldri i klartekst etter innlogging.</li>
     <li><b>Teinene og fangsten din</b>: posisjon, tidspunkt, teinenummer, om teinen står i
       sjøen, antall hummer beholdt og satt ut, anslått dybde, GPS-nøyaktighet og notatet du
-      eventuelt har skrevet, og en intern bruker-id for hvem som registrerte dem. Også at en
-      markering er slettet, så slettingen når de andre telefonene dine.</li>
+      eventuelt har skrevet, og en intern bruker-id for hvem som eier teinen og hvem som
+      registrerte fangsten. Også at en markering er slettet, så slettingen når de andre
+      telefonene dine.</li>
   </ul>
   <p>Dataene lagres i Google Firebase (Firestore) i Googles datasentre i EU. Google er
     databehandler og bruker ikke dataene til egne formål. Tilgangsreglene gjør at bare den
@@ -77,11 +78,13 @@
   <h2>Lag</h2>
   <p>Oppretter du et lag eller blir med i et, flyttes teinene og fangsten din inn i laget.
     Alle medlemmene ser og kan endre alle teiner og all fangst i laget, og de ser
-    e-postadressen til hverandre. Koden til laget gir adgang til å bli med, så del den bare
-    med dem du vil ha i laget. Alle medlemmene kan fjerne andre fra laget.</p>
+    e-postadressen til hverandre og hvem som eier hver teine. Setter du initialene dine i
+    laget (for eksempel «BL»), lagres de i laget og vises på teinene dine hos de andre.
+    Koden til laget gir adgang til å bli med, så del den bare med dem du vil ha i laget.
+    Alle medlemmene kan fjerne andre fra laget.</p>
   <p>Forlater du laget, eller blir fjernet, får kontoen din en kopi av lagets teiner og
-    fangst. Det du har registrert, blir liggende i laget, men e-postadressen din fjernes
-    fra laget. Går det siste medlemmet ut, slettes laget og alt i det.</p>
+    fangst. Det du har registrert, blir liggende i laget, men e-postadressen og initialene
+    dine fjernes fra laget. Går det siste medlemmet ut, slettes laget og alt i det.</p>
 
   <h2>Hvor lenge</h2>
   <p>Til du sletter dem. Sletter du en markering, slettes den også i skyen. Sletter du

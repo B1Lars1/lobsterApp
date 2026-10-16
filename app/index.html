@@ -187,6 +187,12 @@
     <div class="ark-topp">
       <div class="ark-tittel"><h3>Fangstoversikt</h3><p data-tekst="periode"></p></div>
     </div>
+    <!-- Bare i et lag: dine teiner eller hele laget (se oversikt.js) -->
+    <fieldset class="segment" data-hvem hidden>
+      <legend class="skjult">Hvem</legend>
+      <label><input type="radio" name="hvem" value="mine" checked>Mine</label>
+      <label><input type="radio" name="hvem" value="laget">Laget</label>
+    </fieldset>
     <fieldset class="segment">
       <legend class="skjult">Periode</legend>
       <label><input type="radio" name="periode" value="7" checked>7 dager</label>
@@ -198,6 +204,11 @@
       <div><dt>Fangstrate</dt><dd><b data-tekst="rate"></b><small>hummer per teinedøgn</small></dd></div>
       <div><dt>Ga hummer</dt><dd><b data-tekst="treff"></b><small data-tekst="settinger"></small></dd></div>
     </dl>
+    <!-- «Laget»: de samme tallene per person -->
+    <table class="per-person" data-per-person hidden>
+      <thead><tr><th></th><th>Hummer</th><th>Per døgn</th><th>Ga hummer</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <h2>Tidslinje</h2>
     <div class="tidslinje" data-tidslinje></div>
     <ul class="tl-forklaring">
@@ -349,12 +360,19 @@
           </div>
           <div data-lag="med" hidden>
             <p class="hjelp">Du er med i <b data-tekst="lagnavn"></b>. Alle i laget ser og kan endre
-              alle teiner og all fangst. Del koden med dem som skal bli med.</p>
+              alle teiner og all fangst, men hver teine har en eier, og statistikken viser dine egne.
+              Del koden med dem som skal bli med.</p>
             <div class="lagkode">
               <span>Kode</span><b data-tekst="lagkode"></b>
               <button type="button" id="knapp-del-kode" class="sekundar liten">Del koden</button>
             </div>
             <ul class="liste medlemmer" data-liste="medlemmer"></ul>
+            <div class="initialer">
+              <label class="felt smal">Dine initialer<input id="felt-initialer" maxlength="3" autocomplete="off"
+                autocapitalize="characters" spellcheck="false" placeholder="BL"></label>
+              <p class="hjelp" id="initialer-hjelp">Vises på teinene dine hos de andre i laget, og deres
+                teiner får hver sin farge på nummeret hos deg.</p>
+            </div>
             <button type="button" id="knapp-forlat-lag" class="sekundar">Forlat laget</button>
           </div>
 

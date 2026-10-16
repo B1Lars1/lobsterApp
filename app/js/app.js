@@ -11,6 +11,7 @@
  *   konto.js           innlogging og kontoen i innstillingsarket
  *   hjemskjerm.js      veiledning for å legge appen til på hjemskjermen
  *   oversikt.js        fangstoversikten: nøkkeltall og tidslinje
+ *   personer.js        hvem du er, og initialene og fargene til de andre i laget
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -28,6 +29,7 @@ import { beOmVarigLagring } from './lager.js';
 import { markeringer } from './markeringer.js';
 import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { Fangstoversikt } from './oversikt.js';
+import { personer } from './personer.js';
 import { visMelding } from './melding.js';
 import { FirebaseInnlogging, FirestoreTjeneste } from './firebase.js';
 import { Konto } from './konto.js';
@@ -328,16 +330,19 @@ const sky = new Sky(markeringer, {
   naarStatus: (status) => konto.visStatus(status),
   naarBruker: (bruker) => {
     innloggingKjent = true;
+    personer.sett({ meg: bruker?.uid ?? null, lag: sky.lag });
     konto.visBruker(bruker);
     oppdaterDatainfo();
     sporOmInnlogging(bruker);
   },
-  naarLag: (lag) => konto.visLag(lag),
+  naarLag: (lag) => {
+    personer.sett({ lag }); // kartet, listene og oversikten tegnes på nytt med eierne
+    konto.visLag(lag);
+  },
   innlogging: new FirebaseInnlogging(),
   tjeneste: new FirestoreTjeneste(),
 });
 const konto = new Konto(sky);
-ark.hvem = (uid) => sky.navnFor(uid); // «av ola» på det andre i laget har registrert
 
 // Synkroniseringen med GitHub er erstattet av kontoen. Fjern den gamle tilgangsnøkkelen.
 try {

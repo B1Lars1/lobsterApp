@@ -12,7 +12,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = 'b459e581b382';
+const VERSJON = '64523ba20720';
 const FILER = [
   './',
   'css/app.css',
@@ -52,6 +52,7 @@ const FILER = [
   'js/markeringsark.js',
   'js/melding.js',
   'js/oversikt.js',
+  'js/personer.js',
   'js/sky.js',
   'manifest.webmanifest',
   'personvern.html',

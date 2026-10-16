@@ -17,6 +17,12 @@ eller til nå hvis den står i sjøen, med hver fangstregistrering som en prikk.
 Mistede teiner (meldt mistet i appen) vises i tidslinjen med et rødt kryss, men er ikke
 med i beregningene, siden vi ikke vet hva de fanget.
 
+I et lag har hver teine en eier (registrert_av, som i appen), og fangst hører til eieren av
+teinen den kom fra. Har flere i laget teiner, viser skriptet tallene per person og tidslinjen
+per person. Med --person (e-post, starten av e-posten eller initialene) analyseres bare den
+personens teiner og fangsten fra dem, som «Mine» i fangstoversikten i appen. Navnene hentes
+fra lag.json og brukere.json i sikkerhetskopien.
+
 Fangsten sammenlignes også med hummerpotensialet, helningen og avstanden til
 tarekanten fra lag_hummerpotensial.py, så du kan se om anslaget treffer (og justere
 vektene der). Helningen krever rutenettet i data/processed/ (kjør skriptet først).
@@ -28,7 +34,7 @@ Skriver tabeller i terminalen og filer til data/private/analyse/ (aldri i git):
   teinesettinger.csv    én rad per teinesetting (dybde, døgn, hummer, bunnhint, helning,
                         hummerpotensial, avstand til tarekanten, posisjon)
 
-Kjør fra roten av repoet:  python scripts/analyser_fangst.py [fil] [--ut mappe]
+Kjør fra roten av repoet:  python scripts/analyser_fangst.py [fil] [--person e-post] [--ut mappe]
 """
 
 import argparse
@@ -121,7 +127,56 @@ def les_markeringer(fil: Path) -> gpd.GeoDataFrame:
         m[kol] = pd.to_datetime(m[kol], utc=True, format="ISO8601", errors="coerce")
     for kol in ("beholdt", "satt_ut", "dybde", "nummer"):
         m[kol] = pd.to_numeric(m[kol], errors="coerce")
+    return legg_til_eier(m)
+
+
+def legg_til_eier(m: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Kolonnen «eier» (bruker-id, tom uten eier): teinens registrert_av, også for fangst fra
+    teinen. Fangst uten teine hører til den som registrerte den. Som eierAv i markeringer.js."""
+    if "registrert_av" not in m:  # eksporter fra før lag fantes
+        m["registrert_av"] = None
+    teine_eier = m[m["kategori"] == "teine"].set_index("id")["registrert_av"]
+    fra_teine = (m["kategori"] == "hummer") & m["teine_id"].isin(teine_eier.index)
+    m["eier"] = m["registrert_av"]
+    m.loc[fra_teine, "eier"] = m.loc[fra_teine, "teine_id"].map(teine_eier)
+    m["eier"] = m["eier"].where(m["eier"].notna(), "").astype(str)
     return m
+
+
+def les_personer(fil: Path) -> dict:
+    """Navn til personene: {"eposter": {uid: e-post}, "initialer": {uid: «BL»}} fra lag.json og
+    brukere.json i sikkerhetskopien (ved siden av mappen lag/ eller brukere/ der filen ligger)."""
+    mappe = fil.resolve().parent.parent
+    if not (mappe / "lag.json").exists():
+        mappe = SIKKERHETSKOPI / "sikkerhetskopi"
+
+    def les(navn: str) -> dict:
+        try:
+            return json.loads((mappe / navn).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+    lag = les("lag.json").get(fil.stem, {})
+    return {"eposter": {**les("brukere.json"), **lag.get("eposter", {})}, "initialer": lag.get("initialer", {})}
+
+
+def kortnavn(uid: str, personer: dict) -> str:
+    """Initialene (som i appen), ellers starten av e-posten."""
+    if not uid:
+        return "ukjent"
+    if personer["initialer"].get(uid):
+        return personer["initialer"][uid]
+    epost = personer["eposter"].get(uid)
+    return epost.split("@")[0] if epost else f"ukjent ({uid[:6]})"
+
+
+def finn_person(oppgitt: str, m: pd.DataFrame, personer: dict) -> str | None:
+    """Bruker-id-en til personen: e-post, starten av e-posten, initialer eller bruker-id."""
+    soek = oppgitt.strip().lower()
+    for uid in {*m["eier"].unique(), *personer["eposter"]} - {""}:
+        epost = personer["eposter"].get(uid, "")
+        if soek in {uid.lower(), kortnavn(uid, personer).lower(), epost.lower(), epost.split("@")[0].lower()}:
+            return uid
+    return None
 
 
 def lag_teinesettinger(m: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame, pd.DataFrame]:
@@ -231,9 +286,25 @@ def hummertekst(hummer: float, beholdt: float, satt_ut: float) -> str:
     return f"{int(hummer)} hummer ({int(beholdt)} beholdt, {int(satt_ut)} satt ut)"
 
 
+def per_person(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, personer: dict) -> pd.DataFrame:
+    """Tallene per eier, som «Laget» i fangstoversikten. teiner er uten de mistede."""
+    tabell = teiner.groupby("eier").agg(
+        settinger=("id", "count"),
+        med_fangst=("hummer", lambda s: int((s > 0).sum())),
+        teinedoegn=("doegn", "sum"),
+        fra_teiner=("hummer", "sum"),
+    ).join(fangst_alle.groupby("eier")[["hummer", "beholdt", "satt_ut"]].sum(), how="outer").fillna(0)
+    tabell["per_teinedoegn"] = tabell["fra_teiner"] / tabell["teinedoegn"].where(tabell["teinedoegn"] > 0)
+    heltall = ["settinger", "med_fangst", "hummer", "beholdt", "satt_ut"]
+    tabell[heltall] = tabell[heltall].astype(int)
+    tabell.index = [kortnavn(uid, personer) for uid in tabell.index]
+    return tabell[[*heltall, "teinedoegn", "per_teinedoegn"]]
+
+
 def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: pd.DataFrame,
-                   mistet: int = 0) -> list:
-    """Summeringer som (etikett, verdi), til terminalen og figuren. teiner er uten de mistede."""
+                   mistet: int = 0, navn: dict | None = None) -> list:
+    """Summeringer som (etikett, verdi), til terminalen og figuren. teiner er uten de mistede.
+    navn (eier → kortnavn) når flere i laget har teiner."""
     n = len(teiner)
     i_sjoen = teiner["tatt_opp"].isna()
     med = teiner["hummer"] > 0
@@ -260,17 +331,19 @@ def lag_statistikk(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: 
     if med.any():
         beste = teiner.loc[teiner["hummer"].idxmax()]
         dybde = f", ca. {beste['dybde']:.0f} m" if pd.notna(beste["dybde"]) else ""
-        linjer.append(("Beste setting", f"teine {beste['nummer']:.0f} ({lokal(beste['tid']).strftime('%d.%m.')}), "
+        hvem = f" ({navn[beste['eier']]})" if navn else ""
+        linjer.append(("Beste setting", f"teine {beste['nummer']:.0f}{hvem} ({lokal(beste['tid']).strftime('%d.%m.')}), "
                                         f"{int(beste['hummer'])} hummer{dybde}"))
     return linjer
 
 
-def skriv_tidslinje(teiner: pd.DataFrame, fangst_alle: pd.DataFrame) -> None:
+def skriv_tidslinje(teiner: pd.DataFrame, fangst_alle: pd.DataFrame, navn: dict | None = None) -> None:
     print("\nTidslinje:")
     for _, t in teiner.sort_values("tid").iterrows():
         slutt = (f"{'MISTET' if t['mistet'] else 'tatt opp'} {klokke(t['tatt_opp'])}"
                  if pd.notna(t["tatt_opp"]) else "i sjøen nå")
-        print(f"  Teine {t['nummer']:>2.0f}  satt {klokke(t['tid'])} → {slutt} ({komma(t['doegn'], 1)} døgn): "
+        hvem = f" ({navn[t['eier']]})" if navn else ""
+        print(f"  Teine {t['nummer']:>2.0f}{hvem}  satt {klokke(t['tid'])} → {slutt} ({komma(t['doegn'], 1)} døgn): "
               f"{hummertekst(t['hummer'], t['beholdt'], t['satt_ut'])}")
         for f in fangst_alle[fangst_alle["teine_id"] == t["id"]].sort_values("tid").itertuples():
             print(f"              fangst {klokke(f.tid)}: {hummertekst(f.hummer, f.beholdt, f.satt_ut)}")
@@ -363,15 +436,19 @@ def lag_figur(teiner, fangst_alle, tabeller: dict, fil: Path, ut: Path) -> Path:
     return sti
 
 
-def tegn_tidslinje(ax, teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: pd.DataFrame) -> None:
-    """Én rad per teinenummer. Stolpe fra satt til tatt opp (eller nå), prikk for hver fangst."""
+def tegn_tidslinje(ax, teiner: pd.DataFrame, fangst_alle: pd.DataFrame, uten_teine: pd.DataFrame,
+                   eiernavn: dict | None = None) -> None:
+    """Én rad per teinenummer (per person når flere i laget har teiner, eiernavn: eier → kortnavn).
+    Stolpe fra satt til tatt opp (eller nå), prikk for hver fangst."""
     naa = lokal(pd.Timestamp.now(tz="UTC"))
-    nummer = sorted(teiner["nummer"].fillna(0).astype(int).unique())
-    rad = {nr: i for i, nr in enumerate(nummer)}
-    navn = [f"Teine {nr}" if nr else "Teine ?" for nr in nummer]
+    nr = teiner["nummer"].fillna(0).astype(int)
+    eier = teiner["eier"].map(eiernavn) if eiernavn else pd.Series("", index=teiner.index)
+    nummer = sorted(set(zip(eier, nr)))
+    rad = {nokkel: i for i, nokkel in enumerate(nummer)}
+    navn = [f"{e or 'Teine'} {n or '?'}" for e, n in nummer]
     if len(uten_teine):
         navn.append("Uten teine")
-    rad_for_teine = {t.id: rad[int(0 if pd.isna(t.nummer) else t.nummer)] for t in teiner.itertuples()}
+    rad_for_teine = {t.id: rad[(e, n)] for t, e, n in zip(teiner.itertuples(), eier, nr)}
 
     tider = [naa] if teiner["tatt_opp"].isna().any() else []
     for t in teiner.itertuples():
@@ -473,12 +550,13 @@ def tegn_med_og_uten(ax, teiner: pd.DataFrame) -> None:
     ax.set_axisbelow(True)
 
 
-def lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk: list, fil: Path, ut: Path) -> Path:
+def lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk: list, fil: Path, ut: Path,
+                  navn: dict | None = None) -> Path:
     """Tidslinjen viser alle teinesettinger. Diagrammet og teinedøgn er uten de mistede."""
     teiner = alle_teiner[~alle_teiner["mistet"]]
     fig = plt.figure(figsize=(13, 9.5), facecolor=FLATE)
     rutenett = fig.add_gridspec(2, 2, height_ratios=[3, 2], width_ratios=[1.45, 1], hspace=0.45, wspace=0.32)
-    tegn_tidslinje(fig.add_subplot(rutenett[0, :]), alle_teiner, fangst_alle, uten_teine)
+    tegn_tidslinje(fig.add_subplot(rutenett[0, :]), alle_teiner, fangst_alle, uten_teine, navn)
     tegn_statistikk(fig.add_subplot(rutenett[1, 0]), statistikk)
     tegn_med_og_uten(fig.add_subplot(rutenett[1, 1]), teiner)
     tekst = (f"Kilde: {fil.name} · Tidene er norsk tid. Registreres fangst fra en teine (også 0), "
@@ -497,6 +575,7 @@ def lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk: list, fil: P
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("fil", nargs="?", help="GeoJSON med markeringer (valgfri)")
+    parser.add_argument("--person", help="bare teinene til én i laget: e-post, starten av e-posten eller initialer")
     parser.add_argument("--ut", default=str(PRIVATE_DIR / "analyse"), help="mappe for figurer og CSV")
     args = parser.parse_args()
 
@@ -511,6 +590,17 @@ def main() -> int:
         return 1
     print(f"Leser {fil}")
     m = les_markeringer(fil)
+    personer = les_personer(fil)
+    if args.person:
+        uid = finn_person(args.person, m, personer)
+        if uid is None:
+            kjente = sorted({kortnavn(u, personer) for u in m["eier"].unique() if u})
+            print(f"Fant ingen «{args.person}» i filen. Eierne er: {', '.join(kjente) or 'ingen'}.")
+            return 1
+        m = m[m["eier"] == uid].copy()
+        print(f"Bare teinene til {kortnavn(uid, personer)} og fangsten fra dem.")
+    # Har flere teiner i filen (et lag), vises hvem som eier hva
+    navn = {e: kortnavn(e, personer) for e in m["eier"].unique()} if m["eier"].nunique() > 1 else None
     alle_teiner, uten_teine = lag_teinesettinger(m)
     fangst_alle = m[m["kategori"] == "hummer"].assign(
         hummer=lambda f: f["beholdt"].fillna(0) + f["satt_ut"].fillna(0))
@@ -522,11 +612,13 @@ def main() -> int:
               "fangst per teinedøgn på.")
         return 0
 
-    statistikk = lag_statistikk(teiner, fangst_alle, uten_teine, mistet=int(alle_teiner["mistet"].sum()))
+    statistikk = lag_statistikk(teiner, fangst_alle, uten_teine, mistet=int(alle_teiner["mistet"].sum()), navn=navn)
     print("\nStatistikk:")
     for etikett, verdi in statistikk:
         print(f"  {etikett + ':':<27}{verdi}")
-    skriv_tidslinje(alle_teiner, fangst_alle)
+    if navn:
+        skriv_tabell("Per person (bruk --person for bare dine teiner):", per_person(teiner, fangst_alle, personer))
+    skriv_tidslinje(alle_teiner, fangst_alle, navn)
 
     bunntabell = oppsummer(teiner, "bunn").reindex([*BUNNHINT.values(), UKJENT_BUNN]).dropna(how="all")
     heltall = ["settinger", "hummer", "beholdt", "satt_ut", "med_fangst"]
@@ -551,7 +643,7 @@ def main() -> int:
 
     ut = Path(args.ut)
     ut.mkdir(parents=True, exist_ok=True)
-    tidslinje = lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk, fil, ut)
+    tidslinje = lag_tidslinje(alle_teiner, fangst_alle, uten_teine, statistikk, fil, ut, navn)
     figur = lag_figur(teiner, fangst_alle, tabeller, fil, ut)
 
     csv = alle_teiner.assign(
@@ -561,10 +653,9 @@ def main() -> int:
         doegn=alle_teiner["doegn"].round(2), per_doegn=alle_teiner["per_doegn"].round(3),
         hummer=alle_teiner["hummer"].astype(int), beholdt=alle_teiner["beholdt"].astype(int),
         satt_ut=alle_teiner["satt_ut"].astype(int),
+        eier=alle_teiner["eier"].map(lambda e: kortnavn(e, personer)),
     )
-    if "registrert_av" not in csv:  # eksporter fra før lag fantes
-        csv["registrert_av"] = None
-    kolonner = ["nummer", "tid", "tatt_opp", "status", "mistet", "doegn", "dybde", "dybdeintervall", "bunn",
+    kolonner = ["nummer", "eier", "tid", "tatt_opp", "status", "mistet", "doegn", "dybde", "dybdeintervall", "bunn",
                 "helning", "potensial", "poeng", "avstand_kant",
                 "hummer", "beholdt", "satt_ut", "per_doegn", "registrert_av", "lat", "lon", "notat"]
     csv[kolonner].sort_values("tid").to_csv(ut / "teinesettinger.csv", index=False, encoding="utf-8")

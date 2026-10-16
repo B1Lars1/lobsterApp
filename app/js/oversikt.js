@@ -16,7 +16,13 @@
  * hummer, grå = ingen), lysere med pil hvis den står i sjøen nå, en rød prikk med
  * antall for hver fangst, en hul ring for 0 hummer (tom teine) og et rødt «?» der en
  * teine ble meldt mistet.
+ *
+ * Oversikten viser dine teiner og fangsten fra dem (personer.js, Markeringer.eierAv). I et
+ * lag kan du velge «Laget»: alt i laget, en tabell med tallene per person, og tidslinjen
+ * gruppert per person med nummeret i personens farge.
  */
+
+import { personer } from './personer.js';
 
 const DAG = 24 * 60 * 60 * 1000;
 const RAD = 30;      // høyde per rad
@@ -44,12 +50,20 @@ function dagerFra(ms, dager) {
   return d.getTime();
 }
 
-/** Teinesettinger med fangst, og fangst som ikke hører til noen teine. */
-function lagSettinger(alle, naa) {
+/**
+ * Teinesettinger med fangst, og fangst som ikke hører til noen teine. eierAv gir eieren
+ * (bruker-id eller null) av en teine eller fangst. «gruppe» er personens nøkkel i
+ * oversikten: din bruker-id for alt som er ditt (se personer.erMeg), ellers eieren.
+ */
+function lagSettinger(alle, naa, eierAv) {
+  const gruppe = (m) => {
+    const eier = eierAv(m);
+    return personer.erMeg(eier) ? personer.meg : eier ?? null;
+  };
   const teiner = alle.filter((m) => m.kategori === 'teine');
   const ider = new Set(teiner.map((t) => t.id));
   const fangst = alle.filter((m) => m.kategori === 'hummer')
-    .map((f) => ({ ...f, ms: Date.parse(f.tid), hummer: f.beholdt + f.satt_ut }));
+    .map((f) => ({ ...f, ms: Date.parse(f.tid), hummer: f.beholdt + f.satt_ut, gruppe: gruppe(f) }));
   const settinger = teiner.map((t) => {
     const fra = Date.parse(t.tid);
     const til = t.status === 'i_sjoen' ? naa : Date.parse(t.tatt_opp ?? t.tid);
@@ -57,9 +71,35 @@ function lagSettinger(alle, naa) {
     return {
       nummer: t.nummer, id: t.id, fra, til: Math.max(til, fra), iSjoen: t.status === 'i_sjoen',
       mistet: t.mistet === true, fangst: fangstHer, hummer: fangstHer.reduce((s, f) => s + f.hummer, 0),
+      gruppe: gruppe(t),
     };
   });
   return { settinger, fangst, utenTeine: fangst.filter((f) => !ider.has(f.teine_id)) };
+}
+
+/**
+ * Nøkkeltallene for teinesettinger og fangst i perioden (samme regnemåte som analyser_fangst.py).
+ * Bare tiden innenfor perioden teller, og bare fangst fra teinene teller i fangstraten.
+ * Mistede teiner er ikke med: vi vet ikke hva de fanget.
+ */
+function regnUt(periode, naa, iPerioden, fangstIPerioden) {
+  const sum = (liste, felt) => liste.reduce((s, f) => s + f[felt], 0);
+  const telles = iPerioden.filter((t) => !t.mistet);
+  const teinedogn = telles.reduce((s, t) =>
+    s + Math.max(0, Math.min(t.til, naa, periode.til) - Math.max(t.fra, periode.fra)), 0) / DAG;
+  const ider = new Set(telles.map((t) => t.id));
+  const fraTeiner = sum(fangstIPerioden.filter((f) => ider.has(f.teine_id)), 'hummer');
+  const med = telles.filter((t) => t.hummer > 0).length;
+  return {
+    hummer: sum(fangstIPerioden, 'hummer'),
+    beholdt: sum(fangstIPerioden, 'beholdt'),
+    sattUt: sum(fangstIPerioden, 'satt_ut'),
+    rate: teinedogn > 0 ? komma(fraTeiner / teinedogn, 2) : '–',
+    treff: telles.length ? `${Math.round((100 * med) / telles.length)} %` : '–',
+    med,
+    settinger: telles.length,
+    mistet: iPerioden.length - telles.length,
+  };
 }
 
 // Hummersesongen: 1. oktober til og med 30. november (månedene teller fra januar = 0)
@@ -104,6 +144,9 @@ export class Fangstoversikt {
     markeringer.naarEndret(() => {
       if (this.ark.open) this._tegn();
     });
+    personer.naarEndret(() => {
+      if (this.ark.open) this._tegn();
+    });
     window.addEventListener('resize', () => {
       if (this.ark.open) this._tegn();
     });
@@ -117,12 +160,18 @@ export class Fangstoversikt {
   _tegn() {
     const naa = Date.now();
     const valg = this.ark.querySelector('input[name="periode"]:checked')?.value ?? '7';
-    const { settinger, fangst, utenTeine } = lagSettinger(this.markeringer.alle(), naa);
-    const periode = lagPeriode(valg, naa);
-    const iPerioden = settinger.filter((s) => s.til > periode.fra && s.fra < periode.til);
-    const fangstIPerioden = fangst.filter((f) => f.ms >= periode.fra && f.ms < periode.til);
+    // Uten lag er alt ditt, og valget Mine/Laget vises ikke
+    this.ark.querySelector('[data-hvem]').hidden = !personer.iLag;
+    const laget = personer.iLag && this.ark.querySelector('input[name="hvem"]:checked')?.value === 'laget';
+    const medtas = (x) => laget || x.gruppe === personer.meg;
 
-    this._tegnTall(periode, naa, iPerioden, fangstIPerioden);
+    const { settinger, fangst, utenTeine } = lagSettinger(this.markeringer.alle(), naa, (m) => this.markeringer.eierAv(m));
+    const periode = lagPeriode(valg, naa);
+    const iPerioden = settinger.filter((s) => medtas(s) && s.til > periode.fra && s.fra < periode.til);
+    const fangstIPerioden = fangst.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
+
+    this._tegnTall(periode, regnUt(periode, naa, iPerioden, fangstIPerioden));
+    this._tegnPerPerson(laget ? { periode, naa, iPerioden, fangstIPerioden } : null);
     this.tidslinje.replaceChildren();
     if (!iPerioden.length && !fangstIPerioden.length) {
       const tom = document.createElement('p');
@@ -131,44 +180,72 @@ export class Fangstoversikt {
       this.tidslinje.append(tom);
       return;
     }
-    const utenIPerioden = utenTeine.filter((f) => f.ms >= periode.fra && f.ms < periode.til);
-    this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden);
+    const utenIPerioden = utenTeine.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
+    this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden, laget);
   }
 
-  _tegnTall(periode, naa, iPerioden, fangstIPerioden) {
+  _tegnTall(periode, tall) {
     const sett = (navn, tekst) => { this.ark.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
     // Når sesongen er over, vises den siste sesongen helt ut (til 30. november)
     sett('periode', `${langDato.format(periode.fra)} – ${periode.over
       ? `${langDato.format(dagerFra(periode.til, -1))} ${periode.aar}` : 'i dag'}`);
-
-    const sum = (liste, felt) => liste.reduce((s, f) => s + f[felt], 0);
-    const hummer = sum(fangstIPerioden, 'hummer');
-    sett('hummer', hummer);
-    sett('beholdt', `${sum(fangstIPerioden, 'beholdt')} beholdt, ${sum(fangstIPerioden, 'satt_ut')} satt ut`);
-
-    // Bare tiden innenfor perioden teller, og bare fangst fra teinene. Mistede teiner er
-    // ikke med: vi vet ikke hva de fanget.
-    const telles = iPerioden.filter((t) => !t.mistet);
-    const teinedogn = telles.reduce((s, t) =>
-      s + Math.max(0, Math.min(t.til, naa, periode.til) - Math.max(t.fra, periode.fra)), 0) / DAG;
-    const ider = new Set(telles.map((t) => t.id));
-    const fraTeiner = sum(fangstIPerioden.filter((f) => ider.has(f.teine_id)), 'hummer');
-    sett('rate', teinedogn > 0 ? komma(fraTeiner / teinedogn, 2) : '–');
-
-    const med = telles.filter((t) => t.hummer > 0).length;
-    const mistet = iPerioden.length - telles.length;
-    sett('treff', telles.length ? `${Math.round((100 * med) / telles.length)} %` : '–');
-    sett('settinger', `${med} av ${telles.length} settinger${mistet ? ` (${mistet} mistet)` : ''}`);
+    sett('hummer', tall.hummer);
+    sett('beholdt', `${tall.beholdt} beholdt, ${tall.sattUt} satt ut`);
+    sett('rate', tall.rate);
+    sett('treff', tall.treff);
+    sett('settinger', `${tall.med} av ${tall.settinger} settinger${tall.mistet ? ` (${tall.mistet} mistet)` : ''}`);
   }
 
-  // Tidslinjen som SVG. Alt som settes inn er tall vi har regnet ut selv.
-  _svg(periode, naa, iPerioden, utenTeine) {
+  // «Laget»: én rad per person med de samme tallene. Navnene settes som tekst (textContent).
+  _tegnPerPerson(data) {
+    const tabell = this.ark.querySelector('[data-per-person]');
+    tabell.hidden = !data;
+    if (!data) return;
+    const { periode, naa, iPerioden, fangstIPerioden } = data;
+    const grupper = personer.rekkefolge([...iPerioden, ...fangstIPerioden].map((x) => x.gruppe));
+    const rader = [];
+    for (const uid of grupper) {
+      const settinger = iPerioden.filter((t) => t.gruppe === uid);
+      const fangst = fangstIPerioden.filter((f) => f.gruppe === uid);
+      if (!settinger.length && !fangst.length) continue;
+      const tall = regnUt(periode, naa, settinger, fangst);
+      const tr = document.createElement('tr');
+      const merke = document.createElement('span');
+      merke.className = 'eier-merke';
+      if (uid === personer.meg) {
+        merke.classList.add('min');
+        merke.textContent = 'Meg';
+      } else {
+        merke.textContent = personer.kortnavn(uid);
+        merke.style.background = personer.farge(uid);
+      }
+      const celler = [merke, `${tall.hummer}`, tall.rate, tall.treff];
+      for (const innhold of celler) {
+        const td = document.createElement('td');
+        td.append(innhold);
+        tr.append(td);
+      }
+      const detaljer = document.createElement('small');
+      detaljer.textContent = ` ${tall.beholdt}+${tall.sattUt}`;
+      tr.children[1].append(detaljer);
+      rader.push(tr);
+    }
+    tabell.querySelector('tbody').replaceChildren(...rader);
+  }
+
+  // Tidslinjen som SVG. Alt som settes inn er tall vi har regnet ut selv, og fargene fra
+  // personer.js (konstanter). Med «Laget» grupperes radene per person.
+  _svg(periode, naa, iPerioden, utenTeine, laget = false) {
     const bredde = this.tidslinje.clientWidth || 340;
 
-    // Én rad per teinenummer (sortert), og en rad nederst for fangst uten teine
-    const nummer = [...new Set(iPerioden.map((t) => t.nummer ?? 0))].sort((a, b) => (a || 1e9) - (b || 1e9));
-    const radFor = new Map(nummer.map((n, i) => [n, i]));
-    const rader = nummer.length + (utenTeine.length ? 1 : 0);
+    // Én rad per teinenummer (sortert), per person i laget, og en rad nederst for fangst uten teine
+    const grupper = laget ? personer.rekkefolge(iPerioden.map((t) => t.gruppe)) : [personer.meg];
+    const radnokkel = (t) => `${laget ? grupper.indexOf(t.gruppe) : 0}|${t.nummer ?? 0}`;
+    const nokler = [...new Map(iPerioden.map((t) => [radnokkel(t), t])).values()]
+      .sort((a, b) => (laget ? grupper.indexOf(a.gruppe) - grupper.indexOf(b.gruppe) : 0)
+        || (a.nummer || 1e9) - (b.nummer || 1e9));
+    const radFor = new Map(nokler.map((t, i) => [radnokkel(t), i]));
+    const rader = nokler.length + (utenTeine.length ? 1 : 0);
     const hoyde = TOPP + rader * RAD + BUNN;
     const yFor = (rad) => TOPP + rad * RAD + RAD / 2;
 
@@ -205,14 +282,19 @@ export class Fangstoversikt {
       }
     }
 
-    // Teinenummer til venstre
-    for (const [n, rad] of radFor) {
+    // Teinenummer til venstre, i personens farge for de andres teiner. Strek mellom personene.
+    for (const [rad, t] of nokler.entries()) {
       const y = yFor(rad);
-      deler.push(`<rect class="tl-nummer" x="4" y="${y - 11}" width="34" height="22" rx="11"/>`);
-      deler.push(`<text class="tl-nummertekst" x="21" y="${y + 4.5}">${n || '?'}</text>`);
+      const annen = laget && t.gruppe !== personer.meg;
+      if (laget && rad > 0 && t.gruppe !== nokler[rad - 1].gruppe) {
+        deler.push(`<line class="tl-gruppe" x1="0" x2="${bredde}" y1="${y - RAD / 2}" y2="${y - RAD / 2}"/>`);
+      }
+      deler.push(`<rect class="tl-nummer" x="4" y="${y - 11}" width="34" height="22" rx="11"${annen
+        ? ` style="fill: ${personer.farge(t.gruppe)}; stroke: #fff"` : ''}/>`);
+      deler.push(`<text class="tl-nummertekst${annen ? ' annen' : ''}" x="21" y="${y + 4.5}">${t.nummer || '?'}</text>`);
     }
     if (utenTeine.length) {
-      deler.push(`<text class="tl-uten-teine" x="21" y="${yFor(nummer.length) + 4}">Uten</text>`);
+      deler.push(`<text class="tl-uten-teine" x="21" y="${yFor(nokler.length) + 4}">Uten</text>`);
     }
 
     // «Nå», bare mens sesongen pågår
@@ -225,7 +307,7 @@ export class Fangstoversikt {
     const prikker = [];
     const mistede = [];
     for (const t of iPerioden) {
-      const y = yFor(radFor.get(t.nummer ?? 0));
+      const y = yFor(radFor.get(radnokkel(t)));
       const fra = x(Math.max(t.fra, periode.fra));
       const til = x(Math.min(t.til, periode.til));
       const klasse = `${t.hummer > 0 ? 'tl-med' : 'tl-uten'}${t.iSjoen ? ' tl-isjoen' : ''}`;
@@ -239,7 +321,7 @@ export class Fangstoversikt {
       deler.push(`<circle class="tl-mistet" cx="${xm}" cy="${y}" r="8"/>`);
       deler.push(`<text class="tl-antall" x="${xm}" y="${y + 4}">?</text>`);
     }
-    for (const f of utenTeine) prikker.push({ f, y: yFor(nummer.length) });
+    for (const f of utenTeine) prikker.push({ f, y: yFor(nokler.length) });
 
     // Fangst oppå stolpene: rød prikk med antall, hul ring for 0 hummer. Mindre når
     // dagene er smale (30 dager, sesong), så prikkene ikke dekker hverandre.

@@ -85,6 +85,9 @@ sammen modulene. README har en tabell over hva hver fil gjør.
 (fangstoversikten, når den er åpen), `sky.js` (synkronisering kort tid etter
 endringer) og merket på listeknappen i `app.js`.
 Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
+`personer.js` eksporterer `personer` (hvem du er, laget, initialer og farger). `app.js`
+oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarEndret()`
+(varsler bare når noe er endret, siden `sky` melder laget ved hver synkronisering).
 
 - IndexedDB `hummerkart`, versjon 2: tabellene `markeringer` og `slettinger`
   (`{ id, endret, markering }`, der `markering` er en kopi så den kan gjenopprettes).
@@ -98,8 +101,9 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   tatt opp i båten, så `_lagreUtkast` setter teinen til `tatt_opp` (på fangstens tid),
   også ved 0 hummer. «Tatt opp» (teinearket) og «Ta opp» (listen) åpner det samme
   fangstarket med 0 som utgangspunkt (`_taOppMedFangst`). Den settes ut igjen med
-  «Sett teine», og `nesteTeinenummer()` gir da nummeret til teinen som sist ble tatt opp
-  (siste 12 timer) hvis det er ledig.
+  «Sett teine», og `nesteTeine()` gir da nummer og eier fra teinen du sist tok opp (siste
+  12 timer: din egen, eller en annens du registrerte fangst fra) hvis nummeret er ledig for
+  den eieren. «Sett ut igjen her» beholder også eieren.
   Tom teine er fangst med 0 beholdt og 0 satt ut (`erSjekk`), ikke en egen `kategori`:
   en ny kategori ville eldre versjoner av appen forkastet (`importer` godtar bare `teine`
   og `hummer`), og synkroniseringen ville ikke fått den med. Tidslinjen i
@@ -109,9 +113,22 @@ Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
   statuser om til `i_sjoen`). `funnetIgjen()` setter den i sjøen igjen. Mistede teiner
   vises alltid på kartet (rødt «?»), og `oversikt.js` og `analyser_fangst.py` holder dem
   utenfor fangstraten og andelen med hummer.
+- **Eier i lag.** Teiner er personlige: `registrert_av` på en teine er eieren (kan endres
+  i teinearket), og fangst hører til eieren av teinen den kom fra (`Markeringer.eierAv`,
+  `legg_til_eier` i analysen), selv om `registrert_av` på fangsten er den som registrerte
+  den. Ikke et nytt felt: dokumentene har 20 felt (grensen i reglene), og eldre versjoner
+  av appen skriver hele dokumentet (`batch.set`) og ville slettet et felt de ikke kjenner.
+  Uten lag er alt ditt. I et lag er en teine uten eier «Ukjent», ikke din (`personer.erMeg`).
+  Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
+  personens farge (`personer.farge`, klassen `annen` med `--eier`) og initialene i navnet.
+  Statistikken (oversikten, sesongtallet i teinelisten) viser bare dine (`erMin`), og
+  «Ta opp mine» tar bare opp dine.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
-  teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`.
-  Endres regnemåten ett sted, skal den endres begge steder. Oversikten viser bare
+  teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
+  (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder. Det samme gjelder
+  hvem fangsten hører til. I et lag har oversikten «Mine | Laget»: «Laget» har en tabell
+  per person og tidslinjen gruppert per person. Analysen viser det samme per person når
+  flere har teiner i filen, og `--person` gir bare én persons teiner, som «Mine». Oversikten viser bare
   hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
   brukes til sesongtallet i teinelisten). Analysen bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
@@ -134,15 +151,19 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   `localStorage` under `hummerkart.sky` (`uid`, `rom`, `lag`, `sistHentet`, `kjent`).
   Gjenoppretting gir ny `endret`, så den vinner over slettingen.
 - **Lag** er en felles logg: alle medlemmene leser og skriver alt. `lag/{kode}` har
-  `{ navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet }`, og koden (8 tegn,
-  dokument-id-en) er invitasjonen. Hver synkronisering spør først `finnLag(uid)` og bytter
+  `{ navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet, initialer: { uid: «BL» } }`,
+  og koden (8 tegn, dokument-id-en) er invitasjonen. Hver setter sine egne initialer under
+  Lag i innstillingene (`sky.settInitialer`). Reglene (`initialerOk`) tillater bare egne
+  initialer (1–3 av A–Å), og at den som fjerner et medlem, fjerner medlemmets. Hver synkronisering spør først `finnLag(uid)` og bytter
   rom hvis medlemskapet er endret (`_byttRom`). Nytt rom tømmer `kjent`, så alt på
   telefonen sendes til det nye rommet: det du har, flyttes inn i laget, og går du ut,
   får kontoen en kopi. Én bruker er med i høyst ett lag. Reglene krever at e-posten den
   som oppretter eller blir med, skriver i `eposter`, er `request.auth.token.email`.
-- `registrert_av` (bruker-id, ikke e-post) sier hvem som satte en teine eller registrerte
-  fangst. `sky.navnFor(uid)` slår opp e-posten i laget, så «av …» forsvinner når noen går
-  ut av laget (personvern). Markeringer uten konto har `null`.
+- `registrert_av` er en bruker-id, ikke e-post. `personer.kortnavn(uid)` gir initialene,
+  ellers starten av e-posten i laget, så navnet forsvinner når noen går ut av laget
+  (personvern, de blir «Tidligere medlem» og grå). Markeringer uten konto har `null`.
+  `sikkerhetskopi.py` lagrer ikke initialene i `lag.json` ennå, så analysen bruker
+  e-posten til de legges til der.
 - I et lag slår tilgangsreglene opp i `lag/{kode}` (`get()`) for hver markering, og en
   batch tillater maks 20 slike oppslag. Derfor `BATCH_LAG = 15` i `firebase.js`.
 - Gratiskvoten (Spark) er 50 000 lesinger og 20 000 skrivinger i døgnet, og 1 GiB. Hver
@@ -177,6 +198,13 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   logikken med erstatninger: `Sky` tar `innlogging` og `tjeneste` som parametre
   (se `FirebaseInnlogging`/`FirestoreTjeneste` i `firebase.js` for hvilke metoder som
   trengs), og la brukeren teste ekte innlogging.
+- Ber brukeren om å rette ekte data i laget: brukeren logger selv inn på `localhost:8000`
+  i nettleserpanelet (skriv aldri inn passordet). Les og endre så gjennom appen med
+  `await import('/js/markeringer.js')` (samme instans som appen) og metodene i
+  `Markeringer`, så endringene synkroniseres som vanlig. Les og vis brukeren dataene først,
+  kontroller antallene i skriptet før det endrer noe, og trykk «Synkroniser nå»
+  (`#knapp-synk`) etterpå. Sikkerhetskopien og «Slettede markeringer» er angrestien.
+  Data registrert før innlogging ble påkrevd, har `registrert_av` tom.
 - Det finnes ingen analyse som henter fra Firestore. `analyser_fangst.py` leser den
   nattlige sikkerhetskopien i `data/private/hummerkart-data/sikkerhetskopi/` (lagets fil
   hvis det er nøyaktig ett lag, ellers oppgir brukeren filen) etter `git pull`. Test den
@@ -230,6 +258,9 @@ bakgrunn, med nummeret som HTML oppå.
 
 ## Fallgruver
 
+- `hidden` virker ikke på et element som har `display` i `app.css` (for eksempel
+  `.segment`, `.eier-valg`). Legg til en regel `…[hidden] { display: none; }`, ellers
+  vises valget «Mine | Laget» også uten lag.
 - Gi aldri Leaflet-markører (`.symbol`, `.gps-markor`) `position: relative`. Det
   overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
   symbolene før det. Det ga en feil der GPS-prikken og teinene havnet langt fra riktig

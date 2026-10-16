@@ -8,11 +8,16 @@
  *     (som kan rettes) og slettede markeringer (som kan gjenopprettes)
  *   - advarsel når en teine havner i et fredningsområde, og info om området
  *
+ * I et lag har hver teine en eier (personer.js). De andres teiner har nummeret i sin farge og
+ * initialene i navnet («Teine 3 (OL)»), teinelisten er delt per person, og eieren kan endres
+ * i teinearket. Alle kan likevel ta opp og registrere fangst på alle teinene.
+ *
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
  */
 
 import { visMelding } from './melding.js';
 import { hummersesong } from './oversikt.js';
+import { personer } from './personer.js';
 
 const tidFormat = new Intl.DateTimeFormat('nb-NO', {
   weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -60,7 +65,19 @@ function fraMal(html) {
   return mal.content;
 }
 
-const navnPa = (m) => (m.kategori === 'teine' ? `Teine ${m.nummer}` : 'Fangst');
+// « (OL)» etter navnet på en annens teine i laget, ellers ingenting
+const eierTillegg = (uid) => (personer.erMeg(uid) ? '' : ` (${personer.kortnavn(uid)})`);
+// «Teine 3», eller «Teine 3 (OL)» når teinen er en annens
+const teinenavn = (t) => `Teine ${t.nummer ?? '?'}${eierTillegg(t.registrert_av)}`;
+const navnPa = (m) => (m.kategori === 'teine' ? teinenavn(m) : 'Fangst');
+
+// Nummeret på en annens teine i eierens farge (symbolet er en .symbol.teine med <span> inni)
+function fargeNummer(symbol, t) {
+  if (personer.erMeg(t.registrert_av)) return;
+  const span = symbol.querySelector('span');
+  span.classList.add('annen');
+  span.style.setProperty('--eier', personer.farge(t.registrert_av));
+}
 
 // Fangst med 0 beholdt og 0 satt ut: teinen var tom da den ble tatt opp (eller sjekket).
 const erSjekk = (f) => f.beholdt + f.satt_ut === 0;
@@ -79,9 +96,6 @@ export class Markeringsark {
     this.aapenId = null;
     this._utkast = null; // ny fangst som ikke er lagret ennå (se registrerFangst)
     this._utkastTittel = ''; // overskriften i arket for utkastet
-    // Kort navn på den som registrerte en markering, hvis det er en annen i laget enn deg
-    // (settes av app.js til sky.navnFor). Uten lag: null.
-    this.hvem = () => null;
     this._sikte = null;
     this._aapnetTid = 0;
 
@@ -134,6 +148,11 @@ export class Markeringsark {
       if (this.arkMarkering.open && !this._utkast && !markeringer.hent(this.aapenId)) this.arkMarkering.close();
       if (this.arkTeiner.open) this._tegnTeineliste();
     });
+    // Laget eller initialene er endret. Det åpne detaljarket tegnes ikke på nytt (du kan
+    // holde på å skrive et notat), det får de nye navnene neste gang det åpnes.
+    personer.naarEndret(() => {
+      if (this.arkTeiner.open) this._tegnTeineliste();
+    });
   }
 
   // ---------- Posisjon ----------
@@ -162,12 +181,12 @@ export class Markeringsark {
     const angre = { knapp: 'Angre', handling: () => this.markeringer.slett(t.id, { husk: false }) };
     const omrade = this._fredningFor(t);
     if (omrade) {
-      visMelding(`Teine ${t.nummer} er satt i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
+      visMelding(`${teinenavn(t)} er satt i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
         { ...angre, ms: 10000, fare: true });
       return;
     }
     const usikker = pos.noyaktighet > 50 ? ` (usikker GPS ± ${pos.noyaktighet} m)` : '';
-    visMelding(`Teine ${t.nummer} satt${usikker}`, angre);
+    visMelding(`${teinenavn(t)} satt${usikker}`, angre);
   }
 
   // ---------- Fredningsområder ----------
@@ -183,7 +202,7 @@ export class Markeringsark {
     const m = this.markeringer.hent(id);
     const omrade = m && this._fredningFor(m);
     if (omrade) {
-      visMelding(`Teine ${m.nummer} ligger i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
+      visMelding(`${teinenavn(m)} ligger i fredningsområdet ${omrade.navn}. Teiner er forbudt der!`,
         { ms: 8000, fare: true });
     }
   }
@@ -229,7 +248,7 @@ export class Markeringsark {
     const teine = this._teineSomTasOpp(f.teine_id);
     if (teine) await this.markeringer.oppdater(teine.id, { status: 'tatt_opp', tatt_opp: f.tid });
     const hva = erSjekk(f) ? 'Registrert: ingen hummer' : `Fangst registrert: ${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
-    visMelding(`${hva}${teine ? `. Teine ${teine.nummer} er tatt opp` : ''}`, {
+    visMelding(`${hva}${teine ? `. ${teinenavn(teine)} er tatt opp` : ''}`, {
       knapp: 'Angre',
       handling: async () => {
         await this.markeringer.slett(f.id, { husk: false });
@@ -244,7 +263,7 @@ export class Markeringsark {
    */
   _taOppMedFangst(t) {
     this.registrerFangst({ lat: t.lat, lon: t.lon, noyaktighet: t.noyaktighet, kilde: t.kilde }, t,
-      { beholdt: 0, tittel: `Teine ${t.nummer} tatt opp` });
+      { beholdt: 0, tittel: `${teinenavn(t)} tatt opp` });
   }
 
   // Teinen en ny fangst kommer fra, hvis den står i sjøen og derfor skal tas opp. Ellers null.
@@ -259,7 +278,7 @@ export class Markeringsark {
     if (!this._utkast) return;
     const t = this._teineSomTasOpp(this._utkast.teine_id);
     this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = t
-      ? `Teine ${t.nummer} tas opp når du trykker Ferdig`
+      ? `${teinenavn(t)} tas opp når du trykker Ferdig`
       : 'Registreres når du trykker Ferdig';
   }
 
@@ -314,7 +333,10 @@ export class Markeringsark {
     const el = fraMal(`
       <div class="ark-topp">
         <div class="symbol teine ${iSjoen ? '' : 'opptatt'}"><span data-tekst="nummer"></span></div>
-        <div class="ark-tittel"><h3 data-tekst="tittel"></h3><p data-tekst="undertekst"></p></div>
+        <div class="ark-tittel">
+          <h3><span data-tekst="tittel"></span><select class="eier-valg" data-felt="eier" aria-label="Eier" hidden></select></h3>
+          <p data-tekst="undertekst"></p>
+        </div>
         <span class="status ${status[0]}">${status[1]}</span>
       </div>
       <button type="button" class="fredningsvarsel" data-handling="visFredning" hidden>
@@ -341,10 +363,12 @@ export class Markeringsark {
 
     const sett = (navn, tekst) => { el.querySelector(`[data-tekst="${navn}"]`).textContent = tekst; };
     sett('nummer', m.nummer ?? '?');
+    fargeNummer(el.querySelector('.ark-topp .symbol'), m);
     sett('tittel', `Teine ${m.nummer ?? '?'}`);
-    sett('undertekst', (iSjoen
+    sett('undertekst', iSjoen
       ? this._sattTekst(m.tid)
-      : `${m.mistet ? 'Mistet' : 'Tatt opp'} ${formaterTid(m.tatt_opp)}`) + this._avTekst(m));
+      : `${m.mistet ? 'Mistet' : 'Tatt opp'} ${formaterTid(m.tatt_opp)}`);
+    if (personer.iLag) this._fyllEiervalg(el.querySelector('[data-felt="eier"]'), m);
     sett('avstand', this._avstandTekst(m));
     sett('dybde', m.dybde != null ? formaterDybde(m.dybde) : '–');
     sett('fangst', beholdt + sattUt ? `${beholdt} beholdt, ${sattUt} satt ut` : 'Ingen ennå');
@@ -366,15 +390,30 @@ export class Markeringsark {
     return el;
   }
 
+  // Eieren i teinearket: deg, de andre i laget, og eieren teinen har nå hvis den er en
+  // annen (tidligere medlem, ukjent). Ser ut som en merkelapp i eierens farge.
+  _fyllEiervalg(valg, m) {
+    const eier = m.registrert_av ?? null;
+    for (const uid of personer.rekkefolge([eier])) {
+      const navn = uid === personer.meg ? 'Meg' : personer.kortnavn(uid);
+      valg.append(new Option(navn, uid ?? ''));
+    }
+    valg.value = eier ?? '';
+    valg.hidden = false;
+    if (!personer.erMeg(eier)) {
+      valg.classList.add('annen');
+      valg.style.setProperty('--eier', personer.farge(eier));
+    }
+  }
+
   // «Satt tir. 14. okt. 19:37 · 3 t siden» for en teine i sjøen
   _sattTekst(tid) {
     return `Satt ${formaterTid(tid)} · ${formaterSiden(tid)}`;
   }
 
-  // « · av ola» når en annen i laget har registrert markeringen, ellers ingenting
+  // « · av OL» når en annen i laget har registrert fangsten, ellers ingenting
   _avTekst(m) {
-    const navn = this.hvem(m.registrert_av);
-    return navn ? ` · av ${navn}` : '';
+    return personer.iLag && !personer.erMeg(m.registrert_av) ? ` · av ${personer.kortnavn(m.registrert_av)}` : '';
   }
 
   // Rad for én fangstregistrering: antall, tidspunkt og teine. Den som bruker raden,
@@ -393,7 +432,8 @@ export class Markeringsark {
     li.querySelector('[data-tekst="tittel"]').textContent =
       sjekk ? 'Ingen hummer' : `${f.beholdt} beholdt, ${f.satt_ut} satt ut`;
     li.querySelector('[data-tekst="info"]').textContent =
-      `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}` : 'ingen teine'}${this._avTekst(f)}`;
+      `${formaterTid(f.tid)} · ${teine ? `teine ${teine.nummer}${eierTillegg(teine.registrert_av)}` : 'ingen teine'}`
+      + this._avTekst(f);
     return li;
   }
 
@@ -442,13 +482,14 @@ export class Markeringsark {
     el.querySelector('[data-felt="tid"]').value = tilLokalTid(m.tid);
     el.querySelector('[data-felt="notat"]').value = m.notat;
 
-    // Teinene i sjøen, pluss den fangsten allerede er knyttet til (selv om den er tatt opp)
+    // Teinene i sjøen (dine først), pluss den fangsten allerede er knyttet til (selv om den er tatt opp)
     const valg = el.querySelector('[data-felt="teine_id"]');
     valg.append(new Option('Ingen', ''));
-    const teiner = this.markeringer.teinerISjoen();
+    const teiner = this.markeringer.teinerISjoen()
+      .sort((a, b) => this.markeringer.erMin(b) - this.markeringer.erMin(a));
     const knyttet = this.markeringer.hent(m.teine_id);
     if (knyttet && !teiner.includes(knyttet)) teiner.unshift(knyttet);
-    for (const t of teiner) valg.append(new Option(`Teine ${t.nummer}`, t.id));
+    for (const t of teiner) valg.append(new Option(teinenavn(t), t.id));
     valg.value = m.teine_id ?? '';
     return el;
   }
@@ -481,8 +522,8 @@ export class Markeringsark {
         if (navn === 'mistet') await this.markeringer.merkMistet(id);
         else await this.markeringer.funnetIgjen(id);
         visMelding(navn === 'mistet'
-          ? `Teine ${m.nummer} er meldt mistet. Den står med «?» på kartet til du finner den.`
-          : `Teine ${m.nummer} er funnet og står i sjøen igjen`, {
+          ? `${teinenavn(m)} er meldt mistet. Den står med «?» på kartet til du finner den.`
+          : `${teinenavn(m)} er funnet og står i sjøen igjen`, {
           knapp: 'Angre',
           handling: () => this.markeringer.oppdater(id, for_),
           ms: 6000,
@@ -490,12 +531,12 @@ export class Markeringsark {
         break;
       }
       case 'settUtIgjen': {
-        // Ny utsetting med samme nummer. Den gamle beholdes som historikk.
+        // Ny utsetting med samme nummer og eier. Den gamle beholdes som historikk.
         const pos = this._gpsPosisjon();
         if (!pos) return;
         this.arkMarkering.close();
-        const ny = await this.markeringer.nyTeine({ ...pos, nummer: m.nummer });
-        visMelding(`Teine ${ny.nummer} satt ut igjen`, {
+        const ny = await this.markeringer.nyTeine({ ...pos, nummer: m.nummer, registrert_av: m.registrert_av });
+        visMelding(`${teinenavn(ny)} satt ut igjen`, {
           knapp: 'Angre',
           handling: () => this.markeringer.slett(ny.id, { husk: false }),
         });
@@ -540,12 +581,19 @@ export class Markeringsark {
     if (felt === 'nummer') {
       const nummer = parseInt(el.value, 10);
       if (!(nummer >= 1) || nummer === m.nummer) return;
-      if (this.markeringer.teinerISjoen().some((t) => t.nummer === nummer && t.id !== m.id)) {
-        visMelding(`Obs: teine ${nummer} finnes allerede i sjøen`);
+      if (this.markeringer.nummerBrukt(nummer, m.registrert_av, m.id)) {
+        visMelding(`Obs: ${teinenavn({ ...m, nummer }).replace('Teine', 'teine')} finnes allerede i sjøen`);
       }
       this.markeringer.oppdater(m.id, { nummer });
       this.arkMarkering.querySelector('[data-tekst="nummer"]').textContent = nummer;
       this.arkMarkering.querySelector('[data-tekst="tittel"]').textContent = `Teine ${nummer}`;
+    } else if (felt === 'eier' && (el.value || null) !== (m.registrert_av ?? null)) {
+      // Teinen er en annens (eller din): samme nummer, ny eier
+      const eier = el.value || null;
+      if (m.status === 'i_sjoen' && this.markeringer.nummerBrukt(m.nummer, eier, m.id)) {
+        visMelding(`Obs: ${teinenavn({ ...m, registrert_av: eier }).replace('Teine', 'teine')} finnes allerede i sjøen`);
+      }
+      this.markeringer.oppdater(m.id, { registrert_av: eier }).then(() => this.visMarkering(m.id));
     } else if (felt === 'notat' && el.value !== m.notat) {
       this._endre(m, { notat: el.value });
     } else if (felt === 'teine_id' && (el.value || null) !== m.teine_id) {
@@ -561,8 +609,8 @@ export class Markeringsark {
       this._endre(m, { tid });
       if (m !== this._utkast) {
         // Teine: når den ble satt (teinedøgn og tidslinje regnes fra dette). Fangst: når den ble tatt.
-        const tekst = m.kategori === 'teine' ? this._sattTekst(tid) : formaterTid(tid);
-        this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = tekst + this._avTekst(m);
+        this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent =
+          m.kategori === 'teine' ? this._sattTekst(tid) : formaterTid(tid) + this._avTekst(m);
       }
     }
   }
@@ -598,11 +646,14 @@ export class Markeringsark {
 
   _tegnTeineliste() {
     const teiner = this.markeringer.teinerISjoen();
+    const mine = teiner.filter((t) => this.markeringer.erMin(t));
     const her = this.gps.posisjon?.latlng;
     this.arkTeiner.querySelector('[data-tekst="antall"]').textContent = teiner.length;
-    this.arkTeiner.querySelector('[data-handling="taOppAlle"]').hidden = teiner.length < 2;
+    const taOppAlle = this.arkTeiner.querySelector('[data-handling="taOppAlle"]');
+    taOppAlle.hidden = mine.length < 2;
+    taOppAlle.textContent = personer.iLag ? 'Ta opp mine' : 'Ta opp alle';
 
-    const rader = teiner.map((t) => {
+    const rad = (t) => {
       const li = fraMal(`
         <li>
           <button type="button" class="rad">
@@ -615,9 +666,10 @@ export class Markeringsark {
       li.querySelector('.rad').dataset.vis = t.id;
       li.querySelector('.ta-opp').dataset.taOpp = t.id;
       li.querySelector('[data-tekst="nummer"]').textContent = t.nummer;
+      fargeNummer(li.querySelector('.symbol'), t);
       li.querySelector('[data-tekst="tittel"]').textContent = `Teine ${t.nummer}`;
       const dybde = t.dybde != null ? ` · ${formaterDybde(t.dybde)}` : '';
-      li.querySelector('[data-tekst="info"]').textContent = `Satt ${formaterSiden(t.tid)}${dybde}${this._avTekst(t)}`;
+      li.querySelector('[data-tekst="info"]').textContent = `Satt ${formaterSiden(t.tid)}${dybde}`;
       const der = L.latLng(t.lat, t.lon);
       const avstand = her?.distanceTo(der);
       if (avstand >= 10) {
@@ -629,21 +681,22 @@ export class Markeringsark {
         li.querySelector('[data-tekst="avstand"]').textContent = her ? 'Her' : '';
       }
       return li;
-    });
+    };
+    const rader = personer.iLag ? this._grupperPerEier(teiner, rad) : teiner.map(rad);
     const liste = this.arkTeiner.querySelector('[data-liste="teiner"]');
     if (rader.length) liste.replaceChildren(...rader);
     else liste.replaceChildren(fraMal('<li class="tom">Ingen teiner i sjøen. Trykk «Sett teine» når du setter en.</li>'));
 
     this._tegnSlettede();
 
-    // Fangst i hummersesongen (den som pågår, eller den siste), som i fangstoversikten
+    // Din fangst i hummersesongen (den som pågår, eller den siste), som i fangstoversikten
     const sesong = hummersesong();
-    const iSesongen = this.markeringer.alle().filter((m) => m.kategori === 'hummer'
+    const iSesongen = this.markeringer.alle().filter((m) => m.kategori === 'hummer' && this.markeringer.erMin(m)
       && Date.parse(m.tid) >= sesong.fra && Date.parse(m.tid) < sesong.til);
     const beholdt = iSesongen.reduce((s, f) => s + f.beholdt, 0);
     const sattUt = iSesongen.reduce((s, f) => s + f.satt_ut, 0);
     this.arkTeiner.querySelector('[data-tekst="sesong"]').textContent =
-      `Sesongen ${sesong.aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
+      `${personer.iLag ? 'Dine i sesongen' : 'Sesongen'} ${sesong.aar}: ${beholdt} beholdt · ${sattUt} satt ut`;
 
     // All fangst, sist registrert først. Trykk åpner fangsten, så den kan rettes eller slettes.
     const fangst = this.markeringer.alle().filter((m) => m.kategori === 'hummer')
@@ -656,6 +709,29 @@ export class Markeringsark {
       rad.querySelector('.rad').dataset.vis = f.id;
       return rad;
     }));
+  }
+
+  // Teinene i grupper per eier: «Mine» først, så de andre i laget (med initialene i sin farge),
+  // og til slutt tidligere medlemmer og teiner uten eier.
+  _grupperPerEier(teiner, rad) {
+    const nokkel = (t) => (this.markeringer.erMin(t) ? personer.meg : t.registrert_av ?? null);
+    const rader = [];
+    for (const uid of personer.rekkefolge(teiner.map(nokkel))) {
+      const gruppe = teiner.filter((t) => nokkel(t) === uid);
+      if (!gruppe.length) continue;
+      const overskrift = fraMal('<li class="gruppe"><span class="eier-merke"></span><span data-tekst="navn"></span></li>');
+      const merke = overskrift.querySelector('.eier-merke');
+      if (uid === personer.meg) {
+        merke.remove();
+        overskrift.querySelector('[data-tekst="navn"]').textContent = `Mine (${gruppe.length})`;
+      } else {
+        merke.textContent = personer.kortnavn(uid);
+        merke.style.background = personer.farge(uid);
+        overskrift.querySelector('[data-tekst="navn"]').textContent = `(${gruppe.length})`;
+      }
+      rader.push(overskrift, ...gruppe.map(rad));
+    }
+    return rader;
   }
 
   // Slettede markeringer, sist slettet først, så en sletting kan angres også senere.
@@ -702,15 +778,17 @@ export class Markeringsark {
       if (!slettet) return;
       const m = await this.markeringer.gjenopprett(slettet.markering);
       const nummerBrukt = m.kategori === 'teine' && m.status === 'i_sjoen'
-        && this.markeringer.teinerISjoen().some((t) => t.nummer === m.nummer && t.id !== m.id);
-      visMelding(`${navnPa(m)} gjenopprettet${nummerBrukt ? `. Obs: teine ${m.nummer} finnes allerede i sjøen` : ''}`,
+        && this.markeringer.nummerBrukt(m.nummer, m.registrert_av, m.id);
+      visMelding(`${navnPa(m)} gjenopprettet${nummerBrukt ? `. Obs: det står en ${navnPa(m).replace('Teine', 'teine')} i sjøen fra før` : ''}`,
         { ms: nummerBrukt ? 5000 : undefined });
     } else if (taOpp) {
       this.arkTeiner.close();
       this._taOppMedFangst(this.markeringer.hent(taOpp));
     } else if (handling === 'taOppAlle') {
-      const teiner = this.markeringer.teinerISjoen();
-      if (!window.confirm(`Ta opp alle ${teiner.length} teinene?`)) return;
+      // I et lag bare dine egne: de andres teiner står der de står
+      const teiner = this.markeringer.teinerISjoen().filter((t) => this.markeringer.erMin(t));
+      if (!window.confirm(personer.iLag ? `Ta opp alle dine ${teiner.length} teiner?`
+        : `Ta opp alle ${teiner.length} teinene?`)) return;
       for (const t of teiner) await this.markeringer.taOpp(t.id);
       visMelding(`${teiner.length} teiner tatt opp`, {
         knapp: 'Angre',

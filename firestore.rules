@@ -4,10 +4,12 @@
 // filen → Publish. Endres de her, må de limes inn på nytt.
 //
 // brukere/{uid}/markeringer/{id}   brukerens egne markeringer. Bare brukeren selv.
-// lag/{kode}                       et lag: { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet }
+// lag/{kode}                       et lag: { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet,
+//                                  initialer: { uid: «BL» } }
 // lag/{kode}/markeringer/{id}      lagets felles markeringer. Alle medlemmene.
 // Koden (8 tegn) er dokument-id-en og fungerer som invitasjon: den som kjenner den,
-// kan legge seg selv til som medlem. Alt annet er stengt. Se app/js/sky.js og firebase.js.
+// kan legge seg selv til som medlem. Hver kan bare sette sine egne initialer. Alt annet er
+// stengt. Se app/js/sky.js og firebase.js.
 rules_version = '2';
 
 service cloud.firestore {
@@ -42,6 +44,19 @@ service cloud.firestore {
         return innlogget() && request.auth.uid in resource.data.medlemmer;
       }
 
+      // Initialene: du kan legge til, endre og fjerne dine egne. Den som fjerner et medlem,
+      // kan også fjerne medlemmets initialer. 1–3 store bokstaver (samme regel som i appen).
+      function initialerOk() {
+        let foer = resource.data.get('initialer', {});
+        let etter = request.resource.data.get('initialer', {});
+        let endring = etter.diff(foer);
+        let fjernede = resource.data.medlemmer.toSet().difference(request.resource.data.medlemmer.toSet());
+        return endring.addedKeys().union(endring.changedKeys()).hasOnly([request.auth.uid])
+          && endring.removedKeys().hasOnly(fjernede.union([request.auth.uid].toSet()))
+          && (!(request.auth.uid in etter)
+              || (etter[request.auth.uid] is string && etter[request.auth.uid].matches('^[A-ZÆØÅ]{1,3}$')));
+      }
+
       allow read: if erMedlem();
 
       // Opprett: du er eneste medlem
@@ -56,7 +71,8 @@ service cloud.firestore {
         && request.resource.data.opprettet == request.time;
 
       allow update: if innlogget()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['navn', 'medlemmer', 'eposter'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['navn', 'medlemmer', 'eposter', 'initialer'])
+        && initialerOk()
         && request.resource.data.medlemmer.size() <= 20
         && request.resource.data.navn is string
         && request.resource.data.navn.size() > 0 && request.resource.data.navn.size() <= 40
