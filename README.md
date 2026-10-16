@@ -578,14 +578,15 @@ Sjekk alltid gjeldende forskrift.
   opp, var en annens: da settes den ut igjen som den andres teine (se «Lag»).
 - **Hummer her:** ett trykk åpner et ark for ny fangst der du er. Fangsten knyttes
   til nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −, og
-  trykk **Ferdig** for å registrere den. Trykker du **Avbryt**, drar arket ned eller
+  trykk **Ferdig** for å registrere den. Tidspunktet og teinen står på én linje
+  («Nå · Teine 3»), og **Endre** viser feltene for dem. Trykker du **Avbryt**, drar arket ned eller
   trykker utenfor, registreres ingenting. Det samme gjelder «Hummer her» etter langt
   trykk i kartet.
 - **Fangst betyr at teinen er tatt opp:** registrerer du fangst fra en teine i sjøen,
   også 0 hummer når den var tom, markeres teinen som tatt opp og forsvinner fra
   kartet. Arket sier fra om det før du trykker Ferdig, og «Angre» angrer begge deler.
   Når du setter teinen ut igjen, trykker du **Sett teine**, og den får samme nummer.
-  Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
+  Trykk **Endre** og velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat (opptil 2000
   tegn), ta opp med fangst, melde teinen mistet, flytte eller slette.
@@ -644,7 +645,7 @@ Sjekk alltid gjeldende forskrift.
   fangst, f.eks. ved sesongslutt.
   I et lag heter knappen **Ta opp alle mine** og tar bare opp dine egne. **Slett** fjerner
   markeringen helt (for feil). Begge kan angres.
-- **Mistet teine** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
+- **Mistet** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
   som tatt opp, men fangsten er ukjent, så den er ikke med i fangstraten, andelen med
   hummer eller analysen. Den blir stående på kartet, grå med et rødt «?», så du kan
   lete etter den. Finner du den, trykker du på den og **Funnet igjen**: da står den i

@@ -17,11 +17,11 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '809308ef9411';
+const VERSJON = 'b1e7d71c6804';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
   './': '402c276c89cd',
-  'css/app.css': '5bf86056c1b8',
+  'css/app.css': '516659ea50e0',
   'data/bunnhint.geojson': '7dff6ecb1079',
   'data/dybdeareal.geojson': 'dfaa36d0802f',
   'data/dybdekurver.geojson': '35043cb8406f',
@@ -55,7 +55,7 @@ const FILER = {
   'js/konto.js': 'ad5a9cace085',
   'js/lager.js': '3b2e079cf110',
   'js/markeringer.js': '746432af0be0',
-  'js/markeringsark.js': '22ea2fa8aa8b',
+  'js/markeringsark.js': 'b98f9ee7632d',
   'js/melding.js': '612e55afbbb0',
   'js/oversikt.js': 'f1c21a1064ed',
   'js/personer.js': '8b4e2a71e414',

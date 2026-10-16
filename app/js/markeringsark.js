@@ -238,7 +238,8 @@ export class Markeringsark {
    * annet er oppgitt. Fangsten er bare et utkast i arket og lagres først når du trykker
    * «Ferdig», så et feiltrykk ikke blir liggende som en registrering.
    */
-  registrerFangst(pos = this._gpsPosisjon(), teine = undefined, { beholdt = 1, tittel = 'Ny hummerfangst' } = {}) {
+  registrerFangst(pos = this._gpsPosisjon(), teine = undefined,
+    { beholdt = 1, tittel = 'Ny hummerfangst', tittelTeine = null } = {}) {
     if (!pos) return;
     const fra = teine === undefined ? this.markeringer.naermesteTeine(L.latLng(pos.lat, pos.lon)) : teine;
     this._utkast = {
@@ -246,6 +247,7 @@ export class Markeringsark {
       tid: new Date().toISOString(),
     };
     this._utkastTittel = tittel;
+    this._utkastTittelTeine = tittelTeine; // teinen som står i overskriften («Teine 3 tatt opp»)
     this.aapenId = null;
     this.arkMarkering.querySelector('.innhold').replaceChildren(this._fangstInnhold(this._utkast));
     this._visUtkastUndertekst();
@@ -279,7 +281,7 @@ export class Markeringsark {
    */
   _taOppMedFangst(t) {
     this.registrerFangst({ lat: t.lat, lon: t.lon, noyaktighet: t.noyaktighet, kilde: t.kilde }, t,
-      { beholdt: 0, tittel: `${teinenavn(t)} tatt opp` });
+      { beholdt: 0, tittel: `${teinenavn(t)} tatt opp`, tittelTeine: t.id });
   }
 
   // Teinen en ny fangst kommer fra, hvis den står i sjøen og derfor skal tas opp. Ellers null.
@@ -289,13 +291,20 @@ export class Markeringsark {
   }
 
   // Underteksten i arket for ny fangst: si fra hvilken teine som tas opp når man trykker
-  // «Ferdig». Står under overskriften i stedet for på egen linje, så arket blir lavere.
+  // «Ferdig», hvis den ikke står i overskriften allerede. Står under overskriften i stedet
+  // for på egen linje, så arket blir lavere. Linjen med tidspunkt og teine følger med.
   _visUtkastUndertekst() {
     if (!this._utkast) return;
     const t = this._teineSomTasOpp(this._utkast.teine_id);
-    this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent = t
-      ? `${teinenavn(t)} tas opp når du trykker Ferdig`
-      : 'Registreres når du trykker Ferdig';
+    this.arkMarkering.querySelector('[data-tekst="undertekst"]').textContent =
+      t && t.id !== this._utkastTittelTeine
+        ? `${teinenavn(t)} tas opp når du trykker Ferdig`
+        : 'Registreres når du trykker Ferdig';
+    const sammendrag = this.arkMarkering.querySelector('[data-tekst="sammendrag"]');
+    if (!sammendrag) return;
+    const fra = this.markeringer.hent(this._utkast.teine_id);
+    const naar = Date.now() - Date.parse(this._utkast.tid) < 120000 ? 'Nå' : formaterTid(this._utkast.tid);
+    sammendrag.textContent = `${naar} · ${fra ? teinenavn(fra) : 'ingen teine'}`;
   }
 
   // ---------- Langt trykk i kartet ----------
@@ -371,9 +380,11 @@ export class Markeringsark {
       </div>
       <div class="knapper">
         ${hovedknapp}
-        <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
-        <button type="button" class="fare" data-handling="slett">Slett</button>
-        ${iSjoen ? '<button type="button" class="sekundar bred" data-handling="mistet">Mistet teine</button>' : ''}
+        <div class="smaa-knapper">
+          <button type="button" class="sekundar" data-handling="flytt">Flytt</button>
+          ${iSjoen ? '<button type="button" class="sekundar" data-handling="mistet" aria-label="Mistet teine">Mistet</button>' : ''}
+          <button type="button" class="fare" data-handling="slett">Slett</button>
+        </div>
         <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
       </div>`);
 
@@ -475,9 +486,15 @@ export class Markeringsark {
         <output data-tekst="satt_ut"></output>
         <button type="button" data-handling="pluss" data-felt="satt_ut" aria-label="Én mer satt ut">+</button>
       </div>
+      ${ny
+        ? `<div class="sammendrag">
+            <span class="radtekst"><small>Tidspunkt og teine</small><b data-tekst="sammendrag"></b></span>
+            <button type="button" class="lenke" data-handling="endreTidTeine">Endre</button>
+          </div>`
+        : ''}
       <div class="felter">
-        <label class="felt">Tidspunkt<input type="datetime-local" data-felt="tid"></label>
-        <label class="felt">Fra teine<select data-felt="teine_id"></select></label>
+        <label class="felt" data-tid-teine ${ny ? 'hidden' : ''}>Tidspunkt<input type="datetime-local" data-felt="tid"></label>
+        <label class="felt" data-tid-teine ${ny ? 'hidden' : ''}>Fra teine<select data-felt="teine_id"></select></label>
         <label class="felt">Notat<textarea rows="2" maxlength="${MAKS_NOTAT}" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
       </div>
       ${ny
@@ -529,6 +546,11 @@ export class Markeringsark {
         break;
       case 'visFredning':
         this.visFredning(this._fredningFor(m));
+        break;
+      case 'endreTidTeine':
+        // Ny fangst: vis feltene for tidspunkt og teine i stedet for linjen
+        this.arkMarkering.querySelector('.sammendrag').hidden = true;
+        this.arkMarkering.querySelectorAll('[data-tid-teine]').forEach((el) => { el.hidden = false; });
         break;
       case 'taOpp':
         this._taOppMedFangst(m);

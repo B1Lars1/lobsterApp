@@ -687,6 +687,15 @@ input.bryter:disabled { opacity: 0.4; cursor: default; }
 .knapper .stor,
 .knapper .ferdig,
 .knapper .bred { grid-column: 1 / -1; }
+/* Teinearket: Flytt, Mistet og Slett på én rad under hovedknappen, mindre enn den */
+.smaa-knapper {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+.ark .smaa-knapper button { min-height: 48px; padding: 0 8px; font-size: 16px; }
 /* Ny fangst: Avbryt og Ferdig på samme rad, så arket får plass uten å scrolle */
 .knapper.avbryt-ferdig { grid-template-columns: 1fr 2fr; }
 .knapper.avbryt-ferdig .ferdig { grid-column: auto; }
@@ -779,6 +788,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   font-weight: 700;
   color: var(--dempet);
 }
+.felt[hidden] { display: none; }
 .felt.smal { flex: 0 0 120px; }
 .felt.ved-siden { flex: 1 1 0; } /* deler raden med et smalt felt (Satt ved siden av Nummer) */
 .felt input,
@@ -804,6 +814,20 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   .felt input[type="datetime-local"] { -webkit-appearance: none; appearance: none; }
   .felt input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
 }
+
+/* Ny fangst: tidspunkt og teine på én linje, med «Endre» for å vise feltene */
+.sammendrag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 6px 4px 6px 12px;
+  border-radius: 12px;
+  background: var(--valgt);
+}
+.sammendrag[hidden] { display: none; }
+.sammendrag .radtekst small { font-size: 13px; font-weight: 700; }
+.sammendrag .radtekst b { font-size: 16px; }
 
 /* Teller med store − og + for antall hummer */
 .teller {

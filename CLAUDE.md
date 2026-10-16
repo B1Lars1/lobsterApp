@@ -447,7 +447,7 @@ bakgrunn, med nummeret som HTML oppå.
 ## Fallgruver
 
 - `hidden` virker ikke på et element som har `display` i `app.css` (for eksempel
-  `.segment`, `.eier-valg`, `.rund-knapp`, `.menyrad`, `.varselboks`). Legg til en regel `…[hidden] { display: none; }`,
+  `.segment`, `.eier-valg`, `.rund-knapp`, `.menyrad`, `.varselboks`, `.felt`, `.sammendrag`). Legg til en regel `…[hidden] { display: none; }`,
   ellers vises valget «Mine | Laget» også uten lag.
 - Gi aldri Leaflet-markører (`.symbol`, `.gps-markor`) `position: relative`. Det
   overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
@@ -456,7 +456,10 @@ bakgrunn, med nummeret som HTML oppå.
 - Ny fangst er et utkast (`_utkast` i `markeringsark.js`) til brukeren trykker «Ferdig».
   Først da kalles `markeringer.nyFangst()`. Lukkes arket på annen måte, forkastes den.
   Brukeren vil ikke at et feiltrykk skal bli liggende som en registrering. Et åpent
-  utkast finnes ikke i `markeringer`, så `naarEndret` må ikke lukke arket da.
+  utkast finnes ikke i `markeringer`, så `naarEndret` må ikke lukke arket da. I utkastet står
+  tidspunkt og teine på én linje (`.sammendrag`, oppdatert i `_visUtkastUndertekst`), og
+  «Endre» viser feltene. Underteksten nevner teinen som tas opp bare når den ikke står i
+  overskriften (`_utkastTittelTeine`).
 - Fangst registrert fra en teine får teinens posisjon og ligger under teinesymbolet
   på kartet (teiner har høyere z-indeks). Fangst må derfor kunne nås fra listene:
   teinearket og «Fangstregistreringer» i teinelisten (`_fangstRad` i `markeringsark.js`).
