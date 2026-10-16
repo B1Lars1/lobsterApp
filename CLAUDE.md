@@ -161,6 +161,9 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   vinner, slettinger følger med) og sender så det som er endret lokalt: der `endret`
   avviker fra kartet `kjent` (id → `endret` som ligger i rommet). Tilstanden ligger i
   `localStorage` under `hummerkart.sky` (`uid`, `rom`, `lag`, `sistHentet`, `kjent`).
+  `sistHentet` er `[sekunder, nanosekunder]` fra serveren, ikke millisekunder: serveren har
+  mikrosekunder, og avrundede millisekunder gjorde at det siste dokumentet ble hentet på
+  nytt annenhver gang (eldre tilstand med et tall gjøres om i `sistHentet()` i `sky.js`).
   Gjenoppretting gir ny `endret`, så den vinner over slettingen.
 - **Lag** er en felles logg: alle medlemmene leser og skriver alt. `lag/{kode}` har
   `{ navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet, initialer: { uid: «BL» } }`,

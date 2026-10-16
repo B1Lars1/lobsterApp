@@ -17,7 +17,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '91caef122a70';
+const VERSJON = '8351c6af0ba3';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
   './': '4361db8139fb',
@@ -46,7 +46,7 @@ const FILER = {
   'js/dra-ned.js': '39c76367ab2f',
   'js/dybdelag.js': '98947146af4a',
   'js/dybdeoppslag.js': '443fbeec51c7',
-  'js/firebase.js': '1e828d2e105b',
+  'js/firebase.js': '5ded7bbc4484',
   'js/fredning.js': 'a01071ad418e',
   'js/gps.js': '4a09b6aae3f5',
   'js/hjemskjerm.js': '0b74cec06010',
@@ -59,7 +59,7 @@ const FILER = {
   'js/melding.js': '612e55afbbb0',
   'js/oversikt.js': '6978b8c38091',
   'js/personer.js': '8b4e2a71e414',
-  'js/sky.js': '5e224d2b1950',
+  'js/sky.js': '748336e34aa2',
   'js/tema.js': '665d59d8188a',
   'manifest.webmanifest': '19e7beb80bc1',
   'personvern.html': '417addf0805d',
