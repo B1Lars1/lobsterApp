@@ -466,6 +466,10 @@ bakgrunn, med nummeret som HTML oppå.
 - Arkene er `<dialog>` åpnet med `showModal()`. Alt utenfor, også meldingene fra
   `melding.js`, er da utilgjengelig. En knapp i en melding kan ikke trykkes mens et
   ark er åpent.
+- Spør aldri med `window.confirm()`: bruk `bekreft()` i `bekreft.js` (et ark oppå det som er
+  åpent, gir et Promise, knappen sier hva som skjer). `Sky` tar `bekreft` som parameter, og
+  svaret kan være et Promise (`app.js`) eller et vanlig svar (testene, standarden
+  `window.confirm`), så kall det med `await`.
 - iPhone: dobbelttrykk når ikke fram til Leaflet, så `dobbelttrykk.js` oppdager det
   selv. Langt trykk er Leaflets `contextmenu` (marker et valgfritt sted). Kartet og
   knappene har `user-select: none`, ellers merker iPhone nærmeste tekst ved langt trykk.
@@ -524,7 +528,8 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
   må passe `GYLDIG_ID` i `markeringer.js` (bokstaver, tall, `-`, `_`), ellers avvises de
   ved import. Samme regel står i `firestore.rules`. Navn fra laget (`personer.kortnavn`:
   initialer eller starten av e-posten) er også tekst fra skyen, så heller ikke `teinenavn()`
-  kan settes inn i en mal (overskriften i fangstarket settes med `textContent`).
+  kan settes inn i en mal (overskriften i fangstarket settes med `textContent`). Det samme
+  gjelder spørsmålene i `bekreft.js` (e-post og lagnavn): de settes med `textContent`.
 - `index.html` har Content-Security-Policy (meta-taggen øverst), og `personvern.html` en
   enklere. `script-src 'self'`: ingen script eller `onclick=` skrevet rett i HTML-en (temaet
   settes derfor av `js/tema.js`). `connect-src` tillater bare `*.googleapis.com` og

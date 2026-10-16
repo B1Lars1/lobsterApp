@@ -850,6 +850,15 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 }
 .teller output { text-align: center; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
+/* ---------- Spørsmål før noe som er vanskelig å angre (bekreft.js) ---------- */
+
+#ark-bekreft h3.ark-tittel { margin: 4px 0 8px; }
+.bekreft-tekst { font-size: 16px; line-height: 1.45; }
+.bekreft-tekst p { margin: 0 0 10px; }
+.bekreft-tekst ul { margin: 0 0 10px; padding-left: 22px; }
+.bekreft-tekst li { margin-bottom: 6px; }
+.ferdig.fare-fylt { background: var(--darlig); }
+
 /* ---------- Veiledning: legg appen til på hjemskjermen ---------- */
 
 .app-ikon { width: 56px; height: 56px; flex: none; border-radius: 13px; }

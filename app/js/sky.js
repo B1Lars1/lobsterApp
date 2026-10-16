@@ -140,7 +140,8 @@ export class Sky {
    *   kontoen kobles til eller fra skyen
    * @param {(bruker: {uid: string, epost: string} | null) => void} valg.naarBruker
    * @param {(lag: object | null) => void} valg.naarLag  laget du er med i, når det endres
-   * @param {(tekst: string) => boolean} valg.bekreft  spør brukeren (standard: window.confirm)
+   * @param {(tekst: string) => boolean | Promise<boolean>} valg.bekreft  spør brukeren
+   *   (app.js bruker arket i bekreft.js, standard: window.confirm)
    * @param {object} valg.innlogging  FirebaseInnlogging eller en erstatning (tester)
    * @param {object} valg.tjeneste    FirestoreTjeneste eller en erstatning (tester)
    */
@@ -208,7 +209,7 @@ export class Sky {
       const tilstand = hentTilstand();
       if (tilstand.uid && tilstand.uid !== bruker.uid && this.markeringer.alle().length) {
         // Markeringene på telefonen hører til en annen konto. Ikke bland dem inn i denne.
-        if (!this.bekreft(this._annenKontoTekst(tilstand, bruker.epost))) {
+        if (!(await this.bekreft(this._annenKontoTekst(tilstand, bruker.epost)))) {
           await this.innlogging.loggUt();
           return;
         }

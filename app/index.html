@@ -259,6 +259,17 @@
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
+  <!-- Spørsmål før noe som er vanskelig å angre (se bekreft.js) -->
+  <dialog id="ark-bekreft" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <h3 class="ark-tittel" data-tekst="tittel"></h3>
+    <div class="bekreft-tekst" data-tekst="tekst"></div>
+    <div class="knapper avbryt-ferdig">
+      <button type="button" class="sekundar" data-handling="nei">Avbryt</button>
+      <button type="button" class="ferdig" data-handling="ja"></button>
+    </div>
+  </dialog>
+
   <!-- Veiledning: legg appen til på hjemskjermen (se hjemskjerm.js) -->
   <dialog id="ark-hjemskjerm" class="ark">
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>

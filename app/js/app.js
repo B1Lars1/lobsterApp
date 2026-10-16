@@ -18,6 +18,7 @@
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
 
+import { bekreft } from './bekreft.js';
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { dobbelttrykkForZoom } from './dobbelttrykk.js';
 import { draNedForALukke } from './dra-ned.js';
@@ -536,6 +537,8 @@ const sky = new Sky(markeringer, {
     personer.sett({ lag }); // kartet, listene og oversikten tegnes på nytt med eierne
     konto.visLag(lag);
   },
+  // Telefonen har teiner og fangst fra en annen konto (sky.js forklarer hva som skjer)
+  bekreft: (tekst) => bekreft({ tittel: 'Annen konto på telefonen', tekst: [tekst], knapp: 'Fortsett', fare: true }),
   innlogging: new FirebaseInnlogging(),
   tjeneste: new FirestoreTjeneste(),
 });

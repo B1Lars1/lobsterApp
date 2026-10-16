@@ -15,6 +15,7 @@
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
  */
 
+import { bekreft } from './bekreft.js';
 import { MAKS_NOTAT } from './markeringer.js';
 import { visMelding } from './melding.js';
 import { hummersesong } from './oversikt.js';
@@ -869,8 +870,11 @@ export class Markeringsark {
     } else if (handling === 'taOppAlle') {
       // I et lag bare dine egne: de andres teiner står der de står
       const teiner = this.markeringer.teinerISjoen().filter((t) => this.markeringer.erMin(t));
-      if (!window.confirm(personer.iLag ? `Ta opp alle dine ${teiner.length} teiner?`
-        : `Ta opp alle ${teiner.length} teinene?`)) return;
+      if (!(await bekreft({
+        tittel: personer.iLag ? `Ta opp alle dine ${teiner.length} teiner?` : `Ta opp alle ${teiner.length} teinene?`,
+        tekst: ['De tas opp uten å registrere fangst, for eksempel ved sesongslutt. Det kan angres.'],
+        knapp: 'Ta opp alle',
+      }))) return;
       for (const t of teiner) await this.markeringer.taOpp(t.id);
       visMelding(`${teiner.length} teiner tatt opp`, {
         knapp: 'Angre',

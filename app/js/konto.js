@@ -11,6 +11,7 @@
  * undersiden Konto (#skystatus) og linjen på undersiden Lag (#lagmelding).
  */
 
+import { bekreft } from './bekreft.js';
 import { GYLDIGE_INITIALER, personer } from './personer.js';
 import { feilTekst, rensKode, synkTekst, visKode } from './sky.js';
 
@@ -55,20 +56,32 @@ const LAGMODUS = {
 // Til lagarket når kontoen bare lagrer på telefonen
 const KOBLES_TIL = ' Kontoen kobles til skyen, og det tas sikkerhetskopi.';
 
-// Spørsmålene før kontoen kobles til eller fra skyen (window.confirm)
-const KOBLE_TIL = (antall) => 'Koble til skyen?\n\n'
-  + `Teinene og fangsten din (${antall}), og alt du lagrer senere, lastes opp til kontoen din i skyen `
-  + '(Google Firebase, i EU). Du får dem på alle telefonene du logger inn på, og det tas '
-  + 'sikkerhetskopi hver natt, og hver time fra 1. oktober til 15. desember. Sikkerhetskopien '
-  + 'ligger hos den som driver appen.\n\nDu kan koble fra igjen senere.';
-const KOBLE_FRA = 'Lagre bare på denne telefonen?\n\n'
-  + '• Du kan ikke være med i et lag.\n'
-  + '• Det tas ingen sikkerhetskopi. Mister eller bytter du telefon, eller fjerner appen fra '
-  + 'hjemskjermen, er teinene og fangsten borte. Lagre en kopi til fil innimellom '
-  + '(Innstillinger → Sikkerhetskopi).\n'
-  + '• De kommer ikke lenger på andre telefoner. Hver telefon med kontoen beholder det den har.\n\n'
-  + 'Alt i kontoen din i skyen slettes, men det som ligger på telefonen, blir liggende. Eldre '
-  + 'sikkerhetskopier slettes ikke av seg selv. Be den som driver appen om det hvis du vil.';
+// Spørsmålene før kontoen kobles til eller fra skyen (bekreft.js)
+const KOBLE_TIL = (antall) => ({
+  tittel: 'Koble til skyen?',
+  tekst: [
+    `Teinene og fangsten din (${antall}), og alt du lagrer senere, lastes opp til kontoen din i `
+      + 'skyen (Google Firebase, i EU).',
+    'Du får dem på alle telefonene du logger inn på, og det tas sikkerhetskopi hver natt, og hver '
+      + 'time fra 1. oktober til 15. desember. Sikkerhetskopien ligger hos den som driver appen.',
+    'Du kan koble fra igjen senere.',
+  ],
+  knapp: 'Koble til skyen',
+});
+const KOBLE_FRA = {
+  tittel: 'Lagre bare på denne telefonen?',
+  punkter: [
+    'Du kan ikke være med i et lag.',
+    'Det tas ingen sikkerhetskopi. Mister eller bytter du telefon, eller fjerner appen fra '
+      + 'hjemskjermen, er teinene og fangsten borte. Lagre en kopi til fil innimellom '
+      + '(Innstillinger → Sikkerhetskopi).',
+    'De kommer ikke lenger på andre telefoner. Hver telefon med kontoen beholder det den har.',
+  ],
+  etter: ['Alt i kontoen din i skyen slettes, men det som ligger på telefonen, blir liggende. Eldre '
+    + 'sikkerhetskopier slettes ikke av seg selv. Be den som driver appen om det hvis du vil.'],
+  knapp: 'Koble fra skyen',
+  fare: true,
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -233,7 +246,7 @@ export class Konto {
       this._skystatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble til skyen.' });
       return;
     }
-    if (!window.confirm(KOBLE_TIL(antallTekst(this.sky.markeringer)))) return;
+    if (!(await bekreft(KOBLE_TIL(antallTekst(this.sky.markeringer))))) return;
     try {
       await this.sky.kobleTil(); // statuslinjen viser hvordan det gikk
     } catch (feil) {
@@ -246,7 +259,7 @@ export class Konto {
       this._skystatus({ tilstand: 'feil', tekst: 'Du må ha nett for å koble fra skyen.' });
       return;
     }
-    if (!window.confirm(KOBLE_FRA)) return;
+    if (!(await bekreft(KOBLE_FRA))) return;
     try {
       const r = await this.sky.kobleFra();
       if (!r?.feil && !this.sky.koblet) {
@@ -466,8 +479,13 @@ export class Konto {
     const lag = this.sky.lag;
     if (!lag) return;
     const siste = lag.medlemmer.length <= 1;
-    if (!window.confirm(`Forlate laget «${lag.navn}»? Kontoen din får en kopi av lagets teiner og fangst.`
-      + (siste ? ' Du er den siste i laget, så laget slettes.' : ''))) return;
+    if (!(await bekreft({
+      tittel: `Forlate laget «${lag.navn}»?`,
+      tekst: ['Kontoen din får en kopi av lagets teiner og fangst.'
+        + (siste ? ' Du er den siste i laget, så laget og alt i det slettes.' : '')],
+      knapp: 'Forlat laget',
+      fare: true,
+    }))) return;
     try {
       await this.sky.forlatLag();
     } catch (feil) {
@@ -478,7 +496,12 @@ export class Konto {
   async _fjernMedlem(uid) {
     const lag = this.sky.lag;
     const epost = lag?.eposter?.[uid] ?? 'medlemmet';
-    if (!window.confirm(`Fjerne ${epost} fra laget? De beholder en kopi av det som ligger i laget nå.`)) return;
+    if (!(await bekreft({
+      tittel: `Fjerne ${epost} fra laget?`,
+      tekst: ['De beholder en kopi av det som ligger i laget nå, og kan bli med igjen med koden.'],
+      knapp: 'Fjern fra laget',
+      fare: true,
+    }))) return;
     try {
       await this.sky.fjernMedlem(uid);
     } catch (feil) {

@@ -315,6 +315,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/tidligere.js` | Kartlaget med fangst fra tidligere sesonger |
 | `js/potensialjustering.js` | Hummerpotensialet justert etter egen fangst (på telefonen) |
 | `js/melding.js` | Korte meldinger med «Angre» |
+| `js/bekreft.js` | Spørsmål før noe som er vanskelig å angre (koble fra skyen, forlate laget osv.) |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
 | `js/hjemskjerm.js` | Veiledning for å legge appen til på hjemskjermen (iPhone og Android) |
@@ -327,6 +328,10 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 
 **Arkene** som kommer opp nedenfra (kartlag, innstillinger, teineliste, detaljer) lukkes med
 «Ferdig», ved å trykke utenfor, eller ved å dra dem ned i håndtaket øverst.
+Før noe som er vanskelig å angre (koble til eller fra skyen, forlate laget, fjerne et medlem,
+ta opp alle teinene, bytte konto på telefonen), spør appen i et eget ark. Knappen sier hva
+som skjer («Koble fra skyen», «Forlat laget»), og **Avbryt**, trykk utenfor eller å dra arket
+ned gjør ingenting.
 
 **Kartet:** dra for å flytte, knip eller bruk + og − for å zoome. Dobbelttrykk
 (dobbeltklikk på PC) zoomer inn ett nivå der du trykker. På iPhone tas dobbelttrykket
