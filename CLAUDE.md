@@ -334,9 +334,12 @@ eventuelt lag, kjører `lag_demodata.py --uid … --ut …` og sammenligner alle
 slettede demodata skrives med en `endret` som vinner. Endres kommandolinjen, filformatet
 eller id-ene i `lag_demodata.py`, må nullstillingen følge med (en ny id-ordning ville
 slettet og skrevet alt på nytt, og alle telefonene på demokontoen ville hentet alt igjen).
-Demokontoen må være koblet til skyen (`brukere/{uid}` med `sky: true`). Trykker noen
-«Koble fra skyen» på den, må nullstillingen sette valget tilbake, ellers blir nye telefoner
-på demokontoen stående med bare det som er på telefonen (tomt).
+Demokontoen må være koblet til skyen (`brukere/{uid}` med `sky: true`), ellers blir nye
+telefoner på demokontoen stående med bare det som er på telefonen (tomt). Nullstillingen
+leser derfor valget rett etter at kontoen har gått ut av laget, og skriver hele dokumentet
+som `{ sky: true }` hvis det mangler eller `sky` ikke er `true`, uten `frakoblet`, så
+slettingene fra frakoblingen vinner over det en lånt telefon har liggende. Endres formatet
+på `brukere/{uid}` eller reglene for det, må nullstillingen følge med.
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
