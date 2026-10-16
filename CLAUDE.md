@@ -298,7 +298,8 @@ av service workeren på den manglende filen. Skjær er tatt ut av `dybdetall.jso
 ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
 
 **Justert potensial** (`potensialjustering.js`): appen justerer hummerpotensialet etter
-teinesettingene (alle sesonger, hele laget, `fangstSettinger`) med et gamma-Poisson-anslag:
+teinesettingene (alle sesonger, hele laget, `fangstSettinger`, der fangst uten teine teller
+som `DOGN_UTEN_TEINE` teinedøgn) med et gamma-Poisson-anslag:
 `(FORVENTET[klasse] × MODELL_DOGN + hummer) / (MODELL_DOGN + teinedøgn)` per rute på 20 m,
 vektet med avstanden (fullt innen 50 m, ingenting etter 150 m). Kartet tegner bare ruter der
 klassen (`klasseFor`, også `svaert`) er en annen enn modellens: `dybdelag.js` klipper bort

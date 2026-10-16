@@ -23,6 +23,10 @@
  * kartet (cellFor finner alle ruter der anslaget er endret merkbart). Ruter i
  * fredningsområdene (teiner er forbudt der) tas ikke med.
  *
+ * Fangst uten teine teller også, som DOGN_UTEN_TEINE teinedøgn (innsatsen er ukjent). I
+ * fangstoversikten og analysen er den ikke med i hummer per teinedøgn, men her er den et
+ * viktig tegn på hummer.
+ *
  * FORVENTET og MODELL_DOGN er forsiktige startverdier. Juster FORVENTET etter tabellen
  * «Fangst etter hummerpotensial» i analyser_fangst.py når det er nok data (bare slike
  * samlede tall hører hjemme her: filen er offentlig).
@@ -41,6 +45,11 @@ export const MODELL_DOGN = 10;
 // fangsten er klart bedre enn modellens høye
 export const GRENSER = { svaert: 0.4, hoy: 0.25, middels: 0.15 };
 const RANG = { lav: 0, middels: 1, hoy: 2, svaert: 3 };
+
+// Fangst uten teine («Fra teine: Ingen») har ingen teinedøgn. Den regnes som en teine som
+// har stått så lenge, et vanlig døgn i sjøen: et tegn på hummer, men ikke sterkere enn en
+// teine med samme fangst.
+export const DOGN_UTEN_TEINE = 1;
 
 const RUTE_M = 20;
 const FULL_VEKT_M = 50;
@@ -64,26 +73,30 @@ export function klasseFor(rate) {
 }
 
 /**
- * Teinesettingene som teller: tatt opp, ikke mistet, fra alle sesonger og hele laget.
- * Teiner i sjøen har ikke noe resultat ennå, og fangst uten teine har ingen teinedøgn.
- * → [{ lat, lon, hummer, dogn }]
+ * Det som teller, fra alle sesonger og hele laget: teinesettinger som er tatt opp og ikke
+ * mistet (teiner i sjøen har ikke noe resultat ennå), og fangst uten teine, som regnes som
+ * DOGN_UTEN_TEINE teinedøgn. → [{ lat, lon, hummer, dogn, utenTeine }]
  */
 export function fangstSettinger(markeringer) {
-  const { settinger } = lagSettinger(markeringer.alle(), Date.now(), (m) => markeringer.eierAv(m));
-  return settinger.filter((s) => !s.iSjoen && !s.mistet)
-    .map((s) => ({ lat: s.lat, lon: s.lon, hummer: s.hummer, dogn: (s.til - s.fra) / DAG }));
+  const { settinger, utenTeine } = lagSettinger(markeringer.alle(), Date.now(), (m) => markeringer.eierAv(m));
+  return [
+    ...settinger.filter((s) => !s.iSjoen && !s.mistet)
+      .map((s) => ({ lat: s.lat, lon: s.lon, hummer: s.hummer, dogn: (s.til - s.fra) / DAG, utenTeine: false })),
+    ...utenTeine.map((f) => ({ lat: f.lat, lon: f.lon, hummer: f.hummer, dogn: DOGN_UTEN_TEINE, utenTeine: true })),
+  ];
 }
 
 /**
  * Juster potensialet etter settingene.
- * @param {{lat, lon, hummer, dogn}[]} settinger  fra fangstSettinger()
+ * @param {{lat, lon, hummer, dogn, utenTeine}[]} settinger  fra fangstSettinger()
  * @param {object} data  dybdedataene (lastDybdedata().alt), for modellens flater (data.potensial)
  * @param {(lat: number, lon: number) => boolean} iFredning
  * @returns {{ celler: Rutenett, cellFor: (lat, lon) => object | null }}
  *   celler: rutene der klassen er en annen enn modellens (de som tegnes). cellFor: ruten
  *   i et punkt der anslaget er endret merkbart, eller null.
- *   Hver rute: { bbox, rate, klasse, modell ('hoy' | 'middels' | 'lav'), settinger, hummer,
- *   dogn, kanter: { n, s, v, o } } der kantene er sidene som skal ha strek (høyt mot lavere).
+ *   Hver rute: { bbox, rate, klasse, modell ('hoy' | 'middels' | 'lav'), settinger, utenTeine,
+ *   hummer, dogn, kanter: { n, s, v, o } } der kantene er sidene som skal ha strek (høyt mot
+ *   lavere). settinger og utenTeine er antallet innen RADIUS_M.
  */
 export function lagJustering(settinger, data, iFredning = () => false) {
   const modellFor = (x, y) => {
@@ -105,12 +118,13 @@ export function lagJustering(settinger, data, iFredning = () => false) {
         const nokkel = `${i},${j}`;
         let rute = ruter.get(nokkel);
         if (!rute) {
-          rute = { i, j, vektetHummer: 0, vektetDogn: 0, settinger: 0, hummer: 0, dogn: 0 };
+          rute = { i, j, vektetHummer: 0, vektetDogn: 0, settinger: 0, utenTeine: 0, hummer: 0, dogn: 0 };
           ruter.set(nokkel, rute);
         }
         rute.vektetHummer += vekt * p.hummer;
         rute.vektetDogn += vekt * p.dogn;
-        rute.settinger += 1;
+        if (p.utenTeine) rute.utenTeine += 1;
+        else rute.settinger += 1;
         rute.hummer += p.hummer;
         rute.dogn += p.dogn;
       }
@@ -131,7 +145,7 @@ export function lagJustering(settinger, data, iFredning = () => false) {
     merkbare.set(nokkel, {
       bbox: [rute.i * RUTE, rute.j * RUTE, (rute.i + 1) * RUTE, (rute.j + 1) * RUTE],
       i: rute.i, j: rute.j, rate, klasse: klasseFor(rate), modell,
-      settinger: rute.settinger, hummer: rute.hummer, dogn: rute.dogn,
+      settinger: rute.settinger, utenTeine: rute.utenTeine, hummer: rute.hummer, dogn: rute.dogn,
     });
   }
 
@@ -164,10 +178,16 @@ const NAVN = { svaert: 'svært høyt', hoy: 'høyt', middels: 'middels', lav: 'l
 const komma = (tall, desimaler) =>
   tall.toLocaleString('nb-NO', { minimumFractionDigits: desimaler, maximumFractionDigits: desimaler });
 
-/** «Hummerpotensial etter fangsten: høyt (modellen: middels). 3 teinesettinger innen 150 m …» */
+/**
+ * «Hummerpotensial etter fangsten: høyt (modellen: middels), ca. 0,27 per teinedøgn.
+ * Innen 150 m: 1 teinesetting og 2 fangster uten teine, 4 hummer på 3,0 teinedøgn»
+ */
 export function justeringTekst(c) {
   const modell = c.klasse === c.modell ? '' : ` (modellen: ${NAVN[c.modell]})`;
-  const settinger = c.settinger === 1 ? '1 teinesetting' : `${c.settinger} teinesettinger`;
+  const hva = [];
+  if (c.settinger) hva.push(c.settinger === 1 ? '1 teinesetting' : `${c.settinger} teinesettinger`);
+  if (c.utenTeine) hva.push(c.utenTeine === 1 ? '1 fangst uten teine' : `${c.utenTeine} fangster uten teine`);
+  const dogn = c.utenTeine ? ' (fangst uten teine regnes som ett døgn)' : '';
   return `Hummerpotensial etter fangsten: ${NAVN[c.klasse]}${modell}, ca. ${komma(c.rate, 2)} per teinedøgn. `
-    + `${settinger} innen ${RADIUS_M} m ga ${c.hummer} hummer på ${komma(c.dogn, 1)} teinedøgn`;
+    + `Innen ${RADIUS_M} m: ${hva.join(' og ')}, ${c.hummer} hummer på ${komma(c.dogn, 1)} teinedøgn${dogn}`;
 }

@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 // dybdelag.js lager et Leaflet-lag når den lastes. Node har ikke Leaflet.
 globalThis.L = { GridLayer: { extend: (o) => o } };
 const { Rutenett, lagObjekter, tilVerden } = await import('../app/js/dybdelag.js');
-const { FORVENTET, MODELL_DOGN, klasseFor, lagJustering } = await import('../app/js/potensialjustering.js');
+const { DOGN_UTEN_TEINE, FORVENTET, MODELL_DOGN, klasseFor, justeringTekst, lagJustering } = await import('../app/js/potensialjustering.js');
 
 // Modellen: én flate med middels potensial rundt punktet
 const [LON, LAT] = [8.4, 58.22];
@@ -72,5 +72,14 @@ assert.ok(tegnes(treTomme), 'tre tomme døgn i høyt gir middels');
 const godJ = lagJustering([{ lat: LAT, lon: LON, hummer: 3, dogn: 1 }], data);
 assert.equal(godJ.cellFor(LAT, LON).klasse, 'svaert');
 assert.equal(klasseFor(FORVENTET.hoy), 'hoy');
+
+// Fangst uten teine teller som en teine som har stått ett døgn: 3 hummer der modellen sier lavt
+const utenTeine = lagJustering([{ lat: LAT, lon: LON, hummer: 3, dogn: DOGN_UTEN_TEINE, utenTeine: true }], { potensial: new Rutenett([]) });
+const c = utenTeine.cellFor(LAT, LON);
+assert.equal(c.modell, 'lav');
+naer(c.rate, (FORVENTET.lav * MODELL_DOGN + 3) / (MODELL_DOGN + DOGN_UTEN_TEINE), '3 hummer uten teine');
+assert.equal(c.klasse, 'hoy');
+assert.ok(tegnes(utenTeine), 'fangst uten teine tegnes');
+assert.match(justeringTekst(c), /1 fangst uten teine, 3 hummer/);
 
 console.log('Justeringen av hummerpotensialet regner riktig');

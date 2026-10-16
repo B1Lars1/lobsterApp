@@ -422,9 +422,14 @@ Anslaget deles i de samme klassene som modellen (grenser midt mellom: 0,15 og 0,
 **svært høyt** (fra 0,4, mørkere lilla) der fangsten har vært god. Kartet tegner bare rutene
 der klassen er en annen enn modellens. Trykk i kartet (zoom 15 og mer) for å se anslaget og
 hva det bygger på, også der klassen ikke er endret, for eksempel «Hummerpotensial etter
-fangsten: høyt (modellen: middels), ca. 0,27 per teinedøgn. 1 teinesetting innen 150 m ga
-1 hummer på 1,0 teinedøgn». Mistede teiner, teiner som står i sjøen og fangst uten teine er
-ikke med, og heller ikke fredningsområdene.
+fangsten: høyt (modellen: middels), ca. 0,27 per teinedøgn. Innen 150 m: 1 teinesetting,
+1 hummer på 1,0 teinedøgn».
+
+Fangst uten teine («Fra teine: Ingen») er også med. Den har ingen teinedøgn, så den regnes
+som en teine som har stått ett døgn: et tegn på hummer, men ikke sterkere enn en teine med
+samme fangst (i fangstoversikten og analysen er den ikke med i hummer per teinedøgn).
+Mistede teiner og teiner som står i sjøen er ikke med, og heller ikke fredningsområdene.
+Justeringen vises fra zoom 14, som resten av hummerpotensialet.
 
 Tallene (`FORVENTET`, `MODELL_DOGN` og `GRENSER` øverst i `potensialjustering.js`) er
 forsiktige startverdier. Når det er nok fangst, kan `FORVENTET` settes etter tabellen
