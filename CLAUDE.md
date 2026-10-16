@@ -147,7 +147,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
   personens farge (`personer.farge`, klassen `annen` med `--eier`) og initialene i navnet.
   Statistikken (oversikten, sesongtallet i teinelisten) viser bare dine (`erMin`), og
-  «Ta opp mine» tar bare opp dine.
+  «Ta opp alle mine» tar bare opp dine.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
   (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder, og fasiten i
@@ -366,7 +366,8 @@ innloggingen uten konto, og fylles av `konto.js` (`_visKontokort`, fra siste sta
 arket): `#skystatus` på Konto, `#lagmelding` på Lag og `#kontomelding` på hovedsiden. Det som
 er vanskelig å angre, står nederst på undersidene. Bryterne er `input.bryter role="switch"`
 uten nettleserens utseende, så de ser like ut i Safari og Chrome på Android. Kortene med rader
-er `.gruppe`, med strek mellom radene som vises (`.ark .gruppe > :not([hidden]) ~ *`).
+er `.radkort` (ikke `li.gruppe`, overskriftene per person i teinelisten), med strek mellom
+radene som vises (`.ark .radkort > :not([hidden]) ~ *`).
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi

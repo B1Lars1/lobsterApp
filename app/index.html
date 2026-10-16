@@ -134,14 +134,16 @@
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
     <div class="ark-topp">
       <h3 class="ark-tittel">Teiner i sjøen (<span data-tekst="antall">0</span>)</h3>
-      <button type="button" class="fare liten" data-handling="taOppAlle">Ta opp alle</button>
     </div>
-    <ul class="liste" data-liste="teiner"></ul>
+    <!-- Øverst, så den synes uten å scrolle forbi alle teinene -->
     <button type="button" id="knapp-oversikt" class="oversikt-knapp">
       <svg class="oversikt-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M3 5h10M8 12h11M5 19h7"/></svg>
       <span class="radtekst"><b>Fangstoversikt</b><small data-tekst="sesong"></small></span>
       <svg class="oversikt-pil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
     </button>
+    <ul class="liste" data-liste="teiner"></ul>
+    <!-- Brukes sjelden (ved sesongslutt), derfor under listen og uten ramme -->
+    <button type="button" class="tekstknapp fare-tekst" data-handling="taOppAlle">Ta opp alle</button>
     <details class="utvidbar" data-del="fangst" hidden>
       <summary><span>Fangstregistreringer (<span data-tekst="antallFangst">0</span>)</span></summary>
       <ul class="liste" data-liste="fangst"></ul>
@@ -309,7 +311,7 @@
       <h3 class="ark-tittel">Kartlag</h3>
       <div id="tegnforklaring" class="tegnforklaring" role="img" aria-label="Dybde i meter"></div>
 
-      <div class="gruppe">
+      <div class="radkort">
         <div class="lag">
           <div class="lagrad">
             <label class="lagvalg" for="lag-dybdetall">
@@ -325,7 +327,7 @@
       </div>
 
       <h2>Teiner og fangst</h2>
-      <div class="gruppe">
+      <div class="radkort">
         <div class="lag">
           <div class="lagrad">
             <label class="lagvalg" for="lag-fangst">
@@ -363,7 +365,7 @@
       </div>
 
       <h2>Hummer og bunn</h2>
-      <div class="gruppe">
+      <div class="radkort">
         <div class="lag">
           <div class="lagrad">
             <label class="lagvalg" for="lag-potensial">
@@ -456,7 +458,7 @@
           <button type="button" class="sekundar" data-handling="lagreKopi">Lagre kopi til fil</button>
         </div>
 
-        <div class="gruppe">
+        <div class="radkort">
           <button type="button" class="menyrad" data-gaa="lag" data-vis="innlogget" hidden>
             <b>Lag</b><span class="verdi" data-tekst="lagverdi"></span></button>
           <button type="button" class="menyrad" data-gaa="kopi">
@@ -471,7 +473,7 @@
           <label><input type="radio" name="tema" value="mork">Mørk</label>
         </fieldset>
 
-        <div class="gruppe">
+        <div class="radkort">
           <button type="button" class="menyrad" data-gaa="om"><b>Om appen og kildene</b></button>
           <a class="menyrad ekstern" href="personvern.html" target="_blank" rel="noopener"><b>Personvern</b></a>
         </div>
@@ -496,7 +498,7 @@
         <p id="skystatus" class="hjelp" data-tilstand="av"></p>
 
         <h2>Sjelden brukt</h2>
-        <div class="gruppe">
+        <div class="radkort">
           <button type="button" id="knapp-koble-fra" class="menyrad" data-sky="koblet" hidden>
             <span class="radtekst"><b>Koble fra skyen</b><small data-tekst="kobleFra">Lagre bare på denne telefonen</small></span></button>
           <button type="button" id="knapp-slett-konto" class="menyrad fare-rad"><b>Slett kontoen</b></button>
@@ -525,7 +527,7 @@
           </div>
           <h2>Medlemmer</h2>
           <!-- Trykk på et annet medlem for å fjerne det fra laget (se konto.js) -->
-          <ul class="liste medlemmer gruppe" data-liste="medlemmer"></ul>
+          <ul class="liste medlemmer radkort" data-liste="medlemmer"></ul>
           <h2>Dine initialer</h2>
           <div class="initialer">
             <label class="felt smal"><span class="skjult">Dine initialer</span><input id="felt-initialer" maxlength="3"

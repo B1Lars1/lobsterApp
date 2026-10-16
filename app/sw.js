@@ -17,11 +17,11 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = 'b925fc932c78';
+const VERSJON = '809308ef9411';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
-  './': 'aeef4a6277ff',
-  'css/app.css': '4b5ea8b321bf',
+  './': '402c276c89cd',
+  'css/app.css': '5bf86056c1b8',
   'data/bunnhint.geojson': '7dff6ecb1079',
   'data/dybdeareal.geojson': 'dfaa36d0802f',
   'data/dybdekurver.geojson': '35043cb8406f',
@@ -40,7 +40,7 @@ const FILER = {
   'ikoner/ikon-maskable-512.png': '1d78cbc5ffe9',
   'ikoner/teine-opptatt.svg': '9eee59c46144',
   'ikoner/teine.svg': 'cee886a00886',
-  'index.html': 'aeef4a6277ff',
+  'index.html': '402c276c89cd',
   'js/app.js': '07ae26ac68d2',
   'js/dobbelttrykk.js': '0a34a6673128',
   'js/dra-ned.js': '9edf313a1b6d',
@@ -55,12 +55,12 @@ const FILER = {
   'js/konto.js': 'ad5a9cace085',
   'js/lager.js': '3b2e079cf110',
   'js/markeringer.js': '746432af0be0',
-  'js/markeringsark.js': 'dca302d835f2',
+  'js/markeringsark.js': '22ea2fa8aa8b',
   'js/melding.js': '612e55afbbb0',
   'js/oversikt.js': 'f1c21a1064ed',
   'js/personer.js': '8b4e2a71e414',
   'js/potensialjustering.js': 'db0ab063bdc1',
-  'js/sky.js': '9d9f8a5fe038',
+  'js/sky.js': '5aa3b37fa268',
   'js/tema.js': '665d59d8188a',
   'js/tidligere.js': '96419425e51f',
   'manifest.webmanifest': '19e7beb80bc1',

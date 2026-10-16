@@ -42,7 +42,8 @@ function formaterSiden(iso) {
 }
 
 // Anslått dybde vises i hele meter.
-export const formaterDybde = (dybde) => `ca. ${Math.round(dybde)} m`;
+// Med hardt mellomrom, så «ca. 22 m» ikke brekkes over to linjer.
+export const formaterDybde = (dybde) => `ca.\u00a0${Math.round(dybde)}\u00a0m`;
 
 const formaterAvstand = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`);
 
@@ -669,15 +670,18 @@ export class Markeringsark {
     this.arkTeiner.querySelector('[data-tekst="antall"]').textContent = teiner.length;
     const taOppAlle = this.arkTeiner.querySelector('[data-handling="taOppAlle"]');
     taOppAlle.hidden = mine.length < 2;
-    taOppAlle.textContent = personer.iLag ? 'Ta opp mine' : 'Ta opp alle';
+    taOppAlle.textContent = `${personer.iLag ? 'Ta opp alle mine' : 'Ta opp alle'} (${mine.length})`;
 
     const rad = (t) => {
       const li = fraMal(`
         <li>
           <button type="button" class="rad">
             <span class="symbol teine"><span data-tekst="nummer"></span></span>
-            <span class="radtekst"><b data-tekst="tittel"></b><small data-tekst="info"></small></span>
-            <span class="avstand"><span class="pil">${PIL}</span><span data-tekst="avstand"></span></span>
+            <span class="radtekst">
+              <span class="radlinje"><b data-tekst="tittel"></b>
+                <span class="avstand"><span class="pil">${PIL}</span><span data-tekst="avstand"></span></span></span>
+              <small data-tekst="info"></small>
+            </span>
           </button>
           <button type="button" class="ta-opp">Ta opp</button>
         </li>`);
@@ -686,7 +690,8 @@ export class Markeringsark {
       li.querySelector('[data-tekst="nummer"]').textContent = t.nummer;
       fargeNummer(li.querySelector('.symbol'), t);
       li.querySelector('[data-tekst="tittel"]').textContent = `Teine ${t.nummer}`;
-      const dybde = t.dybde != null ? ` · ${formaterDybde(t.dybde)}` : '';
+      // Uten «ca.», så linjen får plass ved siden av symbolet også på smale telefoner
+      const dybde = t.dybde != null ? ` · ${Math.round(t.dybde)}\u00a0m` : '';
       li.querySelector('[data-tekst="info"]').textContent = `Satt ${formaterSiden(t.tid)}${dybde}`;
       const der = L.latLng(t.lat, t.lon);
       const avstand = her?.distanceTo(der);

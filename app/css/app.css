@@ -451,8 +451,9 @@ input.bryter:disabled { opacity: 0.4; cursor: default; }
   input.bryter:checked { background: Highlight; }
 }
 
-/* Rader i et kort (kartlagene, menyene i innstillingene, medlemmene i laget) */
-.gruppe {
+/* Rader i et kort (kartlagene, menyene i innstillingene, medlemmene i laget). Ikke det
+   samme som li.gruppe, overskriftene per person i teinelisten. */
+.radkort {
   margin: 10px 0 0;
   padding: 0;
   border-radius: 14px;
@@ -460,7 +461,7 @@ input.bryter:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 /* Strek mellom radene som vises (høyere spesifisitet enn «border: none» på knappene) */
-.ark .gruppe > :not([hidden]) ~ * { border-top: 1px solid var(--kant); }
+.ark .radkort > :not([hidden]) ~ * { border-top: 1px solid var(--kant); }
 
 .segment {
   display: grid;
@@ -885,6 +886,13 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .liste .symbol.hummer { width: 40px; height: 40px; flex: none; }
 .liste .symbol.teine { width: 58px; }
 .radtekst { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* Teinelisten: navnet og avstanden på første linje, så teksten under får hele bredden og
+   radene blir lave. Er det for trangt, havner avstanden på egen linje. */
+.radlinje { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 8px; }
+#ark-teiner .liste .symbol.teine { width: 50px; height: 35px; }
+#ark-teiner .ta-opp { padding: 0 12px; }
+#ark-teiner [data-liste="teiner"] li:not(.gruppe) { padding: 6px 0; }
+#ark-teiner [data-liste="teiner"] .rad { min-height: 52px; }
 .radtekst b { font-size: 17px; }
 .radtekst small { color: var(--dempet); font-size: 14px; }
 .avstand {
@@ -943,7 +951,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
   gap: 12px;
   width: 100%;
   min-height: 64px;
-  margin: 14px 0 8px;
+  margin: 0 0 6px;
   padding: 10px 12px 10px 14px;
   border: 2px solid var(--kant);
   border-radius: 14px;

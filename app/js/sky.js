@@ -51,7 +51,7 @@ import { FELT } from './markeringer.js';
 
 const NOKKEL = 'hummerkart.sky';
 // Endringer sendes med en gang. Den korte ventetiden samler endringene fra én handling
-// (fangsten og teinen som er tatt opp, «Ta opp mine») i én synkronisering.
+// (fangsten og teinen som er tatt opp, «Ta opp alle mine») i én synkronisering.
 const VENT_ETTER_ENDRING_MS = 500;
 
 function hentTilstand() {

@@ -596,10 +596,11 @@ Sjekk alltid gjeldende forskrift.
   **Satt** ved siden av nummeret. Endre det hvis du satte teinen uten å registrere den
   med en gang. Teinedøgn, fangstoversikten og analysen regnes fra dette tidspunktet.
   Et tidspunkt frem i tid godtas ikke (det gjelder også tidspunktet for fangst).
-- **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
-  Tallet på knappen er antall teiner i sjøen. I et lag er listen delt: «Mine» først, så
-  de andre med initialene sine.
-- **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt
+- **Listeknappen** øverst viser teinene i sjøen, sortert etter nummer, med avstand og
+  retning fra båten på linjen med navnet, og når den ble satt og dybden under. Tallet på
+  knappen er antall teiner i sjøen. I et lag er listen delt: «Mine» først, så de andre med
+  initialene sine.
+- **Fangstoversikt** (knappen øverst i teinelisten) viser en enkel oversikt
   over hummersesongen, 1. oktober–30. november. Velg de siste 7 eller 30 dagene eller
   hele sesongen. Datoer utenfor sesongen vises aldri: 30 dager tidlig i oktober
   begynner 1. oktober, og etter 30. november (og før 1. oktober) vises den siste
@@ -639,8 +640,9 @@ Sjekk alltid gjeldende forskrift.
 - **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
   med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
   og teinen tas opp (forsvinner fra kartet, men tas vare på i historikken). **Ta opp
-  alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt.
-  I et lag heter knappen **Ta opp mine** og tar bare opp dine egne. **Slett** fjerner
+  alle** (under teinene i listen, med antallet) tar opp alle teinene uten å registrere
+  fangst, f.eks. ved sesongslutt.
+  I et lag heter knappen **Ta opp alle mine** og tar bare opp dine egne. **Slett** fjerner
   markeringen helt (for feil). Begge kan angres.
 - **Mistet teine** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
   som tatt opp, men fangsten er ukjent, så den er ikke med i fangstraten, andelen med
