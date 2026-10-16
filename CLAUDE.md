@@ -236,7 +236,9 @@ lastetid og minne etter en utvidelse. Ligger nytt område i en annen kommune, m�
 til i `KOMMUNER` i `last_ned_dybdedata.py` og `lag_stedsnavn.py`. Nytt valgfritt
 datalag: hent det i `lastDybdedata()` med `.catch(() => tom)`, så kartet virker uten
 filen, og tegn det i `_tegnFlis` i riktig rekkefølge (soner, hummerpotensial, kurver,
-bunnhint, tarekant, land, tekst).
+bunnhint, tarekant, land, tekst). Skjær er tatt ut av `dybdetall.geojson` med vilje
+(brukeren syntes symbolene forstyrret kartet). Ikke legg dem til igjen uten at brukeren
+ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
 
 **Hummerpotensialet** (`lag_hummerpotensial.py`) er et anslag som brukeren justerer etter
 egen fangst: vektene og grensene står øverst i skriptet, og `analyser_fangst.py` leser

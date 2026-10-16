@@ -163,7 +163,7 @@ også `DATAOMRADE` i `app/js/app.js` endres.
 | `dybdekurver.geojson` | Dybdekurver 2, 3, 5, 10, 15, 20, 30, 40, 50, 100 og 150 m | `dybde` |
 | `dybdeareal.geojson` | Dybdeområder mellom kurvene | `min`, `maks` |
 | `land.geojson` | Land og tørrfall, grunnkart når appen er offline | `kategori` |
-| `dybdetall.geojson` | Dybdepunkter, grunner og skjær | `kategori`, `dybde` |
+| `dybdetall.geojson` | Dybdepunkter og grunner (skjær er tatt ut, se «Kartet» under) | `kategori`, `dybde` |
 | `kurveetiketter.geojson` | Plassering og vinkel for tall langs kurvene | `dybde`, `vinkel`, `niva` |
 | `stedsnavn.geojson` | Navn på øyer, holmer, grunner, båer og skjær (se under) | `navn`, `stil`, `zoom` |
 | `bunnhint.geojson` | Tareskog, ålegras og skjellsand som hint om bunnen (se under) | `kategori`, `navn`, `modellert`, `aar` |
@@ -263,7 +263,9 @@ sikkerhetskopi, konto og lag.
 
 **Kartet** er appens eget dybdekart, laget av Kartverkets dybdedata, med land, stedsnavn
 og dybder. Det er lagret på telefonen og virker uten nett. (Kartverkets topokart var med
-tidligere, men ga lite på sjøen og krevde nett, så det er fjernet.)
+tidligere, men ga lite på sjøen og krevde nett, så det er fjernet.) Skjær har ikke eget
+symbol (sjøkartets kryss med fire prikker gjorde kartet urolig), men navnene på dem vises
+når du zoomer helt inn, og de ligger i `dybdedata_lillesand.gpkg` (laget `skjer`).
 
 **Ytelse:** dybdekartet tegnes som kartfliser på `<canvas>`. Hver flis tegnes
 én gang og gjenbrukes når du panorerer. Et rutenett (romlig indeks) gjør at hver

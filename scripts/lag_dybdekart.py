@@ -8,7 +8,7 @@ reprojiserer til EPSG:4326 og skriver til app/data/:
   kurveetiketter.geojson  punkter for dybdetall langs kurvene («dybde», «vinkel», «niva»)
   dybdeareal.geojson   dybdeområder med «min» og «maks» (m), for farger og dybdeoppslag
   land.geojson         land og tørrfall («kategori»), brukes som grunnkart offline
-  dybdetall.geojson    dybdepunkter, grunner og skjær («kategori», «dybde»)
+  dybdetall.geojson    dybdepunkter og grunner («kategori», «dybde»)
   kilder.json          kilde, lisens og nedlastingsdato
 
 Klippede data i full oppløsning (UTM32) lagres i data/processed/dybdedata_lillesand.gpkg
@@ -169,11 +169,11 @@ def main() -> int:
     kurver["geometry"] = kurver.simplify(TOL_KURVE, preserve_topology=True)
     kurver = kurver[~kurver.is_empty]
 
-    # 4) Dybdetall: dybdepunkter, grunner og skjær i ett punktlag
+    # 4) Dybdetall: dybdepunkter og grunner i ett punktlag. Skjær tas ikke med (symbolene
+    #    gjorde kartet urolig), men ligger i GPKG-en.
     dybdetall = pd.concat([
         data["dybdepunkt"].assign(kategori="punkt"),
         data["grunne"].assign(kategori="grunne"),
-        data["skjer"].assign(kategori="skjaer", dybde=None),
     ], ignore_index=True)[["kategori", "dybde", "geometry"]]
     dybdetall["dybde"] = dybdetall["dybde"].astype(float).round(1)
     dybdetall = gpd.GeoDataFrame(dybdetall, crs=CRS_UTM32)

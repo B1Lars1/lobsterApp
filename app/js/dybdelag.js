@@ -24,7 +24,7 @@ export const PALETTER = {
     land: '#f4eedb', kyst: '#7a6a4c', torrfall: '#d3ddb0',
     kurve: 'rgba(20, 62, 102, 0.6)', kurveViktig: 'rgba(20, 62, 102, 0.95)',
     tekst: '#0c2c4a', halo: 'rgba(255, 255, 255, 0.9)',
-    dybdetall: '#2a4c6b', skjaer: '#141414',
+    dybdetall: '#2a4c6b',
     navnLand: '#3a2e1c', navnSjo: '#174a78',
     hardFyll: 'rgba(74, 112, 30, 0.16)', hardPrikk: 'rgba(60, 92, 20, 0.8)',
     blotFyll: 'rgba(240, 196, 40, 0.28)', blotKant: 'rgba(170, 125, 0, 0.9)',
@@ -37,7 +37,7 @@ export const PALETTER = {
     land: '#2c3136', kyst: '#7a8794', torrfall: '#2f3a31',
     kurve: 'rgba(110, 180, 228, 0.45)', kurveViktig: 'rgba(130, 196, 240, 0.85)',
     tekst: '#d3ebfb', halo: 'rgba(7, 17, 26, 0.9)',
-    dybdetall: '#a3c9e4', skjaer: '#eef2f5',
+    dybdetall: '#a3c9e4',
     navnLand: '#ece4cf', navnSjo: '#9fd2f7',
     hardFyll: 'rgba(130, 180, 80, 0.14)', hardPrikk: 'rgba(160, 205, 110, 0.75)',
     blotFyll: 'rgba(240, 200, 60, 0.18)', blotKant: 'rgba(240, 200, 80, 0.85)',
@@ -285,21 +285,6 @@ const prikk = (c) => {
   c.fill();
 };
 
-// Sjøkartsymbol for skjær: kryss med fire prikker.
-function tegnSkjaer(ctx, x, y) {
-  ctx.beginPath();
-  ctx.moveTo(x - 5, y);
-  ctx.lineTo(x + 5, y);
-  ctx.moveTo(x, y - 5);
-  ctx.lineTo(x, y + 5);
-  ctx.stroke();
-  for (const [dx, dy] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) {
-    ctx.beginPath();
-    ctx.arc(x + dx, y + dy, 1.1, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-}
-
 export const Dybdelag = L.GridLayer.extend({
   options: {
     tileSize: FLIS,
@@ -493,21 +478,15 @@ export const Dybdelag = L.GridLayer.extend({
       }
     }
 
-    // 6. Dybdepunkter, grunner og skjær når du er zoomet godt inn
-    if (this.options.visDybdetall && z >= 14) {
+    // 6. Dybdepunkter og grunner når du er zoomet godt inn
+    if (this.options.visDybdetall && z >= 15) {
       ctx.textAlign = 'left';
+      ctx.fillStyle = p.dybdetall;
       const str = z >= 17 ? 13 : 11;
       for (const d of this._data.dybdetall.sok(utvidet)) {
         const x = d.x * t.skala - t.ox;
         const y = d.y * t.skala - t.oy;
-        if (d.kategori === 'skjaer') {
-          ctx.strokeStyle = ctx.fillStyle = p.skjaer;
-          ctx.lineWidth = 1.4;
-          tegnSkjaer(ctx, x, y);
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = p.halo;
-        } else if ((d.kategori === 'grunne' ? z >= 15 : z >= 16) && !iBoks(navneBokser, x, y, 6)) {
-          ctx.fillStyle = p.dybdetall;
+        if ((d.kategori === 'grunne' || z >= 16) && !iBoks(navneBokser, x, y, 6)) {
           tegnDybde(ctx, x, y, d.dybde, str, d.kategori === 'grunne');
         }
       }
