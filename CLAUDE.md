@@ -15,7 +15,9 @@ detalj. Denne filen er det en agent trenger i tillegg.
 - Identifikatorer bruker ASCII i stedet for æ, ø og å: `naa`, `forste`, `oye`,
   `lagreSletting`, `HUMMER_GLANS`. Kommentarer og tekst bruker vanlige bokstaver.
 - Commit-meldinger: kort tittel i imperativ («Legg til …», «Rett …», «Tegn …»),
-  tom linje, så en forklaring på hvorfor. Commit rett på `main`, ingen grener eller PR.
+  tom linje, så en forklaring på hvorfor. Agenten committer på en egen gren, og brukeren
+  fletter den inn i `main` selv (pull request på GitHub), siden `main` publiseres rett til
+  telefonene. Endringer som bør vurderes eller publiseres hver for seg, får hver sin gren.
 - **README.md og CLAUDE.md skal alltid være oppdatert.** Oppdater dem i samme commit
   som endringen de beskriver:
   - README.md når noe brukeren merker endres: funksjoner, oppførsel, utseende,
