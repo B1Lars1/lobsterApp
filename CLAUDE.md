@@ -124,7 +124,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
 - **Eier i lag.** Teiner er personlige: `registrert_av` på en teine er eieren (kan endres
   i teinearket), og fangst hører til eieren av teinen den kom fra (`Markeringer.eierAv`,
   `legg_til_eier` i analysen), selv om `registrert_av` på fangsten er den som registrerte
-  den. Ikke et nytt felt: dokumentene har 20 felt (grensen i reglene), og eldre versjoner
+  den. Ikke et nytt felt: reglene godtar bare feltene som finnes (`hasOnly`), og eldre versjoner
   av appen skriver hele dokumentet (`batch.set`) og ville slettet et felt de ikke kjenner.
   Uten lag er alt ditt. I et lag er en teine uten eier «Ukjent», ikke din (`personer.erMeg`).
   Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
@@ -182,9 +182,13 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
   rett etterpå.
 - Flere telefoner og eldre versjoner av appen deler dataene, så dokumentformatet må
-  forbli bakoverkompatibelt. Et dokument har nå 20 felt (`FELT` + `lat`, `lon`, `slettet`,
-  `oppdatert`), som er grensen `d.size() <= 20` i `firestore.rules`. Et nytt felt krever at
-  grensen økes og at brukeren publiserer reglene på nytt før appen pushes.
+  forbli bakoverkompatibelt. Et dokument har 20 felt (`FELT` + `lat`, `lon`, `slettet`,
+  `oppdatert`), og reglene godtar bare dem (`d.keys().hasOnly([...])` i `gyldigMarkering`).
+  Et nytt felt må legges til i listen der, og brukeren må publisere reglene før appen pushes.
+  Reglene sjekker også at `registrert_av` er tekst eller null, og at `endret` er kort.
+- Reglene for lag: et medlem kan fjerne andre, men ikke skrive noens e-post i `eposter`
+  (`eposterOk`, bare fjerne e-posten til dem som fjernes). Dokumenter i laget kan bare
+  slettes helt av det siste medlemmet (`slettAlle` i `fjernMedlem`, rett før laget slettes).
 - Bryter ett dokument reglene, avvises hele batchen (`permission-denied`), og da stopper
   synkroniseringen for alt. Appen må derfor holde seg innenfor grensene i reglene:
   `MAKS_NOTAT` i `markeringer.js` (kuttes i `normaliser` og `oppdater`, `maxlength` i
@@ -232,7 +236,8 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   merke i
   `sikkerhetskopi/tilstand.json`, og fletter dem inn i filene. Det fanger alt fordi
   reglene krever ny `oppdatert` ved hver skriving, og appen sletter dokumenter bare rom
-  for rom (`slettAlle`, da forsvinner kontoen eller laget og filen fjernes). Begynner
+  for rom (`slettAlle`, da forsvinner kontoen eller laget og filen fjernes). I et lag
+  tillater reglene det bare for det siste medlemmet. Begynner
   appen å slette enkeltdokumenter, må kopien kjøres med `--full` (eller valget «Hent alt
   på nytt» i workflowen). Test endringer med en falsk Firestore, ikke ekte data. `sikkerhetskopi.py` har sin egen kopi av `FELT`: legges et felt til
   i `markeringer.js`, må det legges til der også. Tjenestekontoen er skrivebeskyttet, og

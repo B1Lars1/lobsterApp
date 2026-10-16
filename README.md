@@ -92,7 +92,9 @@ skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
   dem. Ingen kan liste opp andres kontoer eller lag.
 - Lagkoden har 8 tegn (ca. 850 milliarder muligheter) og kan ikke gjettes. Den som får
   den, kan bli med, og et medlem kan endre og slette alt i laget. Sikkerhetskopien (se
-  «Sikkerhetskopi») har det som blir slettet.
+  «Sikkerhetskopi») har det som blir slettet. Et medlem kan ikke endre de andres e-post i
+  laget, og bare det siste medlemmet kan fjerne markeringene helt fra skyen (når laget
+  slettes). Ellers er en sletting en merknad som når alle telefonene og sikkerhetskopien.
 - Sikkerhetskopien ligger i et privat repo. Tjenestekontoen som tar den, kan bare lese,
   og nøkkelen finnes bare som hemmelighet i GitHub Actions der. Nøkler til
   tjenestekontoer står også i `.gitignore` her.
