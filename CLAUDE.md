@@ -271,8 +271,15 @@ Endres klassene (`hoy`/`middels`) eller filnavnene, må `dybdelag.js`, `dybdeopp
 og `analyser_fangst.py` følge med.
 
 **Offline.** `app/sw.js` lagrer alle filene i `FILER` (generert av
-`lag_service_worker.py`, nesten alle filer under `app/`). Lagret versjon brukes først,
-unntatt på localhost, der nettverket brukes først så endringer vises med en gang.
+`lag_service_worker.py`, nesten alle filer under `app/`, men ikke Leaflets bilder, siden
+alle symbolene er `divIcon`). Lagret versjon brukes først, unntatt på localhost, der
+nettverket brukes først så endringer vises med en gang. `FILER` er fil → sjekksum
+(SHA-256 av innholdet med LF, 12 tegn). Ved ny versjon kopieres filer med samme sjekksum
+fra forrige lager (sjekksummene der ligger i `__sjekksummer.json`), og bare de andre
+lastes ned. Nedlastede filer sjekkes mot sjekksummen (ikke på localhost, der Windows kan
+gi CRLF), og ved feil slettes det halvferdige lageret og installeringen avbrytes. Test
+oppdateringer med et annet vertsnavn enn localhost (Chromium:
+`--host-resolver-rules` og `--unsafely-treat-insecure-origin-as-secure`).
 
 **Symbolene på kartet** er `L.divIcon` med klassen `symbol` (`symbol teine`,
 `symbol hummer`) og stiles i `app.css`, som også brukes i listene og arkene. Teinen er

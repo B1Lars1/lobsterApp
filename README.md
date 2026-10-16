@@ -600,7 +600,7 @@ person på en fiskedag:
 | Lesinger i Firestore | 50 000 per døgn | 120 personer som fisker samme dag (ca. 400 lesinger hver i et lag på to) |
 | Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
 | Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
-| GitHub Pages | 100 GB per måned (mykt tak) | 1 700 brukere med 10 nye versjoner i måneden (ca. 6 MB per telefon per versjon) |
+| GitHub Pages | 100 GB per måned (mykt tak) | Mange tusen brukere: ca. 6 MB per telefon første gang, deretter bare filene som er endret (noen hundre kB for en ny versjon av koden, 6 MB hvis alle kartdataene er laget på nytt) |
 | GitHub Actions (privat repo) | 2 000 minutter per måned | Sikkerhetskopien bruker ca. 750 i oktober (én kjøring i timen) og ca. 30 i en måned utenom sesongen |
 
 Kontoer har ingen grense, og det kan sendes 150 e-poster om nytt passord per døgn. Du
@@ -792,8 +792,10 @@ oppdateres:
 Versjonen er en sjekksum av alle filene. Den regnes med samme type linjeskift
 overalt, så samme kode gir samme versjon på Windows, Mac og Linux. Telefonen ser at
 versjonen er ny neste gang appen åpnes med nett, laster ned den nye versjonen i
-bakgrunnen og viser
-«Ny versjon av appen er klar». GitHub Actions-workflowen (fase 7) kjører skriptet
+bakgrunnen og viser «Ny versjon av appen er klar». Hver fil har også sin egen sjekksum,
+så telefonen laster bare ned filene som er endret. Resten, som de 40 MB med kartdata,
+kopieres fra versjonen som ligger på telefonen. Hver fil som lastes ned, sjekkes mot
+sjekksummen, så en halvveis publisering aldri blir lagret. GitHub Actions-workflowen (fase 7) kjører skriptet
 automatisk ved publisering, så du ikke kan glemme det.
 
 På `localhost` henter service workeren filene fra testserveren først, så
