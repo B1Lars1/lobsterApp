@@ -1142,6 +1142,11 @@ body.flyttemodus .handlinger { visibility: hidden; }
 .tegn.tarekant { border: none; background: linear-gradient(transparent 7px, #e8590c 7px, #e8590c 12px, transparent 12px); }
 :root[data-tema="mork"] .tegn.pot-hoy { background: rgba(214, 120, 235, 0.4); border-color: rgba(225, 150, 245, 0.8); }
 :root[data-tema="mork"] .tegn.pot-middels { background: rgba(214, 120, 235, 0.18); }
+/* Fangst fra tidligere sesonger, samme farger som i tidligere.js */
+.tegn.tidligere-med, .tegn.tidligere-uten { border: none; display: grid; place-items: center; }
+.tegn.tidligere-med::after, .tegn.tidligere-uten::after { content: ''; border-radius: 50%; box-sizing: border-box; }
+.tegn.tidligere-med::after { width: 15px; height: 15px; background: #d0213a; border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--kant); }
+.tegn.tidligere-uten::after { width: 11px; height: 11px; background: rgba(255, 255, 255, 0.5); border: 2px solid #6b7580; }
 :root[data-tema="mork"] .tegn.tarekant { background: linear-gradient(transparent 7px, #ff8a3d 7px, #ff8a3d 12px, transparent 12px); }
 .lenkeknapp {
   display: grid;

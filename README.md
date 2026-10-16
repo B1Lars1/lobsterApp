@@ -249,6 +249,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/markeringsark.js` | Knappene og arkene for å sette, endre, flytte og slette |
 | `js/oversikt.js` | Fangstoversikten: nøkkeltall og tidslinje for teinene (dine, eller laget) |
 | `js/personer.js` | Hvem som eier teinene i laget: initialer og farger |
+| `js/tidligere.js` | Kartlaget med fangst fra tidligere sesonger |
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
@@ -500,8 +501,17 @@ Sjekk alltid gjeldende forskrift.
   Stiplet kant betyr at alle ble satt ut igjen.
 - **Bare sesongen:** fangst og opptatte teiner vises bare fra hummersesongen som pågår
   (eller den siste), altså fra 1. oktober. Over flere år ville kartet ellers fått
-  tusenvis av symboler og blitt tregt. Eldre fangst finnes i listen og i analysen.
-  Teiner i sjøen og mistede teiner vises alltid.
+  tusenvis av symboler og blitt tregt. Eldre fangst finnes i listen, i analysen og i
+  laget «Fangst fra tidligere sesonger» (under). Teiner i sjøen og mistede teiner vises
+  alltid.
+- **Fangst fra tidligere sesonger** (kan skrus av og på i innstillingene, på som standard):
+  hver teinesetting fra før sesongen som pågår, der teinen stod. En rød prikk med hvit kant
+  betyr at teinen ga hummer (større prikk jo flere, opptil 4), og en hul grå ring at den
+  ikke ga noe. Fangst uten teine er en rød prikk. Mistede teiner er ikke med. Teinene til
+  de andre i laget er med, siden det er erfaring om stedet. Trykk på en prikk for å se hva
+  teinene innen 50 m har gitt, for eksempel «Tidligere her (sesongene 2024–2025, innen
+  50 m): 2 av 3 teinesettinger ga hummer, 3 hummer, 0,67 per teinedøgn». Prikkene tegnes på
+  canvas, så tusenvis av settinger fra mange år går fint.
 - **Ingen hummer:** hvit sirkel med grå hake, der en teine ble tatt opp tom.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.

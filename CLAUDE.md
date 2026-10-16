@@ -151,7 +151,13 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   `hummersesong().fra` (`_synlig` i `kartmarkeringer.js`), og teinelisten lager radene for
   tidligere sesonger først når de åpnes (`_eldreFangst`, `_apneSesonger` i
   `markeringsark.js`). Symbolene er HTML-elementer, så alt fra flere år ville gjort kartet
-  og listen trege. Analysen bruker alle data. Tidslinjen er SVG
+  og listen trege. Tidligere sesonger vises i stedet i laget «Fangst fra tidligere
+  sesonger» (`tidligere.js`, innstillingen `visTidligere`): teinesettinger fra før
+  `hummersesong().fra` som `L.circleMarker` på canvas (`L.canvas`, egen pane med z-indeks
+  460, mellom fredningsområdene og symbolene), regnet med `lagSettinger` fra `oversikt.js`
+  (settingene har derfor `lat` og `lon`). Hele laget er med, ikke bare `erMin`, og mistede
+  teiner er utenfor. Tegnes på nytt bare når punktene er endret (`_signatur`). Analysen
+  bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
   (notater). Se «Sikkerhet».
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med

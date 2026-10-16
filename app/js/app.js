@@ -12,6 +12,7 @@
  *   hjemskjerm.js      veiledning for å legge appen til på hjemskjermen
  *   oversikt.js        fangstoversikten: nøkkeltall og tidslinje
  *   personer.js        hvem du er, og initialene og fargene til de andre i laget
+ *   tidligere.js       fangst fra tidligere sesonger som eget kartlag
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -34,6 +35,7 @@ import { visMelding } from './melding.js';
 import { FirebaseInnlogging, FirestoreTjeneste } from './firebase.js';
 import { Konto } from './konto.js';
 import { Sky } from './sky.js';
+import { TidligereFangst } from './tidligere.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
 const DATAOMRADE = L.latLngBounds([57.97, 7.65], [58.37, 8.70]);
@@ -167,6 +169,10 @@ const kartmarkeringer = new Kartmarkeringer(kart, markeringer, {
 const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer, fredning });
 kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
 
+// Fangst fra tidligere sesonger (kartet ellers viser bare sesongen som pågår)
+const tidligere = new TidligereFangst(kart, markeringer);
+tidligere.settSynlig(innstillinger.visTidligere);
+
 // Teiner og fangst lagres bare når du er logget inn. Ellers åpnes innloggingen i stedet.
 // Rett etter at appen er åpnet er innloggingen ikke lest ennå (innloggingKjent).
 // Til testing på PC: ?utenkonto i adressen slår sperren av, bare på localhost.
@@ -261,6 +267,7 @@ $('knapp-innstillinger').addEventListener('click', () => {
   skjema.elements.dybdetall.checked = innstillinger.dybdetall;
   skjema.elements.visFangst.checked = innstillinger.visFangst;
   skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
+  skjema.elements.visTidligere.checked = innstillinger.visTidligere;
   skjema.elements.visFredning.checked = innstillinger.visFredning;
   skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
   skjema.elements.visPotensial.checked = innstillinger.visPotensial;
@@ -280,12 +287,14 @@ skjema.addEventListener('change', () => {
   innstillinger.dybdetall = skjema.elements.dybdetall.checked;
   innstillinger.visFangst = skjema.elements.visFangst.checked;
   innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
+  innstillinger.visTidligere = skjema.elements.visTidligere.checked;
   innstillinger.visFredning = skjema.elements.visFredning.checked;
   innstillinger.visBunnhint = skjema.elements.visBunnhint.checked;
   innstillinger.visPotensial = skjema.elements.visPotensial.checked;
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
+  tidligere.settSynlig(innstillinger.visTidligere);
   brukTema();
 });
 

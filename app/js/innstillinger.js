@@ -15,6 +15,7 @@ const STANDARD = {
   dybdetall: true,
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
+  visTidligere: true,   // vis fangst fra tidligere sesonger (tidligere.js)
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
