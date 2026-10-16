@@ -38,6 +38,7 @@ regnestykket i `potensialjustering.js`. README viser kommandoene for Windows/Pow
 python scripts/testserver.py [port]     # appen på http://localhost:8000 (eller porten), uten mellomlagring
 python scripts/lag_service_worker.py    # oppdater VERSJON og FILER i app/sw.js etter endringer i app/
 python scripts/lag_ikoner.py            # app-ikonene (PNG) i app/ikoner/, krever bare Pillow
+python scripts/lag_demodata.py --uid UID  # oppdiktede teiner og fangst til demokontoen (data/private/demodata.geojson)
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
 node tests/regnemaate.test.mjs          # fangstoversikten (oversikt.js) mot fasiten
 node tests/potensialjustering.test.mjs  # justeringen av hummerpotensialet etter fangsten
@@ -53,7 +54,7 @@ Node finnes ikke på brukerens maskin, men i workflowen (og som regel hos agente
   `lag_dybdekart` → `lag_bunnhint` og `lag_fredningsomrader` → `lag_hummerpotensial`,
   siden hvert skript leser det de forrige lagde (`data/processed/dybdedata_lillesand.gpkg`,
   `app/data/bunnhint.geojson`, `app/data/fredningsomrader.geojson`).
-  De tre første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
+  De fire første kommandoene over virker også med eldre Python 3, og `lag_ikoner.py`
   trenger bare `pip install pillow`.
 - Simulert GPS for testing: `http://localhost:8000/?simuler=58.2405,8.3810`. Kartet
   flytter seg til posisjonen bare hvis den er nærmere sjøen enn `NAER_SJOEN_M` (`naerSjoen`
@@ -268,9 +269,22 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   tillater reglene det bare for det siste medlemmet. Begynner
   appen å slette enkeltdokumenter, må kopien kjøres med `--full` (eller valget «Hent alt
   på nytt» i workflowen). Test endringer med en falsk Firestore, ikke ekte data. `sikkerhetskopi.py` har sin egen kopi av `FELT`: legges et felt til
-  i `markeringer.js`, må det legges til der også. Tjenestekontoen er skrivebeskyttet, og
+  i `markeringer.js`, må det legges til der også (og i `lag_demodata.py`). Tjenestekontoen er skrivebeskyttet, og
   nøkkelen ligger bare som hemmeligheten `FIREBASE_TJENESTEKONTO` i det private repoet.
   Ingenting fra det private repoet skal inn i dette offentlige repoet.
+
+**Demokonto** (`scripts/lag_demodata.py`): brukeren viser fram appen med en egen konto
+fylt med oppdiktede teiner og fangst, lest inn med «Gjenopprett fra fil» (README, «Demokonto
+med oppdiktede data»). Skriptet bruker bare standardbiblioteket (egen punkt-i-polygon) og
+trekker plassene i `hummerpotensial.geojson` rundt `START`, utenfor fredningsområdene. Hele
+sesongen simuleres, og alt etter `--naa` kuttes bort, med id-er fra `uuid5` (frø, år og
+løpenummer). Samme frø gir derfor samme markeringer, og en ny fil senere i sesongen
+oppdaterer bare teinene som sto i sjøen (nyere `endret`) og legger til resten. Bruk bare
+`random()` og `gauss()` fra `random.Random` (andre metoder har endret seg mellom
+Python-versjoner), og trekk tallene i samme rekkefølge, ellers får eksisterende id-er nytt
+innhold. Tidene skrives som `toISOString()` (millisekunder og `Z`), siden appen sammenligner
+dem som tekst. Demokontoens bruker-id (`--uid`) står i det private repoet og skal ikke inn
+her.
 
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
