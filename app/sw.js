@@ -12,7 +12,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '4511f6facbf3';
+const VERSJON = '5f74f82fa17c';
 const FILER = [
   './',
   'css/app.css',

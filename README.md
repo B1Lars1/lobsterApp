@@ -419,8 +419,8 @@ Sjekk alltid gjeldende forskrift.
   Når du setter teinen ut igjen, trykker du **Sett teine**, og den får samme nummer.
   Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
-- **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat,
-  ta opp med fangst, melde teinen mistet, flytte eller slette.
+- **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat (opptil 2000
+  tegn), ta opp med fangst, melde teinen mistet, flytte eller slette.
 - **Eier** (bare i et lag): teinearket viser hvem teinen tilhører, som en merkelapp ved
   siden av tittelen («Meg» eller initialene i personens farge). Trykk på den for å gi teinen
   til en annen i laget, for eksempel hvis du satte teinen til broren din fra din telefon.

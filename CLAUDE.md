@@ -185,6 +185,10 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   forbli bakoverkompatibelt. Et dokument har nå 20 felt (`FELT` + `lat`, `lon`, `slettet`,
   `oppdatert`), som er grensen `d.size() <= 20` i `firestore.rules`. Et nytt felt krever at
   grensen økes og at brukeren publiserer reglene på nytt før appen pushes.
+- Bryter ett dokument reglene, avvises hele batchen (`permission-denied`), og da stopper
+  synkroniseringen for alt. Appen må derfor holde seg innenfor grensene i reglene:
+  `MAKS_NOTAT` i `markeringer.js` (kuttes i `normaliser` og `oppdater`, `maxlength` i
+  notatfeltene) er samme grense som `notat.size() <= 2000` i `firestore.rules`.
 - Er man ikke logget inn, åpner `app.js` innloggingsarket når appen åpnes (første svar fra
   `sky`, se `sporOmInnlogging`), men ikke i nettleseren på telefon (`kanLeggesTil()`):
   der vises veiledningen for hjemskjermen, og innloggingen skal skje i appen derfra.
@@ -345,7 +349,9 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
   `textContent` eller `dataset`, aldri inn i HTML. `fraMal` i `markeringsark.js`, SVG-en i
   `oversikt.js` og `kildeinfo` i `app.js` får bare konstanter, tall og egne filer. Id-er
   må passe `GYLDIG_ID` i `markeringer.js` (bokstaver, tall, `-`, `_`), ellers avvises de
-  ved import. Samme regel står i `firestore.rules`.
+  ved import. Samme regel står i `firestore.rules`. Navn fra laget (`personer.kortnavn`:
+  initialer eller starten av e-posten) er også tekst fra skyen, så heller ikke `teinenavn()`
+  kan settes inn i en mal (overskriften i fangstarket settes med `textContent`).
 - `firestore.rules` er det eneste som beskytter dataene i Firebase. Hold reglene strenge,
   og si fra til brukeren at de må limes inn på nytt. Agenten har ingen emulator (verken
   Java eller Node er installert), så be brukeren teste dem i Rules Playground i konsollen.

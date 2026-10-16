@@ -15,6 +15,7 @@
  * Alt som endrer eller fjerner noe, viser en melding med «Angre».
  */
 
+import { MAKS_NOTAT } from './markeringer.js';
 import { visMelding } from './melding.js';
 import { hummersesong } from './oversikt.js';
 import { personer } from './personer.js';
@@ -351,7 +352,7 @@ export class Markeringsark {
       <div class="felter">
         <label class="felt smal">Nummer<input type="number" inputmode="numeric" min="1" data-felt="nummer"></label>
         ${iSjoen ? '<label class="felt ved-siden">Satt<input type="datetime-local" data-felt="tid"></label>' : ''}
-        <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
+        <label class="felt">Notat<textarea rows="2" maxlength="${MAKS_NOTAT}" data-felt="notat" placeholder="F.eks. agn, bunn, merke på blåsen"></textarea></label>
       </div>
       <div class="knapper">
         ${hovedknapp}
@@ -445,7 +446,7 @@ export class Markeringsark {
     const el = fraMal(`
       <div class="ark-topp">
         <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></div>
-        <div class="ark-tittel"><h3>${tittel}</h3><p data-tekst="undertekst"></p></div>
+        <div class="ark-tittel"><h3 data-tekst="tittel"></h3><p data-tekst="undertekst"></p></div>
       </div>
       <div class="teller">
         <span>Beholdt</span>
@@ -462,7 +463,7 @@ export class Markeringsark {
       <div class="felter">
         <label class="felt">Tidspunkt<input type="datetime-local" data-felt="tid"></label>
         <label class="felt">Fra teine<select data-felt="teine_id"></select></label>
-        <label class="felt">Notat<textarea rows="2" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
+        <label class="felt">Notat<textarea rows="2" maxlength="${MAKS_NOTAT}" data-felt="notat" placeholder="F.eks. lengde, rognhummer"></textarea></label>
       </div>
       ${ny
         ? `<div class="knapper avbryt-ferdig">
@@ -475,6 +476,9 @@ export class Markeringsark {
             <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
           </div>`}`);
 
+    // Tittelen kan ha initialene eller e-posten til en annen i laget («Teine 3 (OL) tatt opp»),
+    // så den settes som tekst, aldri i HTML-malen.
+    el.querySelector('[data-tekst="tittel"]').textContent = tittel;
     // For ny fangst fylles underteksten inn av _visUtkastUndertekst()
     if (!ny) el.querySelector('[data-tekst="undertekst"]').textContent = formaterTid(m.tid) + this._avTekst(m);
     el.querySelector('[data-tekst="beholdt"]').textContent = m.beholdt;
