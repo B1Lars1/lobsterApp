@@ -1037,6 +1037,7 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 #skystatus[data-tilstand="ok"] { color: var(--god); font-weight: 700; }
 #skystatus[data-tilstand="feil"] { color: var(--darlig); font-weight: 700; }
 #knapp-logg-inn,
+#knapp-lagre-kopi,
 #knapp-slett-konto { width: 100%; }
 #knapp-slett-konto { margin-top: 10px; }
 .konto-skjema .ark-tittel { margin: 6px 0 4px; }

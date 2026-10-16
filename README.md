@@ -10,9 +10,10 @@ til Grimstad i øst. Appen legges til på hjemskjermen på telefonen og viser:
 - hummerfredningsområder i Agder
 
 For å sette teiner og registrere fangst må du være logget inn (e-post og passord).
-Markeringene lagres på telefonen og i skyen, som sikkerhetskopi og for å bruke dem på
-flere telefoner, og i et lag deler du dem med dem du fisker med. Uten innlogging kan du
-bare se på kartet. Fangsten kan analyseres i GeoPandas fra sikkerhetskopien.
+Som standard lagres markeringene bare på telefonen. Kobler du kontoen til skyen, lagres de
+også der, som sikkerhetskopi og for å bruke dem på flere telefoner, og i et lag deler du
+dem med dem du fisker med. Uten innlogging kan du bare se på kartet. Fangsten kan
+analyseres i GeoPandas fra sikkerhetskopien eller fra en kopi til fil.
 
 > **Ikke for navigasjon.** Dybdedataene i appen er ikke godkjent for navigasjon.
 > Bruk offisielle sjøkart.
@@ -35,6 +36,7 @@ bare se på kartet. Fangsten kan analyseres i GeoPandas fra sikkerhetskopien.
 | 12 | Konto i Firebase, lag for deling, mistet teine og sikkerhetskopi | ✅ |
 | 13 | Sikkerhet og rydding: innlogging kreves for å lagre, uten «Opprett konto», topokartet og eksporten fjernet | ✅ |
 | 14 | Hver teine har en eier i laget: farget nummer, initialer, egne numre, statistikk for deg og for laget | ✅ |
+| 15 | Bare på telefonen som standard: skyen er et valg for sikkerhetskopi, flere telefoner og lag, og kopi til fil er tilbake | ✅ |
 
 ## Mappestruktur
 
@@ -68,9 +70,10 @@ Repoet er offentlig. Egne teineplasser og fangst skal aldri inn i det:
 - Filer som heter `markeringer*.geojson` ignoreres uansett hvor i repoet de ligger.
 - Testdata i repoet skal bare inneholde oppdiktede punkter.
 
-Med konto ligger markeringene i Firebase, ikke i repoet. Tilgangsreglene i
-`firestore.rules` sørger for at bare brukeren selv, og medlemmene i laget, kan lese og
-skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
+Som standard ligger markeringene bare på telefonen. Er kontoen koblet til skyen, ligger
+de i Firebase, ikke i repoet. Tilgangsreglene i `firestore.rules` sørger for at bare
+brukeren selv, og medlemmene i laget, kan lese og skrive dem. Hva appen lagrer om
+brukerne, står i `app/personvern.html`.
 
 ## Sikkerhet: hva er offentlig, og hva er beskyttet
 
@@ -89,6 +92,9 @@ skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
 
 **Beskyttet:**
 
+- Teiner og fangst på kontoer som ikke er koblet til skyen (standard), sendes ikke noe
+  sted. Firebase har bare e-posten og om kontoen er koblet til (se «Konto»). Det er koden
+  som sørger for det, så det forutsetter at appen som publiseres, gjør det den sier.
 - Teiner og fangst i Firebase: bare brukeren selv og medlemmene i laget kan lese og endre
   dem. Ingen kan liste opp andres kontoer eller lag.
 - Lagkoden har 8 tegn (ca. 850 milliarder muligheter) og kan ikke gjettes. Den som får
@@ -255,7 +261,8 @@ Les filen inn slik:
 
 1. Start testserveren på port 8001 (`scripts\testserver.py 8001`), så demokontoen får egen
    lagring i nettleseren, og åpne <http://localhost:8001>.
-2. Logg inn på demokontoen (Innstillinger → Konto).
+2. Logg inn på demokontoen (Innstillinger → Konto). Står det «Bare på denne telefonen»,
+   trykk **Koble til skyen**.
 3. Innstillinger → **Gjenopprett fra fil** → velg `data\private\demodata.geojson`.
 4. Vent til innstillingene viser «Synkronisert». Da ligger alt i demokontoen, og
    telefoner som logger inn der, får det.
@@ -280,8 +287,9 @@ til et annet tidspunkt (UTC). `--fro` gir andre plasser og annen fangst, men ikk
 for demokontoen: nullstillingen bruker standardfrøet og sletter alt annet.
 
 For å vise appen på telefonen: logg ut av din egen konto i appen og inn på demokontoen.
-Teinene dine ligger i skyen og kommer tilbake når du logger inn igjen. En annen telefon
-eller et nettbrett slipper det.
+Appen spør før teinene dine fjernes fra telefonen. Er kontoen din koblet til skyen, ligger
+de der og kommer tilbake når du logger inn igjen. Ellers må du lagre en kopi til fil først.
+En annen telefon eller et nettbrett slipper det.
 
 ## Appen
 
@@ -654,14 +662,16 @@ Sjekk alltid gjeldende forskrift.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
 Markeringene lagres i nettleserens database (IndexedDB) på telefonen og ligger
-der når appen åpnes igjen, også uten nett, og i kontoen din i skyen (se «Konto»).
-Uten innlogging åpner **Sett teine**, **Hummer her**, langt trykk i kartet og
-**Gjenopprett fra fil** innloggingen i stedet for å lagre noe.
+der når appen åpnes igjen, også uten nett og når du logger ut. Er kontoen koblet til
+skyen, ligger de også der (se «Konto»). Uten innlogging åpner **Sett teine**, **Hummer
+her**, langt trykk i kartet og **Gjenopprett fra fil** innloggingen i stedet for å lagre
+noe.
 
 ### Data i GeoPandas
 
-Sikkerhetskopien (se «Sikkerhetskopi») har alle markeringene som GeoJSON,
-én fil per lag eller konto. Hent nyeste versjon og les den inn:
+Sikkerhetskopien (se «Sikkerhetskopi») har alle markeringene i skyen som GeoJSON,
+én fil per lag eller konto. Kopien til fil fra appen (se under) har samme format. Hent
+nyeste versjon av sikkerhetskopien og les den inn:
 
 ```powershell
 git -C data/private/hummerkart-data pull
@@ -689,48 +699,78 @@ Lagkoden står i `sikkerhetskopi/lag.json`. Filene har disse feltene:
 | `registrert_av` | Intern bruker-id, tom uten konto. Teine: eieren (den som satte den, kan endres i teinearket). Fangst: den som registrerte den. Fangsten hører likevel til eieren av teinen den kom fra |
 | `mistet` | `true` hvis teinen er meldt mistet (teiner) |
 
+**Lagre kopi til fil** (under Sikkerhetskopi i innstillingene, når kontoen ikke er koblet
+til skyen) lager en slik fil med alle teinene og fangsten på telefonen
+(`markeringer-ÅÅÅÅ-MM-DD.geojson`). På telefonen åpnes delingsarket, så du kan lagre den i
+Filer, sende den på e-post osv. På PC lastes den ned. Innstillingene viser når du sist
+lagret en kopi.
+
 **Gjenopprett fra fil** (nederst under Sikkerhetskopi i innstillingene) leser inn en
-slik fil, for nødsfall. Markeringer med samme id oppdateres bare hvis filen har en nyere
-versjon, så det er trygt å lese inn samme fil flere ganger. For å få tilbake noe som er
-slettet, gjør du filen klar med `gjenopprett.py` i det private repoet først (README der).
+slik fil, eller en fil fra sikkerhetskopien. Markeringer med samme id oppdateres bare hvis
+filen har en nyere versjon, så det er trygt å lese inn samme fil flere ganger. For å få
+tilbake noe som er slettet fra sikkerhetskopien, gjør du filen klar med `gjenopprett.py` i
+det private repoet først (README der).
 
-### Konto (sikkerhetskopi og flere telefoner)
+### Konto (bare på telefonen eller i skyen)
 
-Innstillinger → **Konto** → **Logg inn**, med e-post og passord. Da lagres teiner og
-fangst også i en konto i skyen (Google Firebase, i EU), og du får dem på alle telefonene
-du logger inn på. Uten innlogging kan du se kartet, dybdene, fredningsområdene og
-hummerpotensialet, men ikke lagre teiner og fangst.
+Innstillinger → **Konto** → **Logg inn**, med e-post og passord. Uten innlogging kan du se
+kartet, dybdene, fredningsområdene og hummerpotensialet, men ikke lagre teiner og fangst.
 
 Kontoer kan ikke opprettes i appen. Den som driver appen, legger dem til i Firebase (se
 «Oppsett i Firebase», punkt 6), og så lager du ditt eget passord med **Glemt passord?**.
 
+**Som standard lagres teiner og fangst bare på telefonen**, også når du er logget inn. De
+sendes ikke til skyen, og den som driver appen, kan ikke se dem. Til gjengjeld tas det
+ingen sikkerhetskopi, du kan ikke være med i et lag, og de kommer ikke på andre telefoner.
+Mister eller bytter du telefon, eller fjerner appen fra hjemskjermen, er de borte. Bruk
+**Lagre kopi til fil** innimellom (se «Data i GeoPandas»).
+
+**Koble til skyen** (under Konto) lagrer alt også i kontoen i skyen (Google Firebase, i
+EU). Da tas det sikkerhetskopi (se under), og du får teinene og fangsten på alle telefonene
+du logger inn på. Å opprette eller bli med i et lag kobler også kontoen til skyen. Appen
+spør før den kobler til, og sier at sikkerhetskopien ligger hos den som driver appen.
+
+**Koble fra skyen** (under Konto, bare når du ikke er med i et lag) gjør det motsatte. Appen
+advarer først: ingen lag, ingen sikkerhetskopi, ikke på andre telefoner. Alt i kontoen i
+skyen slettes, og telefonene beholder det de har. Eldre sikkerhetskopier blir liggende til
+den som driver appen sletter dem.
+
+- **Valget gjelder kontoen, ikke telefonen.** Det lagres i skyen (bare ja eller nei), så alle
+  telefonene med kontoen følger det: kobler du til på én telefon, sender de andre det de
+  har, og kobler du fra, slutter de å synkronisere og beholder det de har. Kontoer fra før
+  valget fantes, og som var i skyen, er fortsatt koblet til.
+- **Kobles kontoen til igjen,** vinner det som ligger på telefonen over slettingene fra
+  frakoblingen, så ingenting går tapt. Det du har slettet på telefonen mens kontoen var
+  koblet fra, blir slettet også i skyen og på de andre telefonene.
 - **Innlogging når appen åpnes:** er du ikke logget inn, kommer innloggingen opp når
   appen åpnes. **Avbryt** lukker den, så du kan se på kartet. Åpnes lenken i
   nettleseren på en telefon, kommer veiledningen for hjemskjermen i stedet, siden
   innloggingen skal skje i appen fra hjemskjermen (den har egen lagring).
-- **Første innlogging:** det som ligger på telefonen, lastes opp til kontoen.
 - **Hvor lenge:** du er logget inn til du logger ut, bytter passord (da må du logge inn
   på nytt på de andre telefonene) eller kontoen slettes. Uten nett er du fortsatt logget
   inn, og synkroniseringen venter til du har nett.
-- **Synkronisering:** når appen åpnes eller kommer fram igjen, kort tid etter hver
-  endring og når telefonen får nett igjen. **Synkroniser nå** gjør det med en gang.
-  Telefonen er hovedkopien, så alt virker uten nett, og endringene sendes når du får
+- **Synkronisering** (koblet til skyen): når appen åpnes eller kommer fram igjen, kort tid
+  etter hver endring og når telefonen får nett igjen. **Synkroniser nå** gjør det med en
+  gang. Telefonen er hovedkopien, så alt virker uten nett, og endringene sendes når du får
   nett. Nyeste versjon av hver markering vinner, og slettinger følger med til de andre
-  telefonene.
-- **Logg ut:** det som ikke er sendt, lagres først. Så fjernes teiner og fangst fra
-  telefonen. De ligger i kontoen og kommer tilbake når du logger inn igjen. Uten nett
-  spør appen før usendte endringer går tapt.
-- **Annen konto på samme telefon:** appen spør før markeringene fra den forrige kontoen
-  fjernes fra telefonen, så de ikke havner i feil konto.
+  telefonene. Bare på telefonen sjekker appen bare om kontoen er koblet til et annet sted,
+  når den åpnes.
+- **Logg ut:** teinene og fangsten blir liggende på telefonen. Er kontoen koblet til
+  skyen, sendes det som er endret, først (uten nett sendes det når du logger inn igjen).
+  Logger du inn igjen med samme konto, fortsetter alt der det slapp.
+- **Annen konto på samme telefon:** appen spør før teinene og fangsten fra den forrige
+  kontoen fjernes fra telefonen, så de ikke havner i feil konto. Lå de bare på telefonen,
+  advarer den om at de slettes for godt, og **Avbryt** logger ut igjen, så du kan lagre en
+  kopi til fil først.
 - **Glemt passord:** skriv e-posten og trykk **Glemt passord?**. Det kommer en e-post
   med lenke for å lage nytt passord.
-- **Slett kontoen:** krever passordet. Kontoen og alt i den slettes, og du går ut av
-  laget ditt. Det som ligger på telefonen, blir liggende.
+- **Slett kontoen:** krever passordet. Kontoen og alt i den i skyen slettes, og du går ut
+  av laget ditt. Det som ligger på telefonen, blir liggende.
 
 ### Sikkerhetskopi
 
 Hver time fra 1. oktober til 15. desember, og hver natt resten av året, tas en kopi av
-alle markeringene i Firebase (kontoer og lag) til det private repoet
+alle markeringene i Firebase (kontoer som er koblet til skyen, og lag) til det private repoet
 [B1Lars1/hummerkart-data](https://github.com/B1Lars1/hummerkart-data), med en ny versjon i
 git-historikken hver gang noe er endret. Kommer det ingen ny versjon, er ingenting endret
 siden forrige kopi. Kopien kan også startes for hånd: **Actions → Sikkerhetskopi → Run
@@ -739,7 +779,8 @@ telefonene, for eksempel at noen i laget sletter teiner, og mot at Firebase fors
 Skriptet, workflowen, oppsettet og hvordan du gjenoppretter står i README-en der.
 Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet). Fangstanalysen
 leser kopien derfra, og **Gjenopprett fra fil** i innstillingene leser inn en fil fra den.
-Innstillingene viser hvor mye som er lagret, og om det deles i et lag.
+Innstillingene viser hvor mye som er lagret, og om det deles i et lag. Kontoer som ikke er
+koblet til skyen, har ingenting i kopien. Der er **Lagre kopi til fil** sikkerhetskopien.
 
 Kopien tas med en tjenestekonto som bare kan lese. Nøkkelen ligger som en hemmelighet
 i GitHub Actions i det private repoet og skal aldri inn i noe repo. Hver gang hentes bare
@@ -754,7 +795,7 @@ person på en fiskedag:
 
 | Grense | Gratis | Rekker til omtrent |
 |---|---|---|
-| Lesinger i Firestore | 50 000 per døgn | 120 personer som fisker samme dag (ca. 400 lesinger hver i et lag på to) |
+| Lesinger i Firestore | 50 000 per døgn | 100 personer i skyen som fisker samme dag (ca. 500 lesinger hver i et lag på to). Hver synkronisering leser også kontoens valg. Kontoer som bare lagrer på telefonen, bruker én lesing hver gang appen åpnes |
 | Skrivinger i Firestore | 20 000 per døgn | 280 personer som fisker samme dag (ca. 70 skrivinger hver) |
 | Lagring i Firestore | 1 GiB | 175 000 markeringer (ca. 1 200 per person per sesong) |
 | GitHub Pages | 100 GB per måned (mykt tak) | Mange tusen brukere: ca. 6 MB per telefon første gang, deretter bare filene som er endret (noen hundre kB for en ny versjon av koden, 6 MB hvis alle kartdataene er laget på nytt) |
@@ -770,7 +811,8 @@ som om dere har én felles app. Den ene kan ta opp teinen den andre satte. Hver 
 likevel en eier, med egne numre og egen statistikk (se under).
 
 1. **Opprett lag** (Innstillinger → Konto → Lag) og gi det et navn. Det du har, flyttes
-   inn i laget. Du får en kode på 8 tegn, for eksempel `ABCD-EFGH`.
+   inn i laget, og kontoen kobles til skyen hvis den ikke var det. Du får en kode på 8
+   tegn, for eksempel `ABCD-EFGH`.
 2. **Del koden** sender en invitasjon med koden (melding, e-post osv.).
 3. Den andre logger inn i sin app og velger **Bli med i lag** og skriver koden. Det hen
    har, flyttes også inn, og hen får lagets teiner og fangst.
@@ -792,7 +834,8 @@ likevel en eier, med egne numre og egen statistikk (se under).
   teinearket.
 - Under Lag står medlemmene. **Fjern** tar noen ut av laget. **Forlat laget** tar deg
   ut. Den som går ut eller blir fjernet, får en kopi av lagets teiner og fangst i sin
-  egen konto. Går det siste medlemmet, slettes laget og alt i det.
+  egen konto, som fortsatt er koblet til skyen (**Koble fra skyen** hvis du vil ha dem bare
+  på telefonen). Går det siste medlemmet, slettes laget og alt i det.
 - Koden er nøkkelen til laget: den som kjenner den, kan bli med. Del den bare med dem
   du vil ha med, og fjern dem som ikke skal være der.
 - Du kan være med i ett lag om gangen.
@@ -809,9 +852,10 @@ Konto). Appen bruker ikke Google Analytics eller annen sporing.
    `localhost`, som er der fra før).
 4. **Firestore Database** opprettet i en EU-region, i «production mode».
 5. **Firestore Database → Rules:** innholdet i `firestore.rules` limt inn og publisert.
-   Må gjøres på nytt hver gang filen endres. Reglene sier at bare brukeren selv kan lese
-   og skrive sine egne markeringer (`brukere/{uid}/markeringer/{id}`), og bare
-   medlemmene i et lag kan lese og skrive lagets (`lag/{kode}/markeringer/{id}`).
+   Må gjøres på nytt hver gang filen endres, og før appen publiseres. Reglene sier at bare
+   brukeren selv kan lese og skrive sine egne markeringer (`brukere/{uid}/markeringer/{id}`)
+   og om kontoen er koblet til skyen (`brukere/{uid}`), og bare medlemmene i et lag kan lese
+   og skrive lagets (`lag/{kode}/markeringer/{id}`).
    Lagdokumentet `lag/{kode}` har navnet, medlemmene, e-postene deres og initialene de har
    satt. Den som kjenner koden, kan bare legge seg selv til, med sin egen e-post, og hver
    kan bare endre sine egne initialer. Id-en til en markering kan bare ha bokstaver, tall,
@@ -979,12 +1023,16 @@ Fangstoversikten i appen og analysen (`scripts/analyser_fangst.py`) skal regne l
 `tests/` har noen oppdiktede markeringer (`fangst_testdata.geojson`) og fasiten for dem
 (`fangst_fasit.json`), og begge testes mot den. `regnemaate.test.mjs` sjekker også hvilke
 sesonger som kan velges i fangstoversikten. `potensialjustering.test.mjs` sjekker at
-justeringen av hummerpotensialet regner som beskrevet over:
+justeringen av hummerpotensialet regner som beskrevet over. `sky.test.mjs` sjekker
+synkroniseringen med en falsk Firebase: at en ny konto bare lagrer på telefonen, at
+kontoen kan kobles til og fra skyen uten at noe går tapt, at et lag kobler den til, og at
+Logg ut beholder alt:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests   # analysen
 node tests/regnemaate.test.mjs                              # appen (krever Node, kjøres i workflowen)
 node tests/potensialjustering.test.mjs                      # justeringen av potensialet
+node tests/sky.test.mjs                                     # synkroniseringen med skyen
 ```
 
 Endres regnemåten, må fasiten og begge stedene endres sammen.

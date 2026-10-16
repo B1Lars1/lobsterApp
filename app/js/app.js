@@ -258,9 +258,42 @@ markeringer.naarEndret(() => {
 
 // ---------- Sikkerhetskopi ----------
 
-// Alt lagres i kontoen og kopieres hver natt, og hver time i sesongen (README, «Sikkerhetskopi»).
-// «Gjenopprett fra fil» leser inn en fil fra sikkerhetskopien (gjør den klar med
-// gjenopprett.py først).
+// Er kontoen koblet til skyen, kopieres alt hver natt, og hver time fra 1. oktober til
+// 15. desember (README, «Sikkerhetskopi»). Ellers ligger alt bare på telefonen, og «Lagre
+// kopi til fil» er den eneste sikkerhetskopien. «Gjenopprett fra fil» leser inn en slik
+// kopi, eller en fil fra sikkerhetskopien (gjør den klar med gjenopprett.py først).
+async function lagreKopi() {
+  // Navnet passer til markeringer*.geojson i .gitignore, så filen ikke havner i repoet
+  const navn = `markeringer-${new Date().toISOString().slice(0, 10)}.geojson`;
+  const fil = new File([JSON.stringify(markeringer.tilGeoJSON())], navn, { type: 'application/geo+json' });
+  let delt = false;
+  // På telefonen: delingsarket (Arkiver i Filer, e-post osv.). På PC: vanlig nedlasting.
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fil] })) {
+    try {
+      await navigator.share({ files: [fil], title: navn });
+      delt = true;
+    } catch (feil) {
+      if (feil.name === 'AbortError') return; // avbrutt av brukeren
+    }
+  }
+  if (!delt) {
+    const url = URL.createObjectURL(fil);
+    Object.assign(document.createElement('a'), { href: url, download: navn }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+  innstillinger.sistKopi = new Date().toISOString();
+  lagreInnstillinger(innstillinger);
+  oppdaterDatainfo();
+}
+
+// «i dag», «i går», «for 12 dager siden» eller «aldri»
+function sistKopiTekst() {
+  if (!innstillinger.sistKopi) return 'aldri';
+  const dag = (d) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+  const dager = dag(new Date()) - dag(new Date(innstillinger.sistKopi));
+  return dager <= 0 ? 'i dag' : dager === 1 ? 'i går' : `for ${dager} dager siden`;
+}
+
 async function importer(fil) {
   try {
     const r = await markeringer.importer(JSON.parse(await fil.text()));
@@ -273,17 +306,30 @@ async function importer(fil) {
 }
 
 function oppdaterDatainfo() {
-  if (!sky.innlogget) {
-    $('datainfo').textContent = 'Logg inn for å lagre teiner og fangst.';
-    return;
+  const alle = markeringer.alle();
+  const fangst = alle.filter((m) => m.kategori === 'hummer').length;
+  const iSjoen = markeringer.teinerISjoen().length;
+  const antall = `${iSjoen} ${iSjoen === 1 ? 'teine' : 'teiner'} i sjøen og ${fangst} `
+    + (fangst === 1 ? 'fangstregistrering' : 'fangstregistreringer');
+  // Kopi til fil når det ikke er noen sikkerhetskopi i skyen (også utlogget, før en annen
+  // konto logger inn på telefonen)
+  $('knapp-lagre-kopi').hidden = sky.koblet || !alle.length;
+  if (sky.koblet) {
+    $('datainfo').textContent = `${antall}. ` +
+      (sky.lag ? `Alt deles i laget «${sky.lag.navn}»` : 'Alt lagres i kontoen din i skyen') +
+      ' og kopieres til en sikkerhetskopi hver natt, og hver time fra 1. oktober til 15. desember.';
+  } else if (sky.innlogget) {
+    $('datainfo').textContent = `${antall}. De ligger bare på denne telefonen, og det tas ingen ` +
+      'sikkerhetskopi. Lagre en kopi til fil innimellom, eller koble kontoen til skyen (under ' +
+      `Konto). Sist lagret kopi: ${sistKopiTekst()}.`;
+  } else {
+    $('datainfo').textContent = alle.length
+      ? `${antall} ligger på telefonen. Logg inn for å lagre nye.`
+      : 'Logg inn for å lagre teiner og fangst.';
   }
-  const fangst = markeringer.alle().filter((m) => m.kategori === 'hummer').length;
-  $('datainfo').textContent =
-    `${markeringer.teinerISjoen().length} teiner i sjøen og ${fangst} fangstregistreringer. ` +
-    (sky.lag ? `Alt deles i laget «${sky.lag.navn}»` : 'Alt lagres i kontoen din') +
-    ' og kopieres til en sikkerhetskopi hver natt, og hver time fra 1. oktober til 15. desember.';
 }
 
+$('knapp-lagre-kopi').addEventListener('click', () => lagreKopi());
 $('knapp-importer').addEventListener('click', medKonto(() => $('velg-fil').click()));
 $('velg-fil').addEventListener('change', (e) => {
   const fil = e.target.files[0];
@@ -383,7 +429,10 @@ function sporOmInnlogging(bruker) {
 }
 
 const sky = new Sky(markeringer, {
-  naarStatus: (status) => konto.visStatus(status),
+  naarStatus: (status) => {
+    konto.visStatus(status);
+    oppdaterDatainfo(); // også når kontoen er koblet til eller fra skyen
+  },
   naarBruker: (bruker) => {
     innloggingKjent = true;
     personer.sett({ meg: bruker?.uid ?? null, lag: sky.lag });
@@ -437,7 +486,7 @@ settOppHjemskjerm();
 
 brukTema();
 visKilder();
-markeringer.last().then(() => sky.start()); // logger inn igjen og synkroniserer hvis du har konto
+markeringer.last().then(() => sky.start()); // logger inn igjen, og synkroniserer hvis kontoen er koblet til skyen
 fredning.last()
   .then(() => {
     fredning.settSynlig(innstillinger.visFredning);

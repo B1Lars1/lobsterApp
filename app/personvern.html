@@ -37,12 +37,16 @@
 
   <h2>Kort fortalt</h2>
   <ul>
-    <li>For å lagre teiner og fangst må du ha en konto. De lagres på telefonen og i skyen
-      (Google Firebase, i EU), så du har en sikkerhetskopi og får dem på alle telefonene dine.</li>
+    <li>For å lagre teiner og fangst må du logge inn. Som standard lagres de bare på
+      telefonen din og sendes ikke noe sted.</li>
+    <li>Vil du ha sikkerhetskopi, få dem på flere telefoner eller være med i et lag, kan du
+      koble kontoen til skyen (Google Firebase, i EU). Det velger du selv, og du kan koble fra
+      igjen.</li>
     <li>Uten konto kan du bare se på kartet, og ingenting om deg lagres.</li>
-    <li>Bare du, og de i laget ditt hvis du er med i et, kan se dataene dine. Ingen reklame,
-      ingen sporing, ingen deling med andre.</li>
-    <li>Du kan når som helst få en kopi av alt, eller slette kontoen og alt i skyen.</li>
+    <li>Bare du, og de i laget ditt hvis du er med i et, kan se dataene dine i skyen. Ingen
+      reklame, ingen sporing, ingen deling med andre.</li>
+    <li>Du kan når som helst lagre en kopi av alt til en fil, eller slette kontoen og alt i
+      skyen.</li>
   </ul>
 
   <h2>Uten konto</h2>
@@ -51,11 +55,27 @@
     telefonen, til å vise hvor du er. Ingenting av dette sendes noe sted.</p>
 
   <h2>Med konto</h2>
-  <p>Kontoer lages av den som driver appen, og passordet lager du selv. Med konto lagres
-    dette:</p>
+  <p>Kontoer lages av den som driver appen, og passordet lager du selv. I Firebase
+    Authentication lagres <b>e-postadressen din og passordet</b>. Passordet lagres kryptert
+    (som en hash) av Google, og appen ser det aldri i klartekst etter innlogging. I tillegg
+    lagres om kontoen er koblet til skyen eller ikke (ja eller nei, og når den sist ble koblet
+    fra), så alle telefonene dine følger samme valg.</p>
+
+  <h2>Bare på telefonen (standard)</h2>
+  <p>Teinene og fangsten din lagres bare i nettleserens lagring på telefonen. De sendes ikke
+    til skyen, og den som driver appen, kan ikke se dem. Det betyr også:</p>
   <ul>
-    <li><b>E-postadressen din og passordet</b>, i Firebase Authentication. Passordet lagres
-      kryptert (som en hash) av Google, og appen ser det aldri i klartekst etter innlogging.</li>
+    <li>Det tas ingen sikkerhetskopi. Mister eller bytter du telefon, eller fjerner du appen
+      fra hjemskjermen, er de borte. Lagre en kopi til fil innimellom (Innstillinger →
+      Sikkerhetskopi → Lagre kopi til fil). Kopien lagrer du der du vil, for eksempel i Filer.</li>
+    <li>Du kan ikke være med i et lag, og teinene og fangsten kommer ikke på andre
+      telefoner.</li>
+  </ul>
+
+  <h2>Koblet til skyen</h2>
+  <p>Kobler du kontoen til skyen (Innstillinger → Konto), eller oppretter eller blir med i et
+    lag, lagres dette i tillegg:</p>
+  <ul>
     <li><b>Teinene og fangsten din</b>: posisjon, tidspunkt, teinenummer, om teinen står i
       sjøen, antall hummer beholdt og satt ut, anslått dybde, GPS-nøyaktighet og notatet du
       eventuelt har skrevet, og en intern bruker-id for hvem som eier teinen og hvem som
@@ -66,9 +86,11 @@
     databehandler og bruker ikke dataene til egne formål. Tilgangsreglene gjør at bare den
     som er logget inn på kontoen, kan lese og endre dataene.</p>
   <p>Hver natt, og hver time fra 1. oktober til 15. desember, tas en sikkerhetskopi av
-    dataene, med e-postadressene, til et privat GitHub-repo som bare den som driver appen
-    har tilgang til. Den brukes bare til å gjenopprette data som er gått tapt. Gamle kopier ligger i historikken der. Vil du ha
+    dataene i skyen, med e-postadressene, til et privat GitHub-repo som bare den som driver
+    appen har tilgang til. Den brukes bare til å gjenopprette data som er gått tapt. Gamle kopier ligger i historikken der. Vil du ha
     slettet alt, også fra sikkerhetskopiene, sender du en e-post (se Kontakt).</p>
+  <p>Kobler du kontoen fra skyen igjen (bare mulig utenfor et lag), slettes teinene og
+    fangsten i kontoen i skyen, og de blir liggende på telefonene dine.</p>
 
   <h2>Hva dataene brukes til</h2>
   <p>Bare til å vise teinene og fangsten din i appen, på telefonene der du er logget inn,
@@ -77,28 +99,33 @@
     sporingsverktøy.</p>
 
   <h2>Lag</h2>
-  <p>Oppretter du et lag eller blir med i et, flyttes teinene og fangsten din inn i laget.
+  <p>Et lag ligger i skyen, så kontoen kobles til skyen når du oppretter et lag eller blir
+    med i et. Teinene og fangsten din flyttes inn i laget.
     Alle medlemmene ser og kan endre alle teiner og all fangst i laget, og de ser
     e-postadressen til hverandre og hvem som eier hver teine. Setter du initialene dine i
     laget (for eksempel «BL»), lagres de i laget og vises på teinene dine hos de andre.
     Koden til laget gir adgang til å bli med, så del den bare med dem du vil ha i laget.
     Alle medlemmene kan fjerne andre fra laget.</p>
   <p>Forlater du laget, eller blir fjernet, får kontoen din en kopi av lagets teiner og
-    fangst. Det du har registrert, blir liggende i laget, men e-postadressen og initialene
-    dine fjernes fra laget. Går det siste medlemmet ut, slettes laget og alt i det.</p>
+    fangst, og den er fortsatt koblet til skyen. Det du har registrert, blir liggende i
+    laget, men e-postadressen og initialene dine fjernes fra laget. Går det siste medlemmet
+    ut, slettes laget og alt i det.</p>
 
   <h2>Hvor lenge</h2>
   <p>Til du sletter dem. Sletter du en markering, slettes den også i skyen. Sletter du
-    kontoen, slettes alt i kontoen, og du går ut av laget ditt. Logger du ut, fjernes
-    markeringene fra telefonen, men de ligger fortsatt i skyen.</p>
+    kontoen, slettes alt i kontoen, og du går ut av laget ditt. Logger du ut, blir teinene og
+    fangsten liggende på telefonen (og i skyen, hvis kontoen er koblet til). Logger en annen
+    konto inn på samme telefon, fjernes de fra telefonen etter at du har bekreftet det.</p>
 
   <h2>Dine rettigheter</h2>
   <ul>
-    <li><b>Innsyn og kopi:</b> Send en e-post (se Kontakt), så får du alle markeringene
-      dine i en fil (GeoJSON).</li>
+    <li><b>Innsyn og kopi:</b> Innstillinger → Sikkerhetskopi → Lagre kopi til fil når
+      kontoen ikke er koblet til skyen. Ellers sender du en e-post (se Kontakt), så får du
+      alle markeringene dine i en fil (GeoJSON).</li>
     <li><b>Retting:</b> Endre eller slett markeringer i appen.</li>
     <li><b>Sletting:</b> Innstillinger → Konto → Slett kontoen. Da slettes kontoen og alt i
-      den med en gang, og du går ut av laget ditt.</li>
+      den med en gang, og du går ut av laget ditt. Det som ligger på telefonen, blir
+      liggende til du sletter det i appen.</li>
     <li><b>Klage:</b> Mener du at personopplysningene dine behandles feil, kan du klage til
       <a href="https://www.datatilsynet.no/">Datatilsynet</a>.</li>
   </ul>

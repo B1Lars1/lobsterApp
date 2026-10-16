@@ -20,6 +20,7 @@ const STANDARD = {
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
   justerPotensial: true, // juster hummerpotensialet etter fangsten (potensialjustering.js)
+  sistKopi: null,       // når «Lagre kopi til fil» sist ble brukt (ISO), for kontoer uten sky
 };
 
 export function hentInnstillinger() {

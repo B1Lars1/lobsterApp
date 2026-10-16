@@ -1,30 +1,49 @@
 /*
  * Konto, lag og synkronisering med skyen (Firebase, se firebase.js).
  *
- * Telefonen er hovedkopien: markeringene ligger i IndexedDB (lager.js), og appen
- * virker uten nett og uten konto. Er du logget inn, synkroniseres de med ett «rom»:
+ * Telefonen er hovedkopien: markeringene ligger i IndexedDB (lager.js), og appen virker
+ * uten nett. Som standard lagres teiner og fangst bare på telefonen, også når du er
+ * logget inn. Kobler du kontoen til skyen (eller oppretter eller blir med i et lag),
+ * synkroniseres de med ett «rom»:
  *   'bruker:{uid}'  kontoen din, eller
  *   'lag:{kode}'    laget du er med i (felles logg, der alle medlemmene ser og endrer alt).
+ *
+ * Valget gjelder kontoen, ikke telefonen. Det ligger i brukere/{uid} ({ sky: true/false })
+ * og leses ved hver synkronisering, så alle telefonene med kontoen følger det: kobles
+ * kontoen til på én telefon, sender de andre det de har, og kobles den fra, slutter de å
+ * synkronisere og beholder det de har. Kontoer fra før valget fantes, har ikke dokumentet.
+ * De regnes som koblet til hvis telefonen var det, eller kontoen er med i et lag eller har
+ * markeringer i skyen.
+ *
  * Hver synkronisering
- *   1. sjekker hvilket lag du er med i (du kan ha blitt fjernet fra et annet sted),
- *   2. henter det som er endret i rommet siden sist («oppdatert», satt av serveren),
+ *   1. leser kontoens valg. Er kontoen ikke koblet til skyen, stopper den her,
+ *   2. sjekker hvilket lag du er med i (du kan ha blitt fjernet fra et annet sted),
+ *   3. henter det som er endret i rommet siden sist («oppdatert», satt av serveren),
  *      og slår det sammen med markeringer.importer(): nyeste «endret» vinner, og
  *      slettinger følger med,
- *   3. sender markeringer og slettinger som er endret her: der «endret» er en annen
+ *   4. sender markeringer og slettinger som er endret her: der «endret» er en annen
  *      enn versjonen vi vet ligger i rommet (kartet «kjent»).
  * En sletting er et dokument med slettet: true, så den når de andre telefonene.
  *
- * Bytter du rom (oppretter eller blir med i et lag, forlater det), starter «kjent» på
- * nytt. Da sendes alt som ligger på telefonen til det nye rommet: det du hadde, flyttes
- * inn i laget, og forlater du laget, får kontoen din en kopi av lagets teiner og fangst.
+ * Bytter du rom (kobler til, oppretter eller blir med i et lag, forlater det), starter
+ * «kjent» på nytt. Da sendes alt som ligger på telefonen til det nye rommet: det du hadde,
+ * flyttes inn i laget, og forlater du laget, får kontoen din en kopi av lagets teiner og
+ * fangst.
  *
- * Synkroniserer når du logger inn, når appen åpnes eller kommer fram igjen, kort tid
- * etter endringer, og når telefonen får nett igjen.
+ * Kobler du fra skyen (bare utenfor lag), slettes markeringene i kontoen i skyen med
+ * slettedokumenter, så sikkerhetskopien også får det med. Alle får samme «endret», som
+ * huskes i brukere/{uid} (frakoblet). Kobles kontoen til igjen, vinner det som ligger på
+ * telefonen over disse slettingene og sendes på nytt, selv om det er eldre.
+ *
+ * Synkroniserer når du logger inn, når appen åpnes eller kommer fram igjen, når telefonen
+ * får nett igjen, og kort tid etter endringer (bare når kontoen er koblet til).
  *
  * Tilstanden huskes i localStorage under egen nøkkel:
- *   { uid, rom, lag, sistHentet: [sekunder, nanosekunder], kjent: { id: endret }, sist, feil }
- * Logger du ut, fjernes markeringene fra telefonen (de ligger i skyen). Logger en annen
- * konto inn på telefonen, spør appen før markeringene fra den forrige kontoen fjernes.
+ *   { uid, sky: true | false | null (ikke sjekket ennå), frakobler, rom, lag,
+ *     sistHentet: [sekunder, nanosekunder], kjent: { id: endret }, sist, feil }
+ * Logger du ut, blir markeringene og tilstanden liggende på telefonen, og logger du inn
+ * igjen med samme konto, fortsetter det der det slapp. Logger en annen konto inn på
+ * telefonen, spør appen før markeringene fra den forrige kontoen fjernes.
  */
 
 import { FELT } from './markeringer.js';
@@ -34,7 +53,11 @@ const VENT_ETTER_ENDRING_MS = 10000;
 
 function hentTilstand() {
   try {
-    return { kjent: {}, ...JSON.parse(localStorage.getItem(NOKKEL) || '{}') };
+    const tilstand = { kjent: {}, ...JSON.parse(localStorage.getItem(NOKKEL) || '{}') };
+    // Logget inn med en versjon fra før kontoen kunne lagre bare på telefonen: da var den
+    // koblet til skyen
+    if (tilstand.uid && !('sky' in tilstand)) tilstand.sky = true;
+    return tilstand;
   } catch {
     return { kjent: {} };
   }
@@ -66,6 +89,11 @@ function tilDokument(m) {
   return data;
 }
 
+const endringer = (n) => (n === 1 ? '1 endring' : `${n} endringer`);
+
+// Feil fra appen selv, med forklaringen til brukeren i «tekst» (se feilTekst)
+const appFeil = (tekst) => Object.assign(new Error(tekst), { tekst });
+
 /** «ABCDEFGH» → «ABCD-EFGH», lettere å lese og skrive av. */
 export const visKode = (kode) => `${kode.slice(0, 4)}-${kode.slice(4)}`;
 
@@ -74,6 +102,7 @@ export const rensKode = (tekst) => tekst.toUpperCase().replace(/[^A-Z0-9]/g, '')
 
 // Feil fra Firestore og Firebase Auth med forklaring på norsk
 export function feilTekst(feil) {
+  if (feil?.tekst) return feil.tekst; // fra appen selv (appFeil)
   const kode = feil?.code ?? '';
   const tekster = {
     'permission-denied': 'Ingen tilgang til lagringen. Er tilgangsreglene lagt inn i Firebase?',
@@ -98,7 +127,8 @@ export class Sky {
   /**
    * @param {import('./markeringer.js').Markeringer} markeringer
    * @param {object} valg
-   * @param {(status: {tilstand: string, tekst: string}) => void} valg.naarStatus
+   * @param {(status: {tilstand: string, tekst: string}) => void} valg.naarStatus  også når
+   *   kontoen kobles til eller fra skyen
    * @param {(bruker: {uid: string, epost: string} | null) => void} valg.naarBruker
    * @param {(lag: object | null) => void} valg.naarLag  laget du er med i, når det endres
    * @param {(tekst: string) => boolean} valg.bekreft  spør brukeren (standard: window.confirm)
@@ -118,16 +148,18 @@ export class Sky {
     this.bruker = null;
     this._pagaende = null; // løftet for synkroniseringen som pågår
     this._timer = null;
+    this._frakoblet = null; // «endret» på slettingene fra da kontoen sist ble koblet fra skyen
 
     // Synkroniser kort tid etter at noe er endret (ikke for hver lille endring). Under en
     // synkronisering overses det, ellers ville importen av det som hentes, starte en ny.
     markeringer.naarEndret(() => {
-      if (this.bruker && !this.pagar) this.planlegg();
+      if (this.koblet && !this.pagar) this.planlegg();
     });
+    // Når appen får nett eller kommer fram igjen: hent endringer fra andre telefoner, og
+    // sjekk om kontoen er koblet til eller fra skyen et annet sted
     window.addEventListener('online', () => {
       if (this.bruker) this.planlegg(1000);
     });
-    // Hent endringer fra andre telefoner når appen kommer fram igjen
     document.addEventListener('visibilitychange', () => {
       if (this.bruker && document.visibilityState === 'visible') this.planlegg(500);
     });
@@ -142,13 +174,18 @@ export class Sky {
     return Boolean(this.bruker);
   }
 
+  /** Er kontoen koblet til skyen? Ellers lagres teiner og fangst bare på telefonen. */
+  get koblet() {
+    return Boolean(this.bruker) && hentTilstand().sky === true;
+  }
+
   get pagar() {
     return Boolean(this._pagaende);
   }
 
   /** Laget du er med i ({ id, navn, medlemmer, eposter, initialer }), eller null. */
   get lag() {
-    return this.bruker ? hentTilstand().lag ?? null : null;
+    return this.koblet ? hentTilstand().lag ?? null : null;
   }
 
   async _brukerEndret(bruker) {
@@ -156,18 +193,16 @@ export class Sky {
       const tilstand = hentTilstand();
       if (tilstand.uid && tilstand.uid !== bruker.uid && this.markeringer.alle().length) {
         // Markeringene på telefonen hører til en annen konto. Ikke bland dem inn i denne.
-        const fjern = this.bekreft(
-          `Telefonen har teiner og fangst fra en annen konto. De fjernes fra telefonen når du `
-          + `logger inn som ${bruker.epost}. De ligger fortsatt i den andre kontoen. Fortsette?`);
-        if (!fjern) {
+        if (!this.bekreft(this._annenKontoTekst(tilstand, bruker.epost))) {
           await this.innlogging.loggUt();
           return;
         }
         await this.markeringer.tomAlt();
-        lagreTilstand({ uid: bruker.uid, kjent: {} });
+        lagreTilstand({ uid: bruker.uid, sky: null, kjent: {} });
       } else if (tilstand.uid !== bruker.uid) {
-        // Første innlogging på telefonen: det som ligger her, lastes opp
-        lagreTilstand({ uid: bruker.uid, kjent: {} });
+        // Første innlogging på telefonen. Om det som ligger her, sendes til skyen, avgjør
+        // kontoens valg ved første synkronisering (_sjekkKobling).
+        lagreTilstand({ uid: bruker.uid, sky: null, kjent: {} });
       }
     }
     this.bruker = bruker;
@@ -178,10 +213,30 @@ export class Sky {
     if (bruker) this.synkroniser();
   }
 
+  // Spørsmålet før markeringene fra en annen konto fjernes fra telefonen
+  _annenKontoTekst(tilstand, epost) {
+    if (tilstand.sky !== true) {
+      return 'Telefonen har teiner og fangst fra en annen konto, og de ligger bare på denne '
+        + `telefonen. Logger du inn som ${epost}, slettes de for godt. Vil du ta vare på dem, `
+        + 'trykk Avbryt og lagre en kopi til fil først (Innstillinger → Sikkerhetskopi). '
+        + 'Fortsette og slette dem?';
+    }
+    const usendte = this._usendte().length;
+    return `Telefonen har teiner og fangst fra en annen konto. De fjernes fra telefonen når du `
+      + `logger inn som ${epost}. `
+      + (usendte
+        ? `De ligger i den andre kontoen, unntatt ${endringer(usendte)} som ikke er sendt ennå og går tapt. `
+        : 'De ligger fortsatt i den andre kontoen. ')
+      + 'Fortsette?';
+  }
+
   statusTekst() {
     if (!this.bruker) return { tilstand: 'av', tekst: '' }; // innstillingsarket forklarer det selv
-    const { sist, feil } = hentTilstand();
+    const { sky, sist, feil, frakobler } = hentTilstand();
+    if (frakobler) return { tilstand: 'venter', tekst: 'Kobler fra skyen …' };
     if (feil) return { tilstand: 'feil', tekst: `Feil: ${feil}` };
+    if (sky == null) return { tilstand: 'venter', tekst: 'Ikke sjekket ennå om kontoen er koblet til skyen.' };
+    if (!sky) return { tilstand: 'lokal', tekst: '' }; // innstillingsarket forklarer det selv
     if (!sist) return { tilstand: 'venter', tekst: 'Ikke synkronisert ennå.' };
     const tid = new Date(sist).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     return { tilstand: 'ok', tekst: `Synkronisert ${tid}.` };
@@ -214,6 +269,88 @@ export class Sky {
     this._byttRom(lag ? `lag:${lag.id}` : `bruker:${this.bruker.uid}`, lag);
   }
 
+  // ---------- Koblet til skyen, eller bare på telefonen ----------
+
+  /** Les kontoens valg i skyen og følg det. Returnerer true hvis kontoen er koblet til. */
+  async _sjekkKobling() {
+    const { uid } = this.bruker;
+    const t = hentTilstand();
+    const konto = await this.tjeneste.hentKonto(uid);
+    let koblet = konto?.sky;
+    if (!konto) {
+      // Kontoen er fra før valget fantes (eller helt ny)
+      koblet = t.sky === true || Boolean(await this.tjeneste.finnLag(uid))
+        || await this.tjeneste.harMarkeringer(`bruker:${uid}`);
+      await this.tjeneste.lagreKonto(uid, { sky: koblet });
+    }
+    this._frakoblet = konto?.frakoblet ?? null;
+    if (koblet && t.sky !== true) {
+      this._bliKoblet(); // koblet til på en annen telefon, eller kontoen har data i skyen
+    } else if (!koblet && t.sky !== false) {
+      // Koblet fra på en annen telefon, eller en ny konto: alt blir liggende på telefonen
+      lagreTilstand({ uid, sky: false, kjent: {} });
+      this.naarLag?.(null);
+    }
+    return koblet;
+  }
+
+  // Kontoen er koblet til skyen. Var den ikke det på telefonen, sendes alt som ligger her
+  // ved neste synkronisering. En frakobling som ikke er fullført, stoppes.
+  _bliKoblet() {
+    const { frakobler, ...t } = hentTilstand();
+    lagreTilstand(t.sky === true ? t
+      : { ...t, sky: true, rom: null, lag: null, sistHentet: null, kjent: {} });
+  }
+
+  /**
+   * Koble kontoen til skyen: alt på telefonen lastes opp til kontoen, og du får
+   * sikkerhetskopi og teinene og fangsten på alle telefonene dine.
+   */
+  async kobleTil() {
+    if (!navigator.onLine) throw appFeil('Du må ha nett for å koble til skyen.');
+    await this.tjeneste.lagreKonto(this.bruker.uid, { sky: true });
+    this._bliKoblet();
+    this.naarStatus(this.statusTekst());
+    return this.synkroniser();
+  }
+
+  /**
+   * Koble kontoen fra skyen, så teiner og fangst bare lagres på telefonen. Det som ligger i
+   * kontoen i skyen, slettes, og telefonen beholder alt. Ikke mulig i et lag.
+   */
+  async kobleFra() {
+    if (!navigator.onLine) throw appFeil('Du må ha nett for å koble fra skyen.');
+    if (this.lag) throw appFeil('Forlat laget først.');
+    // Hent og send det siste først, så telefonen har alt som ligger i skyen
+    const r = await this.synkroniser();
+    if (r?.feil) throw appFeil(r.feil);
+    if (!this.koblet) return r; // koblet fra på en annen telefon i mellomtiden
+    if (this.lag) throw appFeil('Forlat laget først.'); // ble med i et lag på en annen telefon
+    lagreTilstand({ ...hentTilstand(), frakobler: new Date().toISOString() });
+    this.naarStatus(this.statusTekst());
+    // Fullføres av synkroniseringen, så den gjøres ferdig senere hvis den blir avbrutt
+    return this.synkroniser();
+  }
+
+  async _fullforFrakobling() {
+    const { uid } = this.bruker;
+    const t = hentTilstand();
+    const tid = t.frakobler;
+    if (t.rom?.startsWith('lag:')) {
+      const { frakobler, ...uten } = t;
+      lagreTilstand(uten);
+      throw appFeil('Forlat laget først.');
+    }
+    // Valget først, så de andre telefonene slutter å synkronisere før slettingene kommer
+    await this.tjeneste.lagreKonto(uid, { sky: false, frakoblet: tid });
+    const slettinger = this.markeringer.alle()
+      .filter((m) => m.id in t.kjent)
+      .map((m) => ({ id: m.id, data: { id: m.id, endret: tid, slettet: true } }));
+    if (slettinger.length) await this.tjeneste.lagre(`bruker:${uid}`, slettinger);
+    lagreTilstand({ uid, sky: false, kjent: {} });
+    this.naarLag?.(null);
+  }
+
   // ---------- Synkronisering ----------
 
   /** Markeringer og slettinger som er endret her siden de sist var i skyen. */
@@ -229,21 +366,16 @@ export class Sky {
     return dokumenter;
   }
 
-  /** Antall endringer på telefonen som ikke er lagret i skyen ennå. */
-  antallUsendte() {
-    return this._usendte().length;
-  }
-
   /**
-   * Synkroniser nå. Returnerer { hentet, sendt }, { feil: tekst } eller null hvis det ikke
-   * ble gjort (ikke innlogget eller uten nett). Pågår en synkronisering allerede, ventes
-   * det på den.
+   * Synkroniser nå. Returnerer { hentet, sendt }, { lokal: true } (kontoen er ikke koblet
+   * til skyen), { feil: tekst } eller null hvis det ikke ble gjort (ikke innlogget eller
+   * uten nett). Pågår en synkronisering allerede, ventes det på den.
    */
   synkroniser() {
     if (this._pagaende) return this._pagaende;
     if (!this.bruker) return Promise.resolve(null);
     if (!navigator.onLine) {
-      this.naarStatus({ tilstand: 'venter', tekst: 'Uten nett. Synkroniserer når du får nett.' });
+      if (this.koblet) this.naarStatus({ tilstand: 'venter', tekst: 'Uten nett. Synkroniserer når du får nett.' });
       return Promise.resolve(null);
     }
     clearTimeout(this._timer);
@@ -254,49 +386,18 @@ export class Sky {
   }
 
   async _synkroniser() {
-    this.naarStatus({ tilstand: 'pagar', tekst: 'Synkroniserer …' });
-    let resultat = null;
+    if (this.koblet) this.naarStatus({ tilstand: 'pagar', tekst: 'Synkroniserer …' });
+    let resultat = { lokal: true };
     try {
-      // 1. Hvilket lag er du med i?
-      await this._oppdaterLag();
-      const rom = this._rom();
-
-      // 2. Hent det som er endret i rommet siden sist
-      const tilstand = hentTilstand();
-      tilstand.sistHentet = sistHentet(tilstand);
-      const endringer = await this.tjeneste.hentEndringer(rom, tilstand.sistHentet);
-      const features = [];
-      const slettet = [];
-      for (const { id, data, oppdatert } of endringer) {
-        tilstand.kjent[id] = data.endret;
-        if (oppdatert && senere(oppdatert, tilstand.sistHentet)) tilstand.sistHentet = oppdatert;
-        if (data.slettet) {
-          slettet.push({ id, endret: data.endret });
-        } else {
-          const { lat, lon, slettet: _, ...egenskaper } = data;
-          features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: egenskaper });
-        }
+      if (hentTilstand().frakobler) {
+        await this._fullforFrakobling();
+      } else if (await this._sjekkKobling()) {
+        resultat = await this._utveksle();
       }
-      let hentet = 0;
-      if (endringer.length) {
-        const r = await this.markeringer.importer({ type: 'FeatureCollection', features, slettet });
-        hentet = r.nye + r.oppdaterte + r.slettet;
-      }
-      lagreTilstand(tilstand);
-
-      // 3. Send det som er endret her
-      const usendte = this._usendte();
-      if (usendte.length) {
-        await this.tjeneste.lagre(rom, usendte);
-        const etter = hentTilstand();
-        for (const { id, data } of usendte) etter.kjent[id] = data.endret;
-        lagreTilstand(etter);
-      }
-      lagreTilstand({ ...hentTilstand(), sist: new Date().toISOString(), feil: null });
+      lagreTilstand({ ...hentTilstand(), feil: null });
       this.naarStatus(this.statusTekst());
-      resultat = { hentet, sendt: usendte.length };
       // Endret mens synkroniseringen pågikk? (naarEndret overses da, se konstruktøren)
-      if (this._usendte().length) this.planlegg();
+      if (this.koblet && this._usendte().length) this.planlegg();
     } catch (feil) {
       console.error(feil);
       const tekst = feilTekst(feil);
@@ -304,31 +405,88 @@ export class Sky {
       if (feil?.code === 'permission-denied' || feil?.code === 'not-found') {
         lagreTilstand({ ...hentTilstand(), feil: tekst });
       }
-      this.naarStatus({ tilstand: 'feil', tekst: `Feil: ${tekst}` });
+      // Bare på telefonen: ikke vis at skyen var utilgjengelig (feil som varer, vises likevel)
+      this.naarStatus(this.koblet ? { tilstand: 'feil', tekst: `Feil: ${tekst}` } : this.statusTekst());
       resultat = { feil: tekst };
     }
     return resultat;
+  }
+
+  // Trinn 2–4: lag, hent og send
+  async _utveksle() {
+    // 2. Hvilket lag er du med i?
+    await this._oppdaterLag();
+    const rom = this._rom();
+
+    // 3. Hent det som er endret i rommet siden sist
+    const tilstand = hentTilstand();
+    tilstand.sistHentet = sistHentet(tilstand);
+    const nye = await this.tjeneste.hentEndringer(rom, tilstand.sistHentet);
+    const features = [];
+    const slettet = [];
+    for (const { id, data, oppdatert } of nye) {
+      if (oppdatert && senere(oppdatert, tilstand.sistHentet)) tilstand.sistHentet = oppdatert;
+      if (data.slettet && data.endret === this._frakoblet && this.markeringer.hent(id)) {
+        // Slettet da kontoen ble koblet fra skyen, men ligger her: telefonen vinner og
+        // sender den på nytt
+        delete tilstand.kjent[id];
+        continue;
+      }
+      tilstand.kjent[id] = data.endret;
+      if (data.slettet) {
+        slettet.push({ id, endret: data.endret });
+      } else {
+        const { lat, lon, slettet: _, ...egenskaper } = data;
+        features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: egenskaper });
+      }
+    }
+    let hentet = 0;
+    if (features.length || slettet.length) {
+      const r = await this.markeringer.importer({ type: 'FeatureCollection', features, slettet });
+      hentet = r.nye + r.oppdaterte + r.slettet;
+    }
+    lagreTilstand(tilstand);
+
+    // 4. Send det som er endret her
+    const usendte = this._usendte();
+    if (usendte.length) {
+      await this.tjeneste.lagre(rom, usendte);
+      const etter = hentTilstand();
+      for (const { id, data } of usendte) etter.kjent[id] = data.endret;
+      lagreTilstand(etter);
+    }
+    lagreTilstand({ ...hentTilstand(), sist: new Date().toISOString() });
+    return { hentet, sendt: usendte.length };
   }
 
   // ---------- Lag ----------
 
   /** Opprett et lag. Det du har, flyttes inn i laget. */
   async opprettLag(navn) {
-    await this.synkroniser(); // få med siste endringer i kontoen først
+    if (this.koblet) await this.synkroniser(); // få med siste endringer i kontoen først
     const lag = await this.tjeneste.opprettLag(this.bruker.uid, this.bruker.epost, navn);
-    this._byttRom(`lag:${lag.id}`, lag);
-    return this.synkroniser();
+    return this._gaInnILag(lag);
   }
 
   /** Bli med i laget med koden. Det du har, flyttes inn i laget, og du får lagets. */
   async blimedILag(kode) {
-    await this.synkroniser();
+    if (this.koblet) await this.synkroniser();
     const lag = await this.tjeneste.blimed(kode, this.bruker.uid, this.bruker.epost);
+    return this._gaInnILag(lag);
+  }
+
+  // Et lag ligger i skyen, så kontoen kobles til. Det som ligger på telefonen, sendes rett
+  // til laget, ikke til kontoen først.
+  async _gaInnILag(lag) {
+    if (!this.koblet) {
+      await this.tjeneste.lagreKonto(this.bruker.uid, { sky: true });
+      this._bliKoblet();
+    }
     this._byttRom(`lag:${lag.id}`, lag);
     return this.synkroniser();
   }
 
-  /** Forlat laget. Kontoen din får en kopi av lagets teiner og fangst. */
+  /** Forlat laget. Kontoen din får en kopi av lagets teiner og fangst, og er fortsatt koblet til skyen. */
   async forlatLag() {
     await this.synkroniser(); // få med siste endringer i laget først
     const lag = this.lag;
@@ -366,35 +524,27 @@ export class Sky {
   }
 
   /**
-   * Logg ut. Lagrer først det som ikke er sendt. Uten nett spør den om det skal
-   * kastes. Markeringene fjernes fra telefonen (de ligger i skyen).
-   * Returnerer false hvis brukeren angret.
+   * Logg ut. Teiner og fangst blir liggende på telefonen. Er kontoen koblet til skyen,
+   * sendes det som er endret, først. Uten nett sendes det når du logger inn igjen med
+   * samme konto.
    */
   async loggUt() {
-    await this.synkroniser();
-    const usendte = this.antallUsendte();
-    const hva = usendte === 1 ? '1 endring er' : `${usendte} endringer er`;
-    if (usendte && !this.bekreft(`${hva} ikke lagret i kontoen ennå (uten nett?). `
-      + 'Logger du ut nå, går det tapt. Logge ut likevel?')) {
-      return false;
-    }
+    if (this.koblet) await this.synkroniser();
     clearTimeout(this._timer);
     await this.innlogging.loggUt();
-    await this.markeringer.tomAlt();
-    lagreTilstand({ kjent: {} });
-    return true;
   }
 
   /**
-   * Slett kontoen og alt i kontoen. Er du med i et lag, går du ut av det (det du har
-   * registrert der, blir liggende). Markeringene på telefonen beholdes.
+   * Slett kontoen og alt i kontoen i skyen. Er du med i et lag, går du ut av det (det du
+   * har registrert der, blir liggende). Markeringene på telefonen beholdes.
    */
   async slettKonto(passord) {
-    const uid = this.bruker.uid;
+    const { uid } = this.bruker;
     await this.innlogging.bekreftPassord(passord);
     const lag = this.lag;
     if (lag) await this.tjeneste.fjernMedlem(lag.id, uid);
     await this.tjeneste.slettAlle(`bruker:${uid}`);
+    await this.tjeneste.slettKonto(uid);
     await this.innlogging.slettBruker();
     lagreTilstand({ kjent: {} });
   }

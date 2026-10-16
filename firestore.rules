@@ -3,6 +3,9 @@
 // Legges inn for hånd: Firebase-konsollen → Firestore Database → Rules → lim inn hele
 // filen → Publish. Endres de her, må de limes inn på nytt.
 //
+// brukere/{uid}                    kontoens valg: { sky: true/false, frakoblet, oppdatert }.
+//                                  Er kontoen ikke koblet til skyen, lagres teiner og fangst
+//                                  bare på telefonen. Bare brukeren selv.
 // brukere/{uid}/markeringer/{id}   brukerens egne markeringer. Bare brukeren selv.
 // lag/{kode}                       et lag: { navn, medlemmer: [uid], eposter: { uid: e-post }, opprettet,
 //                                  initialer: { uid: «BL» } }
@@ -40,6 +43,18 @@ service cloud.firestore {
         && (!('notat' in d) || d.notat == null || (d.notat is string && d.notat.size() <= 2000))
         && (!('registrert_av' in d) || d.registrert_av == null
             || (d.registrert_av is string && d.registrert_av.size() <= 128));
+    }
+
+    // Kontoens valg (sky.js). frakoblet er «endret» på slettingene fra da kontoen sist ble
+    // koblet fra skyen.
+    match /brukere/{uid} {
+      allow read, delete: if innlogget() && request.auth.uid == uid;
+      allow create, update: if innlogget() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['sky', 'frakoblet', 'oppdatert'])
+        && request.resource.data.sky is bool
+        && (request.resource.data.get('frakoblet', null) == null
+            || (request.resource.data.frakoblet is string && request.resource.data.frakoblet.size() <= 40))
+        && request.resource.data.oppdatert == request.time;
     }
 
     match /brukere/{uid}/markeringer/{id} {
