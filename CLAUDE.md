@@ -170,9 +170,13 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
   (notater). Se «Sikkerhet». Den er to SVG-er: teinenumrene (`.tl-numre`) og selve
   tidslinjen i `.tl-rull`, som med «Sesong» er minst `SESONG_PX_PER_DAG` per dag og
-  scrolles sideveis (`visKanter` toner ut kantene). `_tegn` beholder posisjonen når samme
-  periode tegnes på nytt (`_rullNokkel`). `dra-ned.js` lar en bevegelse som går mer til
-  siden enn ned, være scrolling, ellers ble arket dratt ned når tidslinjen ble scrollet.
+  scrolles sideveis (`kan-rulle`, `visKanter` toner ut kantene). 7 og 30 dager skal passe i
+  bredden og kan ikke scrolles. `_tegn` tegner på nytt hvis bredden endret seg (arkets
+  loddrette rullefelt på PC dukker opp først når tidslinjen er satt inn), og beholder
+  posisjonen når samme periode tegnes på nytt (`_rullNokkel`). Headless Chromium skjuler
+  rullefeltene: test slikt med `ignoreDefaultArgs: ['--hide-scrollbars']` i Playwright.
+  `dra-ned.js` lar en bevegelse som går mer til siden enn ned, være scrolling, ellers ble
+  arket dratt ned når tidslinjen ble scrollet.
 - Feltene i skyen og sikkerhetskopien (`FELT` i `markeringer.js`) er en kontrakt med
   `scripts/analyser_fangst.py`, `sikkerhetskopi.py` og brukerens analyser i GeoPandas.
   Ikke gi dem nye navn. Appen har ingen eksport lenger (fjernet sammen med Kartverkets

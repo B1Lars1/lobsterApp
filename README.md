@@ -587,7 +587,8 @@ Sjekk alltid gjeldende forskrift.
   - med **Sesong** får hver dag så god plass at prikkene ikke dekker hverandre, med dato
     hver andre dag. Tidslinjen blir da bredere enn skjermen: dra den sideveis for å se
     resten (teinenumrene og resten av arket står i ro). Årets sesong vises fra i dag og
-    bakover, en tidligere sesong fra 1. oktober. Kanten tones ut der det er mer å se.
+    bakover (minst den siste uken uten å scrolle), en tidligere sesong fra 1. oktober.
+    Kanten tones ut der det er mer å se. 7 og 30 dager passer alltid i bredden.
 
   Den regner på samme måte som analysen (se «Analyse av fangst»), som har flere detaljer.
   Mistede teiner er ikke med i fangstraten eller andelen som ga hummer.

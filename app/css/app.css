@@ -946,13 +946,15 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .tidslinje { display: flex; min-height: 60px; }
 .tidslinje svg { display: block; overflow: visible; }
 .tl-numre { flex: none; } /* teinenumrene står i ro når tidslinjen ved siden av scrolles */
-/* Selve tidslinjen: scrolles sideveis når den er bredere enn arket («Sesong», se oversikt.js).
-   Kanten tones ut der det er mer å se. */
+/* Selve tidslinjen. Bare «Sesong» (.kan-rulle) scrolles sideveis når den er bredere enn arket
+   (se oversikt.js). 7 og 30 dager passer alltid i bredden. Kanten tones ut der det er mer å se. */
 .tl-rull {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+}
+.tl-rull.kan-rulle {
   overflow-x: auto;
-  overflow-y: hidden;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
 }

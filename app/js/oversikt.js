@@ -221,7 +221,13 @@ export class Fangstoversikt {
       return;
     }
     const utenIPerioden = utenTeine.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
+    const bredde = this.tidslinje.clientWidth;
     this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden, laget);
+    // Fikk arket et loddrett rullefelt av tidslinjen (PC, ikke iPhone), er det smalere nå.
+    // Tegn på nytt, ellers blir 7 og 30 dager bredere enn arket.
+    if (this.tidslinje.clientWidth !== bredde) {
+      this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden, laget);
+    }
 
     // Tegnes samme periode på nytt (endringer, Mine/Laget), står tidslinjen der den var.
     // Ellers vises årets sesong fra i dag (helt til høyre), og en tidligere fra 1. oktober.
@@ -407,7 +413,7 @@ export class Fangstoversikt {
     }
 
     return `<svg class="tl-numre" viewBox="0 0 ${VENSTRE} ${hoyde}" width="${VENSTRE}" height="${hoyde}"
-      aria-hidden="true">${numre.join('')}</svg><div class="tl-rull"><svg viewBox="0 0 ${bredde} ${hoyde}"
+      aria-hidden="true">${numre.join('')}</svg><div class="tl-rull${periode.sesong ? ' kan-rulle' : ''}"><svg viewBox="0 0 ${bredde} ${hoyde}"
       width="${bredde}" height="${hoyde}" role="img" aria-label="Tidslinje for teinene i perioden">${deler.join('')}</svg></div>`;
   }
 }
