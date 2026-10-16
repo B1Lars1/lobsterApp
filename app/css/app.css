@@ -189,6 +189,15 @@ button {
   gap: 12px;
 }
 
+/* Synkroniseringsknappen øverst i kolonnen, litt atskilt fra zoomknappene. Vises bare når
+   kontoen er koblet til skyen. Merket viser endringer som ikke er sendt, eller «!» ved feil. */
+.rund-knapp[hidden] { display: none; }
+.rund-knapp.synk { margin-bottom: 8px; }
+.rund-knapp.synk[data-tilstand="pagar"] svg { animation: snurr 1s linear infinite; }
+.rund-knapp.synk .merke { background: var(--flate-tekst); color: var(--flate); }
+.rund-knapp.synk[data-tilstand="feil"] .merke { background: var(--darlig); color: #fff; }
+@keyframes snurr { to { transform: rotate(360deg); } }
+
 /* ---------- Store handlingsknapper nederst ---------- */
 
 .handlinger {

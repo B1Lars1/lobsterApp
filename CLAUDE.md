@@ -44,7 +44,7 @@ python scripts/lag_demodata.py --uid UID  # oppdiktede teiner og fangst til demo
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
 node tests/regnemaate.test.mjs          # fangstoversikten (oversikt.js) mot fasiten
 node tests/potensialjustering.test.mjs  # justeringen av hummerpotensialet etter fangsten
-node tests/sky.test.mjs                 # synkroniseringen: bare på telefonen, koble til/fra, lag, logg ut
+node tests/sky.test.mjs                 # synkroniseringen: bare på telefonen, koble til/fra, lag, logg ut, med en gang
 python -m unittest discover -s tests    # analysen (analyser_fangst.py) mot samme fasit, krever requirements.txt
 ```
 
@@ -106,7 +106,7 @@ sammen modulene. README har en tabell over hva hver fil gjør.
 `markeringer` som holder alle markeringer i minnet, lagrer hver endring i IndexedDB via
 `lager.js` og varsler lyttere med `naarEndret()`. Lytterne er `kartmarkeringer.js`
 (symbolene på kartet), `markeringsark.js` (arkene og listene), `oversikt.js`
-(fangstoversikten, når den er åpen), `sky.js` (synkronisering kort tid etter
+(fangstoversikten, når den er åpen), `sky.js` (synkronisering rett etter
 endringer) og merket på listeknappen i `app.js`.
 Endre data gjennom metodene i `Markeringer`, aldri direkte i IndexedDB.
 `personer.js` eksporterer `personer` (hvem du er, laget, initialer og farger). `app.js`
@@ -240,8 +240,17 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   batch tillater maks 20 slike oppslag. Derfor `BATCH_LAG = 15` i `firebase.js`.
 - Gratiskvoten (Spark) er 50 000 lesinger og 20 000 skrivinger i døgnet, og 1 GiB. Hver
   synkronisering koster minst 3 lesinger (kontoens valg, `finnLag` og spørringen, også når
-  ingenting er endret), og hver telefon leser tilbake sine egne endringer. Ikke synkroniser oftere, og
-  ikke les alt på nytt uten grunn. README («Hvor langt rekker gratisplanene?») har anslagene.
+  ingenting er endret), og hver telefon leser tilbake sine egne endringer. Hver lagret
+  endring synkroniseres med en gang (brukerens valg): `VENT_ETTER_ENDRING_MS` (0,5 s) er
+  bare for å samle endringene fra én handling, og `naarEndret` starter ingen synkronisering
+  når det ikke er noe å sende (`_usendte`, for eksempel når dybden fylles inn). Ikke
+  synkroniser oftere enn det, og ikke les alt på nytt uten grunn. README («Hvor langt
+  rekker gratisplanene?») har anslagene.
+- Synkroniseringsknappen på kartet (`#knapp-synk-kart`, `visSynkKnapp` i `app.js`) vises
+  bare når `sky.koblet`. Den oppdateres bare fra `naarStatus`, ikke `naarEndret`, så merket
+  (`sky.antallUsendte`, rødt eller «!» ved feil) ikke blinker for hver endring som sendes med
+  en gang. Bare trykk på knappen gir en melding (`synkTekst`, samme tekst som «Synkroniser
+  nå»): automatiske synkroniseringer ville skjult meldinger som «Teine 3 satt / Angre».
 - `naarEndret` overses mens en synkronisering pågår, ellers ville importen av det som
   hentes, starte en ny synkronisering i det uendelige. Endringer gjort underveis sendes
   rett etterpå.
@@ -419,8 +428,8 @@ bakgrunn, med nummeret som HTML oppå.
 ## Fallgruver
 
 - `hidden` virker ikke på et element som har `display` i `app.css` (for eksempel
-  `.segment`, `.eier-valg`). Legg til en regel `…[hidden] { display: none; }`, ellers
-  vises valget «Mine | Laget» også uten lag.
+  `.segment`, `.eier-valg`, `.rund-knapp`). Legg til en regel `…[hidden] { display: none; }`,
+  ellers vises valget «Mine | Laget» også uten lag.
 - Gi aldri Leaflet-markører (`.symbol`, `.gps-markor`) `position: relative`. Det
   overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
   symbolene før det. Det ga en feil der GPS-prikken og teinene havnet langt fra riktig

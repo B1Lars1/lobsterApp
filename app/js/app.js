@@ -36,7 +36,7 @@ import { dybdeFor, fangstSettinger, justeringTekst, lagJustering } from './poten
 import { visMelding } from './melding.js';
 import { FirebaseInnlogging, FirestoreTjeneste } from './firebase.js';
 import { Konto } from './konto.js';
-import { Sky } from './sky.js';
+import { Sky, synkTekst } from './sky.js';
 import { TidligereFangst } from './tidligere.js';
 
 // Området dybdedataene dekker (samme som BBOX_WGS84 i scripts/config.py).
@@ -428,9 +428,34 @@ function sporOmInnlogging(bruker) {
   }, 800);
 }
 
+// Synkroniseringsknappen på kartet: vises bare når kontoen er koblet til skyen, snurrer
+// mens synkroniseringen pågår, og har et merke med antall endringer som ikke er sendt (uten
+// nett), eller «!» når det gikk galt. Oppdateres bare når statusen endres, så merket ikke
+// blinker for hver endring som sendes med en gang.
+const synkKnapp = $('knapp-synk-kart');
+function visSynkKnapp(status) {
+  synkKnapp.hidden = !sky.koblet;
+  synkKnapp.dataset.tilstand = status.tilstand;
+  const usendte = status.tilstand === 'pagar' ? 0 : sky.antallUsendte;
+  const merke = synkKnapp.querySelector('.merke');
+  merke.textContent = usendte || '!';
+  merke.hidden = !usendte && status.tilstand !== 'feil';
+  synkKnapp.setAttribute('aria-label', `Synkroniser nå. ${status.tekst}`.trim());
+}
+
+// Trykk: synkroniser nå og si hvordan det gikk (pågår det allerede, ventes det på den)
+synkKnapp.addEventListener('click', async () => {
+  const r = await sky.synkroniser();
+  if (!r) visMelding('Uten nett. Synkroniserer når du får nett.', { ms: 4000 });
+  else if (r.feil) visMelding(`Feil: ${r.feil}`, { ms: 6000, fare: true });
+  else if (r.lokal) visMelding('Kontoen er koblet fra skyen. Teiner og fangst lagres bare på telefonen.', { ms: 5000 });
+  else visMelding(synkTekst(r), { ms: 3000 });
+});
+
 const sky = new Sky(markeringer, {
   naarStatus: (status) => {
     konto.visStatus(status);
+    visSynkKnapp(status);
     oppdaterDatainfo(); // også når kontoen er koblet til eller fra skyen
   },
   naarBruker: (bruker) => {
