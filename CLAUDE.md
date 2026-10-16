@@ -27,8 +27,9 @@ detalj. Denne filen er det en agent trenger i tillegg.
 ## Kommandoer
 
 Ingen byggesteg, ingen pakkehåndtering for JavaScript og ingen linter. Appen i `app/` er
-statiske filer. Testene i `tests/` sjekker bare at fangstoversikten og analysen regner som
-fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`). README viser kommandoene for Windows/PowerShell
+statiske filer. Testene i `tests/` sjekker at fangstoversikten og analysen regner som
+fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`), og
+regnestykket i `potensialjustering.js`. README viser kommandoene for Windows/PowerShell
 (`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
 
 ```bash
@@ -37,6 +38,7 @@ python scripts/lag_service_worker.py    # oppdater VERSJON og FILER i app/sw.js 
 python scripts/lag_ikoner.py            # app-ikonene (PNG) i app/ikoner/, krever bare Pillow
 python scripts/sjekk_miljo.py           # sjekk Python-pakkene og at data/private ignoreres av git
 node tests/regnemaate.test.mjs          # fangstoversikten (oversikt.js) mot fasiten
+node tests/potensialjustering.test.mjs  # justeringen av hummerpotensialet etter fangsten
 python -m unittest discover -s tests    # analysen (analyser_fangst.py) mot samme fasit, krever requirements.txt
 ```
 
@@ -75,7 +77,7 @@ Node finnes ikke på brukerens maskin, men i workflowen (og som regel hos agente
 Push til `main` som endrer `app/` starter `.github/workflows/publiser.yml`, som
 publiserer `app/` til GitHub Pages: <https://b1lars1.github.io/lobsterApp/>. Først sjekker
 den syntaksen (`node --check` på JS, modulene kopiert til `.mjs`, og `py_compile`), at
-`app/data/*` og manifestet er gyldig JSON, og kjører `tests/regnemaate.test.mjs`. Feiler
+`app/data/*` og manifestet er gyldig JSON, og kjører alle `tests/*.test.mjs`. Feiler
 noe, publiseres ingenting. Python-testen kjøres ikke der (den trenger GeoPandas).
 Telefonen får ny versjon neste gang appen åpnes med nett («Ny versjon av appen er
 klar» → «Last inn»). `gh` er ikke installert på brukerens maskin. Følg kjøringen med
@@ -292,6 +294,20 @@ fil i `app/data/`, kjør `lag_service_worker.py` før testing, ellers feiler ins
 av service workeren på den manglende filen. Skjær er tatt ut av `dybdetall.json` med vilje
 (brukeren syntes symbolene forstyrret kartet). Ikke legg dem til igjen uten at brukeren
 ber om det. De ligger fortsatt i GPKG-en (laget `skjer`).
+
+**Justert potensial** (`potensialjustering.js`): appen justerer hummerpotensialet etter
+teinesettingene (alle sesonger, hele laget, `fangstSettinger`) med et gamma-Poisson-anslag:
+`(FORVENTET[klasse] × MODELL_DOGN + hummer) / (MODELL_DOGN + teinedøgn)` per rute på 20 m,
+vektet med avstanden (fullt innen 50 m, ingenting etter 150 m). Kartet tegner bare ruter der
+klassen (`klasseFor`, også `svaert`) er en annen enn modellens: `dybdelag.js` klipper bort
+modellens flater der og fyller rutene (`settJustering`, `potSvaert` i paletten). `cellFor`
+gir alle ruter med merkbar endring, til teksten ved trykk i kartet. Regnes ut i `app.js`
+(`oppdaterJustering`) når dybdedataene og fredningsområdene er lastet, når valget endres,
+og kort tid etter endringer, men bare når de ferdige settingene er endret
+(`justeringNokkel`): med 2000 settinger tar det ca. 0,4 s med CPU 4× tregere. **Fangst skal aldri inn i den offentlige `hummerpotensial.geojson`** eller noe
+annet under `app/`: det ville vist alle hvor brukerne får hummer. Bare samlede tall (som
+`FORVENTET`) kan stå i koden. `tests/potensialjustering.test.mjs` tester regnestykket
+(stubber `L`, siden `dybdelag.js` trenger Leaflet).
 
 **Hummerpotensialet** (`lag_hummerpotensial.py`) er et anslag som brukeren justerer etter
 egen fangst: vektene og grensene står øverst i skriptet, og `analyser_fangst.py` leser

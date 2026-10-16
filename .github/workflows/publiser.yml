@@ -1,7 +1,7 @@
 # Publiserer appen (mappen app/) til GitHub Pages ved hver push til main som
 # endrer appen. Kan også startes for hånd under «Actions» → «Publiser appen» → «Run workflow».
 #
-# Før publisering sjekkes koden (syntaks, JSON og regnemåten i fangstoversikten, se tests/),
+# Før publisering sjekkes koden (syntaks, JSON og testene i tests/),
 # og fillisten og versjonen i app/sw.js oppdateres, så telefonen alltid henter den nye
 # versjonen (se scripts/lag_service_worker.py).
 
@@ -58,10 +58,11 @@ jobs:
           python -m py_compile scripts/*.py tests/*.py
           # Gyldig JSON i kartdataene og manifestet
           python -c "import json, pathlib; [json.loads(p.read_text(encoding='utf-8')) for p in [*pathlib.Path('app/data').iterdir(), pathlib.Path('app/manifest.webmanifest')]]"
-          # Fangstoversikten regner som fasiten i tests/ (eldre Node trenger flagget for ES-moduler i .js)
+          # Testene i tests/: fangstoversikten regner som fasiten, og justeringen av
+          # hummerpotensialet (eldre Node trenger flagget for ES-moduler i .js)
           FLAGG=""
           node --experimental-detect-module -e "" 2>/dev/null && FLAGG="--experimental-detect-module"
-          node $FLAGG tests/regnemaate.test.mjs
+          for test in tests/*.test.mjs; do node $FLAGG "$test"; done
 
       - name: Oppdater fillisten og versjonen i sw.js
         run: python scripts/lag_service_worker.py

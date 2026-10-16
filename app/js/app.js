@@ -13,6 +13,7 @@
  *   oversikt.js        fangstoversikten: nøkkeltall og tidslinje
  *   personer.js        hvem du er, og initialene og fargene til de andre i laget
  *   tidligere.js       fangst fra tidligere sesonger som eget kartlag
+ *   potensialjustering.js  hummerpotensialet justert etter egen fangst
  *
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
@@ -31,6 +32,7 @@ import { markeringer } from './markeringer.js';
 import { Markeringsark, formaterDybde } from './markeringsark.js';
 import { Fangstoversikt } from './oversikt.js';
 import { personer } from './personer.js';
+import { fangstSettinger, justeringTekst, lagJustering } from './potensialjustering.js';
 import { visMelding } from './melding.js';
 import { FirebaseInnlogging, FirestoreTjeneste } from './firebase.js';
 import { Konto } from './konto.js';
@@ -73,6 +75,8 @@ const dybdedata = lastDybdedata();
 let dybdelag = null; // lages når dataene er lastet
 let dybdeI = null;    // dybdeoppslag (lat, lon) => meter, når dataene er lastet
 let bunnI = null;     // bunnoppslag (lat, lon) => bunnhint
+let alleDybdedata = null; // alle dybdedataene (lastDybdedata().alt), når de er lastet
+let justering = null;     // hummerpotensialet justert etter fangsten, se oppdaterJustering()
 
 // Fredningsområder for hummer. Trykk på et område viser regler (arkene lages lenger ned).
 const fredning = new Fredning(kart, (omrade) => ark.visFredning(omrade));
@@ -204,16 +208,43 @@ kart.on('click', (e) => {
     const hvordan = hint.modellert ? 'modellert' : `kartlagt${hint.aar ? ` ${hint.aar}` : ''}`;
     deler.push(`${hint.navn} (${hvordan}): trolig ${hint.hard ? 'fjell og stein' : 'sand eller mudder'}`);
   }
-  if (potensial && innstillinger.visPotensial) {
+  // Har fangsten justert potensialet her, vises det justerte anslaget og hva det bygger på
+  const celle = innstillinger.visPotensial ? justering?.cellFor(e.latlng.lat, e.latlng.lng) : null;
+  if (celle) {
+    deler.push(justeringTekst(celle));
+  } else if (potensial && innstillinger.visPotensial) {
     deler.push(`${potensial === 'hoy' ? 'Høyt' : 'Middels'} hummerpotensial (anslag ut fra dybde, helning og tare)`);
   }
-  if (deler.length) visMelding(deler.join('. '), { ms: 5000 });
+  if (deler.length) visMelding(deler.join('. '), { ms: celle ? 8000 : 5000 });
 });
 
 // Langt trykk (eller høyreklikk på PC) i kartet: marker et valgfritt sted.
 kart.on('contextmenu', medKonto((e) => {
   if (!kartmarkeringer.flytter) ark.visVelgType(e.latlng);
 }));
+
+// Hummerpotensialet justert etter fangsten (potensialjustering.js). Regnes ut når
+// dybdedataene og fredningsområdene er lastet, når valget endres, og kort tid etter
+// endringer, men bare hvis de ferdige teinesettingene er endret (å sette en teine endrer
+// ingenting). Med flere års data tar det noen tidels sekunder. Bare på telefonen: den
+// offentlige filen med potensialet røres ikke.
+let justeringNokkel = null;
+function oppdaterJustering({ tving = false } = {}) {
+  if (!alleDybdedata) return;
+  const settinger = innstillinger.justerPotensial ? fangstSettinger(markeringer) : null;
+  const nokkel = JSON.stringify(settinger?.map((s) => [s.lat, s.lon, s.hummer, s.dogn]) ?? null);
+  if (!tving && nokkel === justeringNokkel) return;
+  justeringNokkel = nokkel;
+  justering = settinger
+    ? lagJustering(settinger, alleDybdedata, (lat, lon) => Boolean(fredning.omradeFor(lat, lon)))
+    : null;
+  dybdelag?.settJustering(justering);
+}
+let justeringTimer = null;
+markeringer.naarEndret(() => {
+  clearTimeout(justeringTimer);
+  justeringTimer = setTimeout(oppdaterJustering, 500);
+});
 
 // Antall teiner i sjøen vises som et merke på listeknappen.
 markeringer.naarEndret(() => {
@@ -271,6 +302,7 @@ $('knapp-innstillinger').addEventListener('click', () => {
   skjema.elements.visFredning.checked = innstillinger.visFredning;
   skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
   skjema.elements.visPotensial.checked = innstillinger.visPotensial;
+  skjema.elements.justerPotensial.checked = innstillinger.justerPotensial;
   konto.visStatus(sky.statusTekst());
   oppdaterDatainfo();
   $('knapp-hjemskjerm').hidden = !kanLeggesTil();
@@ -291,10 +323,13 @@ skjema.addEventListener('change', () => {
   innstillinger.visFredning = skjema.elements.visFredning.checked;
   innstillinger.visBunnhint = skjema.elements.visBunnhint.checked;
   innstillinger.visPotensial = skjema.elements.visPotensial.checked;
+  const justerFor = innstillinger.justerPotensial;
+  innstillinger.justerPotensial = skjema.elements.justerPotensial.checked;
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
   tidligere.settSynlig(innstillinger.visTidligere);
+  if (innstillinger.justerPotensial !== justerFor) oppdaterJustering();
   brukTema();
 });
 
@@ -406,6 +441,7 @@ fredning.last()
     kartmarkeringer.iFredning = (m) => m.kategori === 'teine' && Boolean(fredning.omradeFor(m.lat, m.lon));
     kartmarkeringer.tegn();
     visDybdeHer();
+    oppdaterJustering({ tving: true }); // uten ruter i fredningsområdene
   })
   .catch((feil) => console.error(feil));
 beOmVarigLagring(); // be nettleseren ikke slette appen og dataene ved lite plass
@@ -434,6 +470,8 @@ dybdedata.alt
     bunnI = lagBunnoppslag(data);
     markeringer.settDybdeoppslag(dybdeI);
     visDybdeHer();
+    alleDybdedata = data;
+    oppdaterJustering({ tving: true });
   })
   .catch((feil) => {
     console.error(feil);

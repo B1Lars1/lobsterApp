@@ -102,6 +102,8 @@ skrive dem. Hva appen lagrer om brukerne, står i `app/personvern.html`.
 - Det som kommer fra skyen, vises som tekst i appen, aldri som HTML, og id-er med andre
   tegn enn bokstaver, tall, `-` og `_` avvises (i appen og i tilgangsreglene). Et
   lagmedlem kan derfor ikke lure inn kode hos de andre.
+- Hummerpotensialet justeres etter fangsten bare på telefonen. Den offentlige
+  `hummerpotensial.geojson` inneholder ingenting fra fangsten.
 - `index.html` har en Content-Security-Policy: bare appens egne filer kan kjøre som
   script, og appen kan bare kontakte Firebase (Google). Skulle det likevel komme kode inn
   i siden, kjøres den ikke.
@@ -250,6 +252,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/oversikt.js` | Fangstoversikten: nøkkeltall og tidslinje for teinene (dine, eller laget) |
 | `js/personer.js` | Hvem som eier teinene i laget: initialer og farger |
 | `js/tidligere.js` | Kartlaget med fangst fra tidligere sesonger |
+| `js/potensialjustering.js` | Hummerpotensialet justert etter egen fangst (på telefonen) |
 | `js/melding.js` | Korte meldinger med «Angre» |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
@@ -386,6 +389,46 @@ anslaget treffer for din fangst, og kan brukes til å justere dem.
 
 Skriptet skriver også rutenettet med dybde, helning og poengsum til
 `data/processed/hummerpotensial.tif`. Det brukes av fangstanalysen.
+
+### Justert etter fangsten
+
+Der dere har fisket, vet dere mer enn modellen. Med **Juster potensialet etter fangsten**
+(i innstillingene, på som standard) justerer appen potensialet etter teinesettingene fra
+alle sesonger, også de andres i laget: en fangst øker det, en tom teine senker det litt.
+Det regnes ut på telefonen (`app/js/potensialjustering.js`). Den offentlige
+`hummerpotensial.geojson` røres ikke, ellers kunne hvem som helst sett hvor dere får hummer.
+
+Metoden er et vanlig statistisk anslag for fangstrate (gamma-Poisson):
+
+> anslag = (forventet × 10 + hummer) / (10 + teinedøgn)
+
+Modellen teller som 10 teinedøgn med den fangsten den forventer: 0,3 hummer per teinedøgn
+for høyt, 0,2 for middels og 0,1 for lavt (utenfor flatene). Egen fangst legges oppå.
+Hummer er sjelden per teinedøgn, så én hummer er et sterkt tegn på at det er hummer der,
+mens en tom teine er et svakt tegn på at det ikke er det. Derfor øker en fangst anslaget
+mer enn en tom teine senker det, uten egne tall for opp og ned. Eksempler for middels:
+
+| Teinene her | Anslag | Klasse |
+|---|---|---|
+| Ingen data | 0,20 | middels (som modellen) |
+| Én hummer på ett døgn | 0,27 (+36 %) | høyt |
+| Ett tomt døgn | 0,18 (−9 %) | middels |
+| Ti tomme døgn | 0,10 | lavt |
+| Tre hummer på ett døgn | 0,45 | svært høyt |
+
+Hver teinesetting teller fullt innen 50 m fra teinen og mindre utover, til ingenting ved
+150 m, fordi agnet trekker hummer fra en stund unna. Rutene er 20 × 20 m, som i modellen.
+Anslaget deles i de samme klassene som modellen (grenser midt mellom: 0,15 og 0,25), pluss
+**svært høyt** (fra 0,4, mørkere lilla) der fangsten har vært god. Kartet tegner bare rutene
+der klassen er en annen enn modellens. Trykk i kartet (zoom 15 og mer) for å se anslaget og
+hva det bygger på, også der klassen ikke er endret, for eksempel «Hummerpotensial etter
+fangsten: høyt (modellen: middels), ca. 0,27 per teinedøgn. 1 teinesetting innen 150 m ga
+1 hummer på 1,0 teinedøgn». Mistede teiner, teiner som står i sjøen og fangst uten teine er
+ikke med, og heller ikke fredningsområdene.
+
+Tallene (`FORVENTET`, `MODELL_DOGN` og `GRENSER` øverst i `potensialjustering.js`) er
+forsiktige startverdier. Når det er nok fangst, kan `FORVENTET` settes etter tabellen
+«Fangst etter hummerpotensial» fra `analyser_fangst.py` (kolonnen per teinedøgn).
 
 ## Fredningsområder og dybde
 
@@ -840,11 +883,13 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 
 Fangstoversikten i appen og analysen (`scripts/analyser_fangst.py`) skal regne likt.
 `tests/` har noen oppdiktede markeringer (`fangst_testdata.geojson`) og fasiten for dem
-(`fangst_fasit.json`), og begge testes mot den:
+(`fangst_fasit.json`), og begge testes mot den. `potensialjustering.test.mjs` sjekker at
+justeringen av hummerpotensialet regner som beskrevet over:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests   # analysen
 node tests/regnemaate.test.mjs                              # appen (krever Node, kjøres i workflowen)
+node tests/potensialjustering.test.mjs                      # justeringen av potensialet
 ```
 
 Endres regnemåten, må fasiten og begge stedene endres sammen.

@@ -32,6 +32,7 @@ export const PALETTER = {
     hardFyll: 'rgba(74, 112, 30, 0.16)', hardPrikk: 'rgba(60, 92, 20, 0.8)',
     blotFyll: 'rgba(240, 196, 40, 0.28)', blotKant: 'rgba(170, 125, 0, 0.9)',
     potHoy: 'rgba(156, 39, 176, 0.32)', potMiddels: 'rgba(156, 39, 176, 0.14)', potKant: 'rgba(120, 20, 140, 0.7)',
+    potSvaert: 'rgba(156, 39, 176, 0.5)', // «svært høyt», bare der fangsten har vært god
     tarekant: '#e8590c', tarekantHalo: 'rgba(255, 255, 255, 0.85)',
   },
   mork: {
@@ -45,6 +46,7 @@ export const PALETTER = {
     hardFyll: 'rgba(130, 180, 80, 0.14)', hardPrikk: 'rgba(160, 205, 110, 0.75)',
     blotFyll: 'rgba(240, 200, 60, 0.18)', blotKant: 'rgba(240, 200, 80, 0.85)',
     potHoy: 'rgba(214, 120, 235, 0.34)', potMiddels: 'rgba(214, 120, 235, 0.15)', potKant: 'rgba(225, 150, 245, 0.8)',
+    potSvaert: 'rgba(214, 120, 235, 0.52)',
     tarekant: '#ff8a3d', tarekantHalo: 'rgba(7, 17, 26, 0.85)',
   },
 };
@@ -135,8 +137,9 @@ const overlapper = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3
 // ---------- Romlig indeks ----------
 
 // Deler området i n×n ruter. Hvert objekt registreres i rutene det overlapper,
-// så et søk bare trenger å se på objektene i rutene flisa dekker.
-class Rutenett {
+// så et søk bare trenger å se på objektene i rutene flisa dekker. Objektene trenger bare
+// en bbox (brukes også av potensialjustering.js).
+export class Rutenett {
   constructor(objekter, n = 64) {
     this.objekter = objekter;
     this.n = n;
@@ -345,12 +348,24 @@ export const Dybdelag = L.GridLayer.extend({
     this.redraw();
   },
 
-  // Ta i bruk alle dataene (lastDybdedata().alt). Flisene som vises, tegnes på nytt der de
-  // er, én om gangen, så kartet ikke blinker eller fryser.
+  // Ta i bruk alle dataene (lastDybdedata().alt).
   settData(data) {
     this._data = data;
+    this._tegnPaaNytt();
+  },
+
+  // Hummerpotensialet justert etter fangsten (lagJustering i potensialjustering.js), eller
+  // null for bare modellen.
+  settJustering(justering) {
+    this._justering = justering;
+    this._tegnPaaNytt((z) => z >= POTENSIAL_ZOOM);
+  },
+
+  // Tegn flisene som vises på nytt der de er, én om gangen, så kartet ikke blinker eller
+  // fryser (redraw() fjerner dem først).
+  _tegnPaaNytt(gjelder = () => true) {
     for (const { el, coords } of Object.values(this._tiles ?? {})) {
-      setTimeout(() => this._tegnFlis(el, coords, el.width / FLIS), 0);
+      if (gjelder(coords.z)) setTimeout(() => this._tegnFlis(el, coords, el.width / FLIS), 0);
     }
   },
 
@@ -402,8 +417,25 @@ export const Dybdelag = L.GridLayer.extend({
       ctx.stroke();
     }
 
-    // 2b. Hummerpotensial (anslag): lilla flater under kurvene, sterkest der det er høyt
+    // 2b. Hummerpotensial (anslag): lilla flater under kurvene, sterkest der det er høyt.
+    // Der fangsten har justert anslaget (potensialjustering.js), klippes modellens flater
+    // bort, og rutene med det justerte anslaget tegnes i stedet.
     if (this.options.visPotensial && z >= POTENSIAL_ZOOM) {
+      const justert = this._justering?.celler.sok(t.bbox) ?? [];
+      // Rutens hjørner i piksler, rundet til hele skjermpiksler, så naborutene møtes uten sømmer
+      const hjorner = (c) => [c.bbox[0] * t.skala - t.ox, c.bbox[1] * t.skala - t.oy,
+        c.bbox[2] * t.skala - t.ox, c.bbox[3] * t.skala - t.oy].map((v) => Math.round(v * dpr) / dpr);
+      const rute = (c) => {
+        const [x0, y0, x1, y1] = hjorner(c);
+        ctx.rect(x0, y0, x1 - x0, y1 - y0);
+      };
+      if (justert.length) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, FLIS, FLIS);
+        for (const c of justert) rute(c);
+        ctx.clip('evenodd'); // alt unntatt rutene
+      }
       const flater = this._data.potensial.sok(t.bbox);
       for (const hoy of [false, true]) {
         const utvalg = flater.filter((o) => o.hoy === hoy);
@@ -416,6 +448,30 @@ export const Dybdelag = L.GridLayer.extend({
           ctx.lineWidth = 1;
           ctx.stroke();
         }
+      }
+      if (justert.length) {
+        ctx.restore();
+        // Samme farger som modellens flater, og sterkere for «svært høyt». Lavt: ingen farge.
+        for (const [klasse, farge] of [['middels', p.potMiddels], ['hoy', p.potHoy], ['svaert', p.potSvaert]]) {
+          const celler = justert.filter((c) => c.klasse === klasse);
+          if (!celler.length) continue;
+          ctx.beginPath();
+          for (const c of celler) rute(c);
+          ctx.fillStyle = farge;
+          ctx.fill();
+        }
+        // Strek rundt høyt potensial, som rundt modellens flater
+        ctx.beginPath();
+        for (const c of justert) {
+          const [x0, y0, x1, y1] = hjorner(c);
+          if (c.kanter.n) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); }
+          if (c.kanter.s) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); }
+          if (c.kanter.v) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); }
+          if (c.kanter.o) { ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); }
+        }
+        ctx.strokeStyle = p.potKant;
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
     }
 

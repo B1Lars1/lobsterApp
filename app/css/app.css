@@ -1139,9 +1139,11 @@ body.flyttemodus .handlinger { visibility: hidden; }
 /* Hummerpotensial og tarekant, samme farger som i dybdelag.js */
 .tegn.pot-hoy { background: rgba(156, 39, 176, 0.38); border-color: rgba(120, 20, 140, 0.7); }
 .tegn.pot-middels { background: rgba(156, 39, 176, 0.16); }
+.tegn.pot-svaert { background: rgba(156, 39, 176, 0.55); border-color: rgba(120, 20, 140, 0.7); }
 .tegn.tarekant { border: none; background: linear-gradient(transparent 7px, #e8590c 7px, #e8590c 12px, transparent 12px); }
 :root[data-tema="mork"] .tegn.pot-hoy { background: rgba(214, 120, 235, 0.4); border-color: rgba(225, 150, 245, 0.8); }
 :root[data-tema="mork"] .tegn.pot-middels { background: rgba(214, 120, 235, 0.18); }
+:root[data-tema="mork"] .tegn.pot-svaert { background: rgba(214, 120, 235, 0.55); border-color: rgba(225, 150, 245, 0.8); }
 /* Fangst fra tidligere sesonger, samme farger som i tidligere.js */
 .tegn.tidligere-med, .tegn.tidligere-uten { border: none; display: grid; place-items: center; }
 .tegn.tidligere-med::after, .tegn.tidligere-uten::after { content: ''; border-radius: 50%; box-sizing: border-box; }

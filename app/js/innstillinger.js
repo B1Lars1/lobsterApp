@@ -19,6 +19,7 @@ const STANDARD = {
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
+  justerPotensial: true, // juster hummerpotensialet etter fangsten (potensialjustering.js)
 };
 
 export function hentInnstillinger() {
