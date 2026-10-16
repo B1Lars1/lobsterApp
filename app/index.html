@@ -50,10 +50,17 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 6h11M9.5 12h11M9.5 18h11"/><circle cx="4.5" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>
         <span id="teine-antall" class="merke" hidden>0</span>
       </button>
-      <button id="knapp-innstillinger" class="rund-knapp" type="button" aria-label="Innstillinger">
-        <!-- Tannhjul med åtte tenner (tegnet for appen) -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M10.1 4.9L10.6 1.8L13.4 1.8L13.9 4.9L15.6 5.7L18.2 3.8L20.2 5.8L18.3 8.3L19.1 10.1L22.2 10.6L22.2 13.4L19.1 13.9L18.3 15.6L20.2 18.2L18.2 20.2L15.6 18.3L13.9 19.1L13.4 22.2L10.6 22.2L10.1 19.1L8.3 18.3L5.8 20.2L3.8 18.2L5.7 15.7L4.9 13.9L1.8 13.4L1.8 10.6L4.9 10.1L5.7 8.3L3.8 5.8L5.8 3.8L8.3 5.7Z"/><circle cx="12" cy="12" r="3.2"/></svg>
-      </button>
+      <div class="knappekolonne">
+        <button id="knapp-innstillinger" class="rund-knapp" type="button" aria-label="Innstillinger">
+          <!-- Tannhjul med åtte tenner (tegnet for appen) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M10.1 4.9L10.6 1.8L13.4 1.8L13.9 4.9L15.6 5.7L18.2 3.8L20.2 5.8L18.3 8.3L19.1 10.1L22.2 10.6L22.2 13.4L19.1 13.9L18.3 15.6L20.2 18.2L18.2 20.2L15.6 18.3L13.9 19.1L13.4 22.2L10.6 22.2L10.1 19.1L8.3 18.3L5.8 20.2L3.8 18.2L5.7 15.7L4.9 13.9L1.8 13.4L1.8 10.6L4.9 10.1L5.7 8.3L3.8 5.8L5.8 3.8L8.3 5.7Z"/><circle cx="12" cy="12" r="3.2"/></svg>
+        </button>
+        <!-- Kartlag: hva som vises på kartet (ark-kartlag) -->
+        <button id="knapp-kartlag" class="rund-knapp" type="button" aria-label="Kartlag">
+          <!-- Tre lag oppå hverandre (tegnet for appen) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 8.2 12 13.4l9.5-5.2Z"/><path d="m2.5 12.6 9.5 5.2 9.5-5.2"/><path d="m2.5 16.9 9.5 5.2 9.5-5.2" opacity=".55"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -127,14 +134,16 @@
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
     <div class="ark-topp">
       <h3 class="ark-tittel">Teiner i sjøen (<span data-tekst="antall">0</span>)</h3>
-      <button type="button" class="fare liten" data-handling="taOppAlle">Ta opp alle</button>
     </div>
-    <ul class="liste" data-liste="teiner"></ul>
+    <!-- Øverst, så den synes uten å scrolle forbi alle teinene -->
     <button type="button" id="knapp-oversikt" class="oversikt-knapp">
       <svg class="oversikt-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M3 5h10M8 12h11M5 19h7"/></svg>
       <span class="radtekst"><b>Fangstoversikt</b><small data-tekst="sesong"></small></span>
       <svg class="oversikt-pil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
     </button>
+    <ul class="liste" data-liste="teiner"></ul>
+    <!-- Brukes sjelden (ved sesongslutt), derfor under listen og uten ramme -->
+    <button type="button" class="tekstknapp fare-tekst" data-handling="taOppAlle">Ta opp alle</button>
     <details class="utvidbar" data-del="fangst" hidden>
       <summary><span>Fangstregistreringer (<span data-tekst="antallFangst">0</span>)</span></summary>
       <ul class="liste" data-liste="fangst"></ul>
@@ -250,6 +259,17 @@
     <button type="button" class="ferdig" data-handling="lukk">Ferdig</button>
   </dialog>
 
+  <!-- Spørsmål før noe som er vanskelig å angre (se bekreft.js) -->
+  <dialog id="ark-bekreft" class="ark">
+    <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+    <h3 class="ark-tittel" data-tekst="tittel"></h3>
+    <div class="bekreft-tekst" data-tekst="tekst"></div>
+    <div class="knapper avbryt-ferdig">
+      <button type="button" class="sekundar" data-handling="nei">Avbryt</button>
+      <button type="button" class="ferdig" data-handling="ja"></button>
+    </div>
+  </dialog>
+
   <!-- Veiledning: legg appen til på hjemskjermen (se hjemskjerm.js) -->
   <dialog id="ark-hjemskjerm" class="ark">
     <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
@@ -293,132 +313,266 @@
 
   <input type="file" id="velg-fil" accept=".geojson,.json,application/geo+json,application/json" hidden>
 
-  <!-- Innstillingsarket -->
-  <dialog id="lagvelger" class="ark">
+  <!-- Kartlag: hva som vises på kartet, med tegnforklaring (se app.js). Hvert lag er en rad
+       med bryter. Tegnforklaringen under navnet vises bare når laget er på, og «i» viser
+       forklaringen. -->
+  <dialog id="ark-kartlag" class="ark">
+    <form method="dialog">
+      <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
+      <h3 class="ark-tittel">Kartlag</h3>
+      <div id="tegnforklaring" class="tegnforklaring" role="img" aria-label="Dybde i meter"></div>
+
+      <div class="radkort">
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-dybdetall">
+              <span class="lag-ikon tall" aria-hidden="true">12</span>
+              <span class="lagnavn"><b>Dybdetall</b></span>
+            </label>
+            <button type="button" class="info" aria-controls="hjelp-dybdetall" aria-expanded="false" aria-label="Om dybdetallene"></button>
+            <input type="checkbox" class="bryter" role="switch" id="lag-dybdetall" name="dybdetall">
+          </div>
+          <p class="lag-hjelp" id="hjelp-dybdetall" hidden>Dybdetall i hele meter, rundet nedover som i
+            sjøkartet. Fete tall er grunner (grunneste punkt). Understreket tall er tørrfall over sjøkartnull.</p>
+        </div>
+      </div>
+
+      <h2>Teiner og fangst</h2>
+      <div class="radkort">
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-fangst">
+              <span class="lag-ikon" aria-hidden="true"><span class="symbol hummer"><span class="emoji">🦞</span></span></span>
+              <span class="lagnavn"><b>Fangst i sesongen</b></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-fangst" name="visFangst">
+          </div>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-opptatte">
+              <span class="lag-ikon" aria-hidden="true"><span class="symbol teine opptatt"></span></span>
+              <span class="lagnavn"><b>Teiner tatt opp</b></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-opptatte" name="visOpptatte">
+          </div>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-tidligere">
+              <span class="lag-ikon" aria-hidden="true"><i class="tegn tidligere-med"></i></span>
+              <span class="lagnavn"><b>Tidligere sesonger</b>
+                <span class="lag-forkl">
+                  <span><i class="tegn tidligere-med"></i>Ga hummer</span>
+                  <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
+                </span></span>
+            </label>
+            <button type="button" class="info" aria-controls="hjelp-tidligere" aria-expanded="false" aria-label="Om tidligere sesonger"></button>
+            <input type="checkbox" class="bryter" role="switch" id="lag-tidligere" name="visTidligere">
+          </div>
+          <p class="lag-hjelp" id="hjelp-tidligere" hidden>Teinene fra tidligere sesonger, også de andres i
+            laget. Større prikk betyr flere hummer. Trykk på en prikk for å se hva teinene der har gitt.</p>
+        </div>
+      </div>
+
+      <h2>Hummer og bunn</h2>
+      <div class="radkort">
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-potensial">
+              <span class="lag-ikon" aria-hidden="true"><i class="tegn pot-hoy"></i></span>
+              <span class="lagnavn"><b>Hummerpotensial</b>
+                <span class="lag-forkl">
+                  <span><i class="tegn pot-hoy"></i>Høyt</span>
+                  <span><i class="tegn pot-middels"></i>Middels</span>
+                  <span><i class="tegn tarekant"></i>Tarekant</span>
+                </span></span>
+            </label>
+            <button type="button" class="info" aria-controls="hjelp-potensial hjelp-juster" aria-expanded="false" aria-label="Om hummerpotensialet"></button>
+            <input type="checkbox" class="bryter" role="switch" id="lag-potensial" name="visPotensial">
+          </div>
+          <p class="lag-hjelp" id="hjelp-potensial" hidden>Et anslag ut fra forskning på hummer: mest på
+            10–30 m, gjerne i bratt terreng, på steinbunn med tare og der fjell møter sand. Høyt er 10–30 m
+            og bratt, gjerne med tare eller tarekant (der tareskog møter sand eller ålegras). Bølger og
+            strøm er ikke med. Vises når du zoomer inn. Din egen fangst sier mer over tid.</p>
+          <p class="lag-hjelp" id="hjelp-juster" hidden><b>Juster etter fangsten:</b> der dere har fisket,
+            justeres anslaget etter teinene, også de andres i laget. En fangst øker det, en tom teine senker
+            det litt. Jo flere teinedøgn, jo mer teller fangsten. Trykk i kartet (zoomet langt inn) for å se
+            anslaget og hva det bygger på.</p>
+        </div>
+        <!-- Justeringen tegnes bare når hummerpotensialet vises, så den er et underpunkt -->
+        <div class="lag under">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-juster">
+              <span class="lagnavn"><b>Juster etter fangsten</b><small class="nar-av">Slå på hummerpotensialet først</small>
+                <span class="lag-forkl"><span><i class="tegn pot-svaert"></i>Svært høyt der fangsten var god</span></span></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-juster" name="justerPotensial">
+          </div>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-bunnhint">
+              <span class="lag-ikon" aria-hidden="true"><i class="tegn hard"></i></span>
+              <span class="lagnavn"><b>Bunnhint</b><small>Tare, ålegras, skjellsand</small>
+                <span class="lag-forkl lang">
+                  <span><i class="tegn hard"></i>Tareskog – trolig fjell og stein</span>
+                  <span><i class="tegn blot"></i>Ålegras, skjellsand – trolig sand eller mudder</span>
+                </span></span>
+            </label>
+            <button type="button" class="info" aria-controls="hjelp-bunnhint" aria-expanded="false" aria-label="Om bunnhintene"></button>
+            <input type="checkbox" class="bryter" role="switch" id="lag-bunnhint" name="visBunnhint">
+          </div>
+          <p class="lag-hjelp" id="hjelp-bunnhint" hidden>Vises når du zoomer langt inn. Trykk i kartet for å
+            se hva som er der. Der det ikke står noe, er bunnen ukjent. Tareskog og skjellsand er modellert,
+            ikke kartlagt.</p>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-fredning">
+              <span class="lag-ikon" aria-hidden="true"><i class="tegn fredningstegn"></i></span>
+              <span class="lagnavn"><b>Fredningsområder</b><small>Trykk på et område for reglene</small></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-fredning" name="visFredning">
+          </div>
+        </div>
+      </div>
+
+      <button class="ferdig" value="lukk">Ferdig</button>
+    </form>
+  </dialog>
+
+  <!-- Innstillinger: konto, lag, sikkerhetskopi, tema og om appen. Undersidene (data-side)
+       vises én om gangen i samme ark (visSide i app.js). Kontoen og laget fylles inn av konto.js. -->
+  <dialog id="ark-innstillinger" class="ark">
     <form method="dialog">
       <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
 
-      <!-- Bare når siden er åpnet i nettleseren på en telefon (se hjemskjerm.js) -->
-      <button type="button" id="knapp-hjemskjerm" class="sekundar" hidden>Legg appen til på hjemskjermen</button>
+      <section data-side="hoved">
+        <h3 class="ark-tittel">Innstillinger</h3>
+        <!-- Bare når siden er åpnet i nettleseren på en telefon (se hjemskjerm.js) -->
+        <button type="button" id="knapp-hjemskjerm" class="sekundar" hidden>Legg appen til på hjemskjermen</button>
 
-      <h2>Kart</h2>
-      <label class="bryter"><input type="checkbox" name="dybdetall"> Vis dybdetall</label>
-
-      <h2>Dybde (meter)</h2>
-      <div id="tegnforklaring" class="tegnforklaring"></div>
-      <p class="hjelp">Dybdetall i hele meter, rundet nedover som i sjøkartet. Fete tall er
-        grunner (grunneste punkt). Understreket tall er tørrfall over sjøkartnull.</p>
-
-      <h2>Vis på kartet</h2>
-      <label class="bryter"><input type="checkbox" name="visFangst"> Hummerfangst i sesongen</label>
-      <label class="bryter"><input type="checkbox" name="visOpptatte"> Teiner tatt opp i sesongen</label>
-      <label class="bryter"><input type="checkbox" name="visTidligere"> Fangst fra tidligere sesonger</label>
-      <div class="bunnforklaring">
-        <span><i class="tegn tidligere-med"></i>Teinen ga hummer (større prikk: flere)</span>
-        <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
-      </div>
-      <p class="hjelp">Teinene fra tidligere sesonger, også de andres i laget. Trykk på en prikk
-        for å se hva teinene der har gitt.</p>
-      <label class="bryter"><input type="checkbox" name="visFredning"> Fredningsområder for hummer</label>
-      <label class="bryter"><input type="checkbox" name="visBunnhint"> Bunnhint: tare, ålegras og skjellsand</label>
-      <div class="bunnforklaring">
-        <span><i class="tegn hard"></i>Tareskog – trolig fjell og stein</span>
-        <span><i class="tegn blot"></i>Ålegras, skjellsand – trolig sand eller mudder</span>
-      </div>
-      <p class="hjelp">Vises når du zoomer langt inn. Trykk i kartet for å se hva som er der.
-        Der det ikke står noe, er bunnen ukjent. Tareskog og skjellsand er modellert, ikke kartlagt.</p>
-      <label class="bryter"><input type="checkbox" name="visPotensial"> Hummerpotensial (anslag)</label>
-      <div class="bunnforklaring">
-        <span><i class="tegn pot-hoy"></i>Høyt: 10–30 m og bratt, gjerne med tare eller tarekant</span>
-        <span><i class="tegn pot-middels"></i>Middels</span>
-        <span><i class="tegn tarekant"></i>Tarekant: der tareskog møter sand eller ålegras</span>
-      </div>
-      <p class="hjelp">Et anslag ut fra forskning på hummer: mest på 10–30 m, gjerne i bratt
-        terreng, på steinbunn med tare og der fjell møter sand. Bølger og strøm er ikke med.
-        Vises når du zoomer inn. Din egen fangst sier mer over tid.</p>
-      <label class="bryter"><input type="checkbox" name="justerPotensial"> Juster potensialet etter fangsten</label>
-      <div class="bunnforklaring">
-        <span><i class="tegn pot-svaert"></i>Svært høyt: der fangsten har vært god</span>
-      </div>
-      <p class="hjelp">Der dere har fisket, justeres anslaget etter teinene, også de andres i
-        laget: en fangst øker det, en tom teine senker det litt. Jo flere teinedøgn, jo mer
-        teller fangsten. Trykk i kartet (zoomet langt inn) for å se anslaget og hva det bygger på.</p>
-
-      <h2>Tema</h2>
-      <fieldset class="segment">
-        <legend class="skjult">Tema</legend>
-        <label><input type="radio" name="tema" value="auto">Auto</label>
-        <label><input type="radio" name="tema" value="lys">Lys</label>
-        <label><input type="radio" name="tema" value="mork">Mørk</label>
-      </fieldset>
-
-      <h2>Sikkerhetskopi</h2>
-      <p id="datainfo" class="hjelp"></p>
-      <!-- Når kontoen ikke er koblet til skyen: den eneste sikkerhetskopien (se app.js) -->
-      <button type="button" id="knapp-lagre-kopi" class="sekundar" hidden>Lagre kopi til fil</button>
-      <!-- Leser inn en kopi til fil, eller en fil fra sikkerhetskopien (se README) -->
-      <button type="button" id="knapp-importer" class="lenke">Gjenopprett fra fil</button>
-
-      <h2>Konto</h2>
-      <div class="konto">
-        <div data-vis="utlogget">
-          <p class="hjelp">Logg inn for å sette teiner og registrere fangst. Som standard lagres
-            de bare på telefonen, men du kan koble kontoen til skyen for sikkerhetskopi, flere
-            telefoner og lag. Uten innlogging kan du bare se på kartet.</p>
-          <button type="button" id="knapp-logg-inn" class="sekundar">Logg inn</button>
-        </div>
-        <div data-vis="innlogget" hidden>
-          <p class="hjelp">Logget inn som <b data-tekst="epost"></b>.</p>
-          <!-- Koblet til skyen eller bare på telefonen (se sky.js og konto.js) -->
-          <p class="hjelp" data-sky="lokal"><b>Bare på denne telefonen.</b> Teiner og fangst
-            sendes ikke til skyen, og det tas ingen sikkerhetskopi. Koble til skyen for å få
-            sikkerhetskopi og dem på alle telefonene dine, eller bli med i et lag.</p>
-          <p class="hjelp" data-sky="koblet" hidden><b>Koblet til skyen.</b> Teiner og fangst
-            lagres i skyen, med sikkerhetskopi, og synkroniseres med de andre telefonene dine.</p>
-          <div class="knapperad">
-            <button type="button" id="knapp-koble-til" class="sekundar" data-sky="lokal">Koble til skyen</button>
-            <button type="button" id="knapp-synk" class="sekundar" data-sky="koblet" hidden>Synkroniser nå</button>
-            <button type="button" id="knapp-logg-ut" class="sekundar">Logg ut</button>
-          </div>
-          <p id="skystatus" class="hjelp" data-tilstand="av"></p>
-          <button type="button" id="knapp-koble-fra" class="lenke" hidden>Koble fra skyen</button>
-
-          <h2>Lag</h2>
-          <div data-lag="uten">
-            <p class="hjelp">Del teiner og fangst med dem du fisker med. Alle i laget ser og kan
-              endre alt, som én felles logg. Det du har, flyttes inn i laget<span data-sky="lokal">,
-              og kontoen kobles til skyen</span>.</p>
-            <div class="knapperad">
-              <button type="button" id="knapp-opprett-lag" class="sekundar">Opprett lag</button>
-              <button type="button" id="knapp-bli-med" class="sekundar">Bli med i lag</button>
-            </div>
-          </div>
-          <div data-lag="med" hidden>
-            <p class="hjelp">Du er med i <b data-tekst="lagnavn"></b>. Alle i laget ser og kan endre
-              alle teiner og all fangst, men hver teine har en eier, og statistikken viser dine egne.
-              Del koden med dem som skal bli med.</p>
-            <div class="lagkode">
-              <span>Kode</span><b data-tekst="lagkode"></b>
-              <button type="button" id="knapp-del-kode" class="sekundar liten">Del koden</button>
-            </div>
-            <ul class="liste medlemmer" data-liste="medlemmer"></ul>
-            <div class="initialer">
-              <label class="felt smal">Dine initialer<input id="felt-initialer" maxlength="3" autocomplete="off"
-                autocapitalize="characters" spellcheck="false" placeholder="BL"></label>
-              <p class="hjelp" id="initialer-hjelp">Vises på teinene dine hos de andre i laget, og deres
-                teiner får hver sin farge på nummeret hos deg.</p>
-            </div>
-            <button type="button" id="knapp-forlat-lag" class="sekundar">Forlat laget</button>
-          </div>
-
-          <button type="button" id="knapp-slett-konto" class="fare liten">Slett kontoen</button>
-        </div>
+        <!-- Kontoen: åpner undersiden Konto, eller innloggingen når du ikke er logget inn -->
+        <button type="button" id="knapp-konto" class="kontokort">
+          <span class="avatar" data-tekst="avatar" aria-hidden="true"></span>
+          <span class="radtekst">
+            <b data-tekst="kontonavn">Logg inn</b>
+            <small class="kontostatus" data-tekst="kontostatus" data-tilstand="av">for å sette teiner og registrere fangst</small>
+          </span>
+        </button>
         <p id="kontomelding" class="hjelp"></p>
+
+        <!-- Ikke koblet til skyen: en kopi til fil er den eneste sikkerhetskopien (app.js) -->
+        <div id="kopivarsel" class="varselboks" hidden>
+          <p><b>Ingen sikkerhetskopi i skyen.</b> <span data-tekst="kopivarsel"></span></p>
+          <button type="button" class="sekundar" data-handling="lagreKopi">Lagre kopi til fil</button>
+        </div>
+
+        <div class="radkort">
+          <button type="button" class="menyrad" data-gaa="lag" data-vis="innlogget" hidden>
+            <b>Lag</b><span class="verdi" data-tekst="lagverdi"></span></button>
+          <button type="button" class="menyrad" data-gaa="kopi">
+            <b>Sikkerhetskopi</b><span class="verdi" data-tekst="kopiverdi"></span></button>
+        </div>
+
+        <h2>Utseende</h2>
+        <fieldset class="segment">
+          <legend class="skjult">Tema</legend>
+          <label><input type="radio" name="tema" value="auto">Auto</label>
+          <label><input type="radio" name="tema" value="lys">Lys</label>
+          <label><input type="radio" name="tema" value="mork">Mørk</label>
+        </fieldset>
+
+        <div class="radkort">
+          <button type="button" class="menyrad" data-gaa="om"><b>Om appen og kildene</b></button>
+          <a class="menyrad ekstern" href="personvern.html" target="_blank" rel="noopener"><b>Personvern</b></a>
+        </div>
+        <p class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>
+      </section>
+
+      <section data-side="konto" hidden>
+        <button type="button" class="tilbake" data-gaa="hoved">Innstillinger</button>
+        <h3 class="ark-tittel">Konto</h3>
+        <p class="hjelp">Logget inn som <b data-tekst="epost"></b>.</p>
+        <!-- Koblet til skyen eller bare på telefonen (se sky.js og konto.js) -->
+        <p class="hjelp" data-sky="lokal"><b>Bare på denne telefonen.</b> Teiner og fangst
+          sendes ikke til skyen, og det tas ingen sikkerhetskopi. Koble til skyen for å få
+          sikkerhetskopi og dem på alle telefonene dine, eller bli med i et lag.</p>
+        <p class="hjelp" data-sky="koblet" hidden><b>Koblet til skyen.</b> Teiner og fangst
+          lagres i skyen, med sikkerhetskopi, og synkroniseres med de andre telefonene dine.</p>
+        <div class="knapperad">
+          <button type="button" id="knapp-koble-til" class="sekundar" data-sky="lokal">Koble til skyen</button>
+          <button type="button" id="knapp-synk" class="sekundar" data-sky="koblet" hidden>Synkroniser nå</button>
+          <button type="button" id="knapp-logg-ut" class="sekundar">Logg ut</button>
+        </div>
+        <p id="skystatus" class="hjelp" data-tilstand="av"></p>
+
+        <h2>Sjelden brukt</h2>
+        <div class="radkort">
+          <button type="button" id="knapp-koble-fra" class="menyrad" data-sky="koblet" hidden>
+            <span class="radtekst"><b>Koble fra skyen</b><small data-tekst="kobleFra">Lagre bare på denne telefonen</small></span></button>
+          <button type="button" id="knapp-slett-konto" class="menyrad fare-rad"><b>Slett kontoen</b></button>
+        </div>
+      </section>
+
+      <section data-side="lag" hidden>
+        <button type="button" class="tilbake" data-gaa="hoved">Innstillinger</button>
+        <div data-lag="uten">
+          <h3 class="ark-tittel">Lag</h3>
+          <p class="hjelp">Del teiner og fangst med dem du fisker med. Alle i laget ser og kan
+            endre alt, som én felles logg. Det du har, flyttes inn i laget<span data-sky="lokal">,
+            og kontoen kobles til skyen</span>.</p>
+          <div class="knapperad">
+            <button type="button" id="knapp-opprett-lag" class="sekundar">Opprett lag</button>
+            <button type="button" id="knapp-bli-med" class="sekundar">Bli med i lag</button>
+          </div>
+        </div>
+        <div data-lag="med" hidden>
+          <h3 class="ark-tittel" data-tekst="lagnavn"></h3>
+          <p class="hjelp">Alle i laget ser og kan endre alle teiner og all fangst. Hver teine har en
+            eier, og statistikken viser dine. Del koden med dem som skal bli med.</p>
+          <div class="lagkode">
+            <span>Kode</span><b data-tekst="lagkode"></b>
+            <button type="button" id="knapp-del-kode" class="sekundar liten">Del koden</button>
+          </div>
+          <h2>Medlemmer</h2>
+          <!-- Trykk på et annet medlem for å fjerne det fra laget (se konto.js) -->
+          <ul class="liste medlemmer radkort" data-liste="medlemmer"></ul>
+          <h2>Dine initialer</h2>
+          <div class="initialer">
+            <label class="felt smal"><span class="skjult">Dine initialer</span><input id="felt-initialer" maxlength="3"
+              autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BL"></label>
+            <p class="hjelp" id="initialer-hjelp">Vises på teinene dine hos de andre i laget, og deres
+              teiner får hver sin farge på nummeret hos deg.</p>
+          </div>
+          <p id="lagmelding" class="hjelp"></p>
+          <button type="button" id="knapp-forlat-lag" class="tekstknapp fare-tekst">Forlat laget</button>
+        </div>
+      </section>
+
+      <section data-side="kopi" hidden>
+        <button type="button" class="tilbake" data-gaa="hoved">Innstillinger</button>
+        <h3 class="ark-tittel">Sikkerhetskopi</h3>
+        <p id="datainfo" class="hjelp"></p>
+        <!-- Når kontoen ikke er koblet til skyen: den eneste sikkerhetskopien (se app.js) -->
+        <button type="button" id="knapp-lagre-kopi" class="sekundar" hidden>Lagre kopi til fil</button>
+        <!-- Leser inn en kopi til fil, eller en fil fra sikkerhetskopien (se README) -->
+        <button type="button" id="knapp-importer" class="lenke">Gjenopprett fra fil</button>
+        <p class="hjelp">Gjenopprett leser inn en kopi du har lagret til fil, eller en fil fra
+          sikkerhetskopien. Det som er nyere på telefonen, beholdes.</p>
+      </section>
+
+      <section data-side="om" hidden>
+        <button type="button" class="tilbake" data-gaa="hoved">Innstillinger</button>
+        <h3 class="ark-tittel">Om appen og kildene</h3>
+        <p class="hjelp">Hummerkart Lillesand: dybdekart, hummerpotensial, teiner og fangst for
+          hummerfiske, også uten nett. Kartet er ikke godkjent for navigasjon.</p>
+        <p id="kildeinfo" class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>
         <p class="hjelp"><a href="personvern.html" target="_blank" rel="noopener">Personvern</a>:
           hva som lagres, og hvor.</p>
-      </div>
+      </section>
 
-      <p id="kildeinfo" class="kilde">Dybdedata: © Kartverket. Ikke godkjent for navigasjon.</p>
       <button class="ferdig" value="lukk">Ferdig</button>
     </form>
   </dialog>

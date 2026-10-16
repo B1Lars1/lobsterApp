@@ -66,7 +66,8 @@ Node finnes ikke på brukerens maskin, men i workflowen (og som regel hos agente
 - Uten innlogging kan ingenting lagres, og agenten kan ikke logge inn. Legg til
   `&utenkonto` for å teste teiner og fangst (virker bare på `localhost`, se `medKonto`).
 - Verifiser endringer i nettleseren med mobilstørrelse (ca. 375×812). Brukeren har
-  iPhone og bruker appen fra hjemskjermen.
+  iPhone og bruker appen fra hjemskjermen. Andre i laget kan ha Android: sjekk også
+  412×915 og en liten telefon (360×740) med en Android-`userAgent`.
 - Steng alltid localhost når du er ferdig: stopp testserveren (Ctrl+C, eller stopp
   launch-konfigurasjonen eller bakgrunnsprosessen) på alle porter du har brukt (8000, 8001
   osv.), og sjekk at porten er ledig igjen. På Linux/macOS treffer `pkill -f testserver.py`
@@ -146,7 +147,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
   personens farge (`personer.farge`, klassen `annen` med `--eier`) og initialene i navnet.
   Statistikken (oversikten, sesongtallet i teinelisten) viser bare dine (`erMin`), og
-  «Ta opp mine» tar bare opp dine.
+  «Ta opp alle mine» tar bare opp dine.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
   (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder, og fasiten i
@@ -350,6 +351,24 @@ som `{ sky: true }` hvis det mangler eller `sky` ikke er `true`, uten `frakoblet
 slettingene fra frakoblingen vinner over det en lånt telefon har liggende. Endres formatet
 på `brukere/{uid}` eller reglene for det, må nullstillingen følge med.
 
+**Kartlag og innstillinger** er to ark. `#ark-kartlag` (knappen `#knapp-kartlag` under
+tannhjulet) er det som brukes på sjøen: én `.lag` per kartlag med en bryter, der `name` er
+feltet i `innstillinger.js`, og `KARTLAG` i `app.js` leser og lagrer dem. Tegnforklaringen
+(`.lag-forkl`) vises bare når bryteren er på (`.lag:has(.bryter:checked)`), og «i» (`.info`)
+viser avsnittene i `aria-controls` (kan være flere id-er, se `visForklaring`).
+`justerPotensial` er sperret når `visPotensial` er av (`visJusterValg`), siden `dybdelag.js`
+bare tegner justeringen sammen med potensialet. Nytt kartlag: en ny `.lag` i arket og navnet
+i `KARTLAG`. `#ark-innstillinger` har hovedsiden og undersidene Konto, Lag, Sikkerhetskopi og
+Om appen som `<section data-side>` i samme ark (`visSide` i `app.js`, knapper med `data-gaa`,
+alltid hovedsiden når arket åpnes). Kontokortet (`#knapp-konto`) åpner Konto, eller
+innloggingen uten konto, og fylles av `konto.js` (`_visKontokort`, fra siste status fra
+`sky`). Svar på det man gjør, vises i arket selv (meldingene fra `melding.js` ligger under
+arket): `#skystatus` på Konto, `#lagmelding` på Lag og `#kontomelding` på hovedsiden. Det som
+er vanskelig å angre, står nederst på undersidene. Bryterne er `input.bryter role="switch"`
+uten nettleserens utseende, så de ser like ut i Safari og Chrome på Android. Kortene med rader
+er `.radkort` (ikke `li.gruppe`, overskriftene per person i teinelisten), med strek mellom
+radene som vises (`.ark .radkort > :not([hidden]) ~ *`).
+
 **Dybdekartet** (`dybdelag.js`) tegnes som canvas-fliser (`L.GridLayer`) fra
 GeoJSON-filene i `app/data/` med en romlig indeks, ikke som Leaflet-vektorlag, fordi
 dataene har flere hundre tusen koordinater. `dybdeoppslag.js` anslår dybde, bunnhint
@@ -428,7 +447,7 @@ bakgrunn, med nummeret som HTML oppå.
 ## Fallgruver
 
 - `hidden` virker ikke på et element som har `display` i `app.css` (for eksempel
-  `.segment`, `.eier-valg`, `.rund-knapp`). Legg til en regel `…[hidden] { display: none; }`,
+  `.segment`, `.eier-valg`, `.rund-knapp`, `.menyrad`, `.varselboks`, `.felt`, `.sammendrag`). Legg til en regel `…[hidden] { display: none; }`,
   ellers vises valget «Mine | Laget» også uten lag.
 - Gi aldri Leaflet-markører (`.symbol`, `.gps-markor`) `position: relative`. Det
   overstyrer Leaflets `absolute`, og hvert symbol blir forskjøvet med høyden av
@@ -437,13 +456,20 @@ bakgrunn, med nummeret som HTML oppå.
 - Ny fangst er et utkast (`_utkast` i `markeringsark.js`) til brukeren trykker «Ferdig».
   Først da kalles `markeringer.nyFangst()`. Lukkes arket på annen måte, forkastes den.
   Brukeren vil ikke at et feiltrykk skal bli liggende som en registrering. Et åpent
-  utkast finnes ikke i `markeringer`, så `naarEndret` må ikke lukke arket da.
+  utkast finnes ikke i `markeringer`, så `naarEndret` må ikke lukke arket da. I utkastet står
+  tidspunkt og teine på én linje (`.sammendrag`, oppdatert i `_visUtkastUndertekst`), og
+  «Endre» viser feltene. Underteksten nevner teinen som tas opp bare når den ikke står i
+  overskriften (`_utkastTittelTeine`).
 - Fangst registrert fra en teine får teinens posisjon og ligger under teinesymbolet
   på kartet (teiner har høyere z-indeks). Fangst må derfor kunne nås fra listene:
   teinearket og «Fangstregistreringer» i teinelisten (`_fangstRad` i `markeringsark.js`).
 - Arkene er `<dialog>` åpnet med `showModal()`. Alt utenfor, også meldingene fra
   `melding.js`, er da utilgjengelig. En knapp i en melding kan ikke trykkes mens et
   ark er åpent.
+- Spør aldri med `window.confirm()`: bruk `bekreft()` i `bekreft.js` (et ark oppå det som er
+  åpent, gir et Promise, knappen sier hva som skjer). `Sky` tar `bekreft` som parameter, og
+  svaret kan være et Promise (`app.js`) eller et vanlig svar (testene, standarden
+  `window.confirm`), så kall det med `await`.
 - iPhone: dobbelttrykk når ikke fram til Leaflet, så `dobbelttrykk.js` oppdager det
   selv. Langt trykk er Leaflets `contextmenu` (marker et valgfritt sted). Kartet og
   knappene har `user-select: none`, ellers merker iPhone nærmeste tekst ved langt trykk.
@@ -502,7 +528,8 @@ som er offentlig («Sikkerhet: hva er offentlig, og hva er beskyttet»). Hold de
   må passe `GYLDIG_ID` i `markeringer.js` (bokstaver, tall, `-`, `_`), ellers avvises de
   ved import. Samme regel står i `firestore.rules`. Navn fra laget (`personer.kortnavn`:
   initialer eller starten av e-posten) er også tekst fra skyen, så heller ikke `teinenavn()`
-  kan settes inn i en mal (overskriften i fangstarket settes med `textContent`).
+  kan settes inn i en mal (overskriften i fangstarket settes med `textContent`). Det samme
+  gjelder spørsmålene i `bekreft.js` (e-post og lagnavn): de settes med `textContent`.
 - `index.html` har Content-Security-Policy (meta-taggen øverst), og `personvern.html` en
   enklere. `script-src 'self'`: ingen script eller `onclick=` skrevet rett i HTML-en (temaet
   settes derfor av `js/tema.js`). `connect-src` tillater bare `*.googleapis.com` og

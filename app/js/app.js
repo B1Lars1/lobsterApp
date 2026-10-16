@@ -1,6 +1,6 @@
 /*
- * Hummerkart – hovedfil. Setter opp kartet, kartlagene, GPS-en, knappene og
- * innstillingsarket, og kobler sammen modulene:
+ * Hummerkart – hovedfil. Setter opp kartet, kartlagene, GPS-en, knappene, kartlagarket
+ * og innstillingsarket (med undersidene), og kobler sammen modulene:
  *   dybdelag.js        dybdekartet
  *   gps.js             posisjonen din
  *   markeringer.js     teiner og fangst (data, lagring, GeoJSON)
@@ -18,6 +18,7 @@
  * Leaflet (globalt objekt «L») lastes som vanlig <script> i index.html før denne filen.
  */
 
+import { bekreft } from './bekreft.js';
 import { Dybdelag, PALETTER, SONEGRENSER, lastDybdedata } from './dybdelag.js';
 import { dobbelttrykkForZoom } from './dobbelttrykk.js';
 import { draNedForALukke } from './dra-ned.js';
@@ -312,8 +313,14 @@ function oppdaterDatainfo() {
   const antall = `${iSjoen} ${iSjoen === 1 ? 'teine' : 'teiner'} i sjøen og ${fangst} `
     + (fangst === 1 ? 'fangstregistrering' : 'fangstregistreringer');
   // Kopi til fil når det ikke er noen sikkerhetskopi i skyen (også utlogget, før en annen
-  // konto logger inn på telefonen)
-  $('knapp-lagre-kopi').hidden = sky.koblet || !alle.length;
+  // konto logger inn på telefonen). Hovedsiden i innstillingene sier fra i en gul boks.
+  const bareHer = !sky.koblet && alle.length > 0;
+  $('knapp-lagre-kopi').hidden = !bareHer;
+  $('kopivarsel').hidden = !bareHer;
+  $('kopivarsel').querySelector('[data-tekst="kopivarsel"]').textContent =
+    `${antall[0].toUpperCase()}${antall.slice(1)} ligger bare her. Sist lagret kopi: ${sistKopiTekst()}.`;
+  innstillingsark.querySelector('[data-tekst="kopiverdi"]').textContent = sky.koblet ? 'I skyen'
+    : innstillinger.sistKopi ? `Sist ${sistKopiTekst()}` : alle.length ? 'Ingen kopi' : '';
   if (sky.koblet) {
     $('datainfo').textContent = `${antall}. ` +
       (sky.lag ? `Alt deles i laget «${sky.lag.navn}»` : 'Alt lagres i kontoen din i skyen') +
@@ -339,22 +346,32 @@ $('velg-fil').addEventListener('change', (e) => {
 
 // ---------- Innstillingsark ----------
 
-const innstillingsark = $('lagvelger');
+// Hovedsiden har kontoen, lag, sikkerhetskopi, tema og om appen. Konto, Lag, Sikkerhetskopi
+// og Om appen er undersider i samme ark: én <section data-side> vises om gangen, og
+// «‹ Innstillinger» går tilbake. Arket åpnes alltid på hovedsiden.
+const innstillingsark = $('ark-innstillinger');
 const skjema = innstillingsark.querySelector('form');
+let aapenSide = 'hoved';
+
+function visSide(navn, { animer = true } = {}) {
+  aapenSide = navn;
+  for (const side of innstillingsark.querySelectorAll('section[data-side]')) {
+    side.hidden = side.dataset.side !== navn;
+    side.classList.remove('inn');
+    if (!side.hidden && animer) {
+      void side.offsetWidth; // start animasjonen på nytt
+      side.classList.add('inn');
+    }
+  }
+  innstillingsark.scrollTop = 0;
+}
 
 $('knapp-innstillinger').addEventListener('click', () => {
   skjema.elements.tema.value = innstillinger.tema;
-  skjema.elements.dybdetall.checked = innstillinger.dybdetall;
-  skjema.elements.visFangst.checked = innstillinger.visFangst;
-  skjema.elements.visOpptatte.checked = innstillinger.visOpptatte;
-  skjema.elements.visTidligere.checked = innstillinger.visTidligere;
-  skjema.elements.visFredning.checked = innstillinger.visFredning;
-  skjema.elements.visBunnhint.checked = innstillinger.visBunnhint;
-  skjema.elements.visPotensial.checked = innstillinger.visPotensial;
-  skjema.elements.justerPotensial.checked = innstillinger.justerPotensial;
   konto.visStatus(sky.statusTekst());
   oppdaterDatainfo();
   $('knapp-hjemskjerm').hidden = !kanLeggesTil();
+  visSide('hoved', { animer: false });
   innstillingsark.showModal();
 });
 
@@ -363,28 +380,77 @@ $('knapp-hjemskjerm').addEventListener('click', () => {
   visHjemskjermVeiledning();
 });
 
-skjema.addEventListener('change', () => {
+// Kontokortet: undersiden Konto, eller innloggingen når du ikke er logget inn
+$('knapp-konto').addEventListener('click', () => {
+  if (sky.innlogget) visSide('konto');
+  else konto.vis('inn');
+});
+
+innstillingsark.addEventListener('click', (e) => {
+  // Trykk på den mørke bakgrunnen utenfor arket lukker det.
+  if (e.target === innstillingsark) {
+    innstillingsark.close();
+    return;
+  }
+  const side = e.target.closest('[data-gaa]')?.dataset.gaa;
+  if (side) visSide(side);
+  if (e.target.closest('[data-handling="lagreKopi"]')) lagreKopi();
+});
+
+skjema.addEventListener('change', (e) => {
+  if (e.target.name !== 'tema') return; // også initialene i laget sender «change» hit
   innstillinger.tema = skjema.elements.tema.value;
-  innstillinger.dybdetall = skjema.elements.dybdetall.checked;
-  innstillinger.visFangst = skjema.elements.visFangst.checked;
-  innstillinger.visOpptatte = skjema.elements.visOpptatte.checked;
-  innstillinger.visTidligere = skjema.elements.visTidligere.checked;
-  innstillinger.visFredning = skjema.elements.visFredning.checked;
-  innstillinger.visBunnhint = skjema.elements.visBunnhint.checked;
-  innstillinger.visPotensial = skjema.elements.visPotensial.checked;
+  lagreInnstillinger(innstillinger);
+  brukTema();
+});
+
+// ---------- Kartlag ----------
+
+// Arket med hva som vises på kartet, åpnes med knappen under tannhjulet. Navnene er feltene
+// i innstillingene (innstillinger.js) og i skjemaet.
+const kartlagark = $('ark-kartlag');
+const lagskjema = kartlagark.querySelector('form');
+const KARTLAG = ['dybdetall', 'visFangst', 'visOpptatte', 'visTidligere', 'visPotensial',
+  'justerPotensial', 'visBunnhint', 'visFredning'];
+
+// Justeringen etter fangsten tegnes bare sammen med hummerpotensialet (se dybdelag.js)
+function visJusterValg() {
+  lagskjema.elements.justerPotensial.disabled = !lagskjema.elements.visPotensial.checked;
+}
+
+$('knapp-kartlag').addEventListener('click', () => {
+  for (const navn of KARTLAG) lagskjema.elements[navn].checked = innstillinger[navn];
+  visJusterValg();
+  // Forklaringene er lukket hver gang arket åpnes
+  for (const info of kartlagark.querySelectorAll('.info')) visForklaring(info, false);
+  kartlagark.showModal();
+});
+
+kartlagark.addEventListener('click', (e) => {
+  if (e.target === kartlagark) {
+    kartlagark.close();
+    return;
+  }
+  const info = e.target.closest('.info');
+  if (info) visForklaring(info, info.getAttribute('aria-expanded') !== 'true');
+});
+
+// «i»: vis eller skjul forklaringen under laget (aria-controls kan ha flere avsnitt)
+function visForklaring(info, vis) {
+  info.setAttribute('aria-expanded', String(vis));
+  for (const id of info.getAttribute('aria-controls').split(' ')) $(id).hidden = !vis;
+}
+
+lagskjema.addEventListener('change', () => {
   const justerFor = innstillinger.justerPotensial;
-  innstillinger.justerPotensial = skjema.elements.justerPotensial.checked;
+  for (const navn of KARTLAG) innstillinger[navn] = lagskjema.elements[navn].checked;
+  visJusterValg();
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
   tidligere.settSynlig(innstillinger.visTidligere);
   if (innstillinger.justerPotensial !== justerFor) oppdaterJustering();
-  brukTema();
-});
-
-// Trykk på den mørke bakgrunnen utenfor arket lukker det.
-innstillingsark.addEventListener('click', (e) => {
-  if (e.target === innstillingsark) innstillingsark.close();
+  oppdaterKartlag();
 });
 
 function tegnTegnforklaring(tema) {
@@ -462,6 +528,8 @@ const sky = new Sky(markeringer, {
     innloggingKjent = true;
     personer.sett({ meg: bruker?.uid ?? null, lag: sky.lag });
     konto.visBruker(bruker);
+    // Logget ut (eller kontoen slettet): Konto og Lag gjelder ikke lenger
+    if (!bruker && ['konto', 'lag'].includes(aapenSide)) visSide('hoved');
     oppdaterDatainfo();
     sporOmInnlogging(bruker);
   },
@@ -469,6 +537,8 @@ const sky = new Sky(markeringer, {
     personer.sett({ lag }); // kartet, listene og oversikten tegnes på nytt med eierne
     konto.visLag(lag);
   },
+  // Telefonen har teiner og fangst fra en annen konto (sky.js forklarer hva som skjer)
+  bekreft: (tekst) => bekreft({ tittel: 'Annen konto på telefonen', tekst: [tekst], knapp: 'Fortsett', fare: true }),
   innlogging: new FirebaseInnlogging(),
   tjeneste: new FirestoreTjeneste(),
 });

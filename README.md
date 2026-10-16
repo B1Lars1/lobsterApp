@@ -261,10 +261,10 @@ Les filen inn slik:
 
 1. Start testserveren på port 8001 (`scripts\testserver.py 8001`), så demokontoen får egen
    lagring i nettleseren, og åpne <http://localhost:8001>.
-2. Logg inn på demokontoen (Innstillinger → Konto). Står det «Bare på denne telefonen»,
-   trykk **Koble til skyen**.
-3. Innstillinger → **Gjenopprett fra fil** → velg `data\private\demodata.geojson`.
-4. Vent til innstillingene viser «Synkronisert». Da ligger alt i demokontoen, og
+2. Logg inn på demokontoen (Innstillinger → **Logg inn** øverst). Står det «Bare på denne
+   telefonen», trykk på kontoen og **Koble til skyen**.
+3. Innstillinger → **Sikkerhetskopi** → **Gjenopprett fra fil** → velg `data\private\demodata.geojson`.
+4. Vent til kontoen øverst i innstillingene viser «synkronisert». Da ligger alt i demokontoen, og
    telefoner som logger inn der, får det.
 
 Innlesingen koster like mange skrivinger i Firestore som det er markeringer (kvoten er
@@ -301,7 +301,7 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 |---|---|
 | `index.html` | Skjermoppsett: kart, GPS-status, knapper og arkene |
 | `css/app.css` | Utseende, lys og mørk modus (fargevariabler øverst) |
-| `js/app.js` | Hovedfil: kart, kartlag, knapper, tema og innstillinger |
+| `js/app.js` | Hovedfil: kart, kartlag, knapper, tema, kartlagarket og innstillingsarket med undersidene |
 | `js/dybdelag.js` | Tegner dybdekartet, bunnhint og hummerpotensial som kartfliser |
 | `js/gps.js` | GPS-posisjon, nøyaktighetssirkel, fartsretning og «følg meg» |
 | `js/innstillinger.js` | Husker hva som vises på kartet, og tema i nettleseren |
@@ -315,18 +315,23 @@ Appen er ren HTML, CSS og JavaScript uten byggesteg. Leaflet og Firebase ligger 
 | `js/tidligere.js` | Kartlaget med fangst fra tidligere sesonger |
 | `js/potensialjustering.js` | Hummerpotensialet justert etter egen fangst (på telefonen) |
 | `js/melding.js` | Korte meldinger med «Angre» |
+| `js/bekreft.js` | Spørsmål før noe som er vanskelig å angre (koble fra skyen, forlate laget osv.) |
 | `js/dra-ned.js` | Lukker arkene når du drar dem ned |
 | `js/dobbelttrykk.js` | Dobbelttrykk med fingeren zoomer inn (iPhone) |
 | `js/hjemskjerm.js` | Veiledning for å legge appen til på hjemskjermen (iPhone og Android) |
 | `js/sky.js` | Konto, lag og synkronisering med skyen (Firebase) |
-| `js/konto.js` | Innlogging, kontoen og laget i innstillingsarket |
+| `js/konto.js` | Innlogging, kontokortet og undersidene Konto og Lag i innstillingsarket |
 | `js/firebase.js` | Kobling til Firebase (konfigurasjon, innlogging og databasen) |
 | `js/dybdeoppslag.js` | Anslår dybde, bunnhint og hummerpotensial i et punkt |
 | `js/fredning.js` | Fredningsområder for hummer: kartlag og sjekk av punkter |
 | `personvern.html` | Personvernerklæringen (lenke under Konto) |
 
-**Arkene** som kommer opp nedenfra (innstillinger, teineliste, detaljer) lukkes med
+**Arkene** som kommer opp nedenfra (kartlag, innstillinger, teineliste, detaljer) lukkes med
 «Ferdig», ved å trykke utenfor, eller ved å dra dem ned i håndtaket øverst.
+Før noe som er vanskelig å angre (koble til eller fra skyen, forlate laget, fjerne et medlem,
+ta opp alle teinene, bytte konto på telefonen), spør appen i et eget ark. Knappen sier hva
+som skjer («Koble fra skyen», «Forlat laget»), og **Avbryt**, trykk utenfor eller å dra arket
+ned gjør ingenting.
 
 **Kartet:** dra for å flytte, knip eller bruk + og − for å zoome. Dobbelttrykk
 (dobbeltklikk på PC) zoomer inn ett nivå der du trykker. På iPhone tas dobbelttrykket
@@ -334,8 +339,24 @@ hånd om av `js/dobbelttrykk.js`, siden Safari ikke sender det videre til Leafle
 trykk markerer et sted (se «Markeringer»). Tekst på kartet og knappene kan ikke merkes,
 så et langt trykk ikke merker for eksempel målestokken på iPhone.
 
-**Innstillinger** (tannhjulet øverst til høyre) har hva som vises på kartet, tema,
-sikkerhetskopi, konto og lag.
+**Kartlag** (knappen med tre lag under tannhjulet) velger hva som vises på kartet, med en
+bryter per lag: dybdetall, fangst i sesongen, teiner tatt opp, tidligere sesonger,
+hummerpotensial (med **Juster etter fangsten** som underpunkt, siden justeringen bare vises
+sammen med potensialet), bunnhint og fredningsområder. Øverst står fargene for dybden.
+Tegnforklaringen for et lag står under navnet når laget er på, og **i** viser en forklaring.
+
+**Innstillinger** (tannhjulet øverst til høyre) har det du sjelden trenger:
+
+- **Kontoen** øverst: initialene dine (eller første bokstav i e-posten), e-posten og om
+  kontoen er koblet til skyen («Koblet til skyen · synkronisert …» eller «Bare på denne
+  telefonen»). Trykk for undersiden **Konto** (koble til eller fra skyen, synkronisere, logge
+  ut og slette kontoen). Uten innlogging står det **Logg inn**.
+- En gul boks når teinene og fangsten bare ligger på telefonen, med **Lagre kopi til fil**.
+- **Lag** og **Sikkerhetskopi**, som åpner hver sin underside, **Utseende** (Auto, Lys,
+  Mørk) og **Om appen og kildene**.
+
+Undersidene åpnes i samme ark, og **‹ Innstillinger** øverst går tilbake. Det som er vanskelig
+å angre (koble fra skyen, slette kontoen, forlate laget), står nederst på undersidene.
 
 **Synkroniseringsknappen** (to piler i ring, over + og −) vises når kontoen er koblet til
 skyen, og synkroniserer med en gang (se «Konto»).
@@ -403,7 +424,7 @@ mudder (gult med stiplet kant). Tareskog og skjellsand er for det meste modeller
 
 Trykk i kartet for å se hva som er der (for eksempel «Tareskog (modellert):
 trolig fjell og stein»). Der det ikke står noe, er bunnen ukjent. Laget er av som
-standard. Slå det på i innstillingsarket (**Bunnhint: tare, ålegras og skjellsand**).
+standard. Slå det på under Kartlag (**Bunnhint**).
 
 ## Hummerpotensial
 
@@ -440,7 +461,7 @@ Inne i fredningsområdene for hummer vises verken potensial eller tarekant, side
 teiner er forbudt der. Når fredningsområdene oppdateres med `lag_fredningsomrader.py`,
 må `lag_hummerpotensial.py` kjøres på nytt etterpå.
 
-I appen (bryteren **Hummerpotensial** i innstillingsarket, fra zoom 14):
+I appen (bryteren **Hummerpotensial** under Kartlag, fra zoom 14):
 
 - Lilla flater: høyt (sterkere, med kant) og middels (svakere).
 - Oransje strek: tarekanten.
@@ -456,8 +477,8 @@ Skriptet skriver også rutenettet med dybde, helning og poengsum til
 
 ### Justert etter fangsten
 
-Der dere har fisket, vet dere mer enn modellen. Med **Juster potensialet etter fangsten**
-(i innstillingene, på som standard) justerer appen potensialet etter teinesettingene fra
+Der dere har fisket, vet dere mer enn modellen. Med **Juster etter fangsten**
+(under Hummerpotensial i Kartlag, på som standard) justerer appen potensialet etter teinesettingene fra
 alle sesonger, også de andres i laget: en fangst øker det, en tom teine senker det litt.
 Modellen teller fortsatt mest, og terrenget teller alltid. Det regnes ut på telefonen
 (`app/js/potensialjustering.js`). Den offentlige `hummerpotensial.geojson` røres ikke,
@@ -562,14 +583,15 @@ Sjekk alltid gjeldende forskrift.
   opp, var en annens: da settes den ut igjen som den andres teine (se «Lag»).
 - **Hummer her:** ett trykk åpner et ark for ny fangst der du er. Fangsten knyttes
   til nærmeste teine innenfor 50 m. Juster antall beholdt og satt ut med + og −, og
-  trykk **Ferdig** for å registrere den. Trykker du **Avbryt**, drar arket ned eller
+  trykk **Ferdig** for å registrere den. Tidspunktet og teinen står på én linje
+  («Nå · Teine 3»), og **Endre** viser feltene for dem. Trykker du **Avbryt**, drar arket ned eller
   trykker utenfor, registreres ingenting. Det samme gjelder «Hummer her» etter langt
   trykk i kartet.
 - **Fangst betyr at teinen er tatt opp:** registrerer du fangst fra en teine i sjøen,
   også 0 hummer når den var tom, markeres teinen som tatt opp og forsvinner fra
   kartet. Arket sier fra om det før du trykker Ferdig, og «Angre» angrer begge deler.
   Når du setter teinen ut igjen, trykker du **Sett teine**, og den får samme nummer.
-  Velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
+  Trykk **Endre** og velg **Fra teine: Ingen** hvis fangsten ikke kom fra en teine.
 - **Langt trykk i kartet** (høyreklikk på PC): marker et valgfritt sted.
 - **Trykk på en teine eller fangst:** se detaljer, endre nummer og notat (opptil 2000
   tegn), ta opp med fangst, melde teinen mistet, flytte eller slette.
@@ -580,10 +602,11 @@ Sjekk alltid gjeldende forskrift.
   **Satt** ved siden av nummeret. Endre det hvis du satte teinen uten å registrere den
   med en gang. Teinedøgn, fangstoversikten og analysen regnes fra dette tidspunktet.
   Et tidspunkt frem i tid godtas ikke (det gjelder også tidspunktet for fangst).
-- **Listeknappen** øverst viser teinene i sjøen med avstand og retning fra båten.
-  Tallet på knappen er antall teiner i sjøen. I et lag er listen delt: «Mine» først, så
-  de andre med initialene sine.
-- **Fangstoversikt** (knappen i teinelisten, under teinene) viser en enkel oversikt
+- **Listeknappen** øverst viser teinene i sjøen, sortert etter nummer, med avstand og
+  retning fra båten på linjen med navnet, og når den ble satt og dybden under. Tallet på
+  knappen er antall teiner i sjøen. I et lag er listen delt: «Mine» først, så de andre med
+  initialene sine.
+- **Fangstoversikt** (knappen øverst i teinelisten) viser en enkel oversikt
   over hummersesongen, 1. oktober–30. november. Velg de siste 7 eller 30 dagene eller
   hele sesongen. Datoer utenfor sesongen vises aldri: 30 dager tidlig i oktober
   begynner 1. oktober, og etter 30. november (og før 1. oktober) vises den siste
@@ -623,10 +646,11 @@ Sjekk alltid gjeldende forskrift.
 - **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
   med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
   og teinen tas opp (forsvinner fra kartet, men tas vare på i historikken). **Ta opp
-  alle** i listen tar opp alle teinene uten å registrere fangst, f.eks. ved sesongslutt.
-  I et lag heter knappen **Ta opp mine** og tar bare opp dine egne. **Slett** fjerner
+  alle** (under teinene i listen, med antallet) tar opp alle teinene uten å registrere
+  fangst, f.eks. ved sesongslutt.
+  I et lag heter knappen **Ta opp alle mine** og tar bare opp dine egne. **Slett** fjerner
   markeringen helt (for feil). Begge kan angres.
-- **Mistet teine** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
+- **Mistet** i teinearket: teinen er borte (tauet kuttet, drevet bort). Den regnes
   som tatt opp, men fangsten er ukjent, så den er ikke med i fangstraten, andelen med
   hummer eller analysen. Den blir stående på kartet, grå med et rødt «?», så du kan
   lete etter den. Finner du den, trykker du på den og **Funnet igjen**: da står den i
@@ -644,7 +668,7 @@ Sjekk alltid gjeldende forskrift.
 - **En annens teine i laget:** samme teine, men nummeret er farget (blått, grønt osv., én
   farge per person). Dine egne ser ut som før.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
-  når «Teiner tatt opp i sesongen» er slått på i innstillingene.
+  når «Teiner tatt opp» er slått på under Kartlag.
 - **Mistet teine:** samme grå teine med et rødt «?». Vises alltid, til den er funnet.
 - **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
   Stiplet kant betyr at alle ble satt ut igjen.
@@ -653,7 +677,7 @@ Sjekk alltid gjeldende forskrift.
   tusenvis av symboler og blitt tregt. Eldre fangst finnes i listen, i analysen og i
   laget «Fangst fra tidligere sesonger» (under). Teiner i sjøen og mistede teiner vises
   alltid.
-- **Fangst fra tidligere sesonger** (kan skrus av og på i innstillingene, av som standard):
+- **Fangst fra tidligere sesonger** (bryteren «Tidligere sesonger» under Kartlag, av som standard):
   hver teinesetting fra før sesongen som pågår, der teinen stod. En rød prikk med hvit kant
   betyr at teinen ga hummer (større prikk jo flere, opptil 4), og en hul grå ring at den
   ikke ga noe. Fangst uten teine er en rød prikk. Mistede teiner er ikke med. Teinene til
@@ -703,13 +727,13 @@ Lagkoden står i `sikkerhetskopi/lag.json`. Filene har disse feltene:
 | `registrert_av` | Intern bruker-id, tom uten konto. Teine: eieren (den som satte den, kan endres i teinearket). Fangst: den som registrerte den. Fangsten hører likevel til eieren av teinen den kom fra |
 | `mistet` | `true` hvis teinen er meldt mistet (teiner) |
 
-**Lagre kopi til fil** (under Sikkerhetskopi i innstillingene, når kontoen ikke er koblet
-til skyen) lager en slik fil med alle teinene og fangsten på telefonen
+**Lagre kopi til fil** (i den gule boksen i innstillingene og under Sikkerhetskopi, når
+kontoen ikke er koblet til skyen) lager en slik fil med alle teinene og fangsten på telefonen
 (`markeringer-ÅÅÅÅ-MM-DD.geojson`). På telefonen åpnes delingsarket, så du kan lagre den i
 Filer, sende den på e-post osv. På PC lastes den ned. Innstillingene viser når du sist
-lagret en kopi.
+lagret en kopi (i den gule boksen og ved Sikkerhetskopi).
 
-**Gjenopprett fra fil** (nederst under Sikkerhetskopi i innstillingene) leser inn en
+**Gjenopprett fra fil** (Innstillinger → Sikkerhetskopi) leser inn en
 slik fil, eller en fil fra sikkerhetskopien. Markeringer med samme id oppdateres bare hvis
 filen har en nyere versjon, så det er trygt å lese inn samme fil flere ganger. For å få
 tilbake noe som er slettet fra sikkerhetskopien, gjør du filen klar med `gjenopprett.py` i
@@ -717,7 +741,7 @@ det private repoet først (README der).
 
 ### Konto (bare på telefonen eller i skyen)
 
-Innstillinger → **Konto** → **Logg inn**, med e-post og passord. Uten innlogging kan du se
+Innstillinger → **Logg inn** (øverst), med e-post og passord. Uten innlogging kan du se
 kartet, dybdene, fredningsområdene og hummerpotensialet, men ikke lagre teiner og fangst.
 
 Kontoer kan ikke opprettes i appen. Den som driver appen, legger dem til i Firebase (se
@@ -729,12 +753,12 @@ ingen sikkerhetskopi, du kan ikke være med i et lag, og de kommer ikke på andr
 Mister eller bytter du telefon, eller fjerner appen fra hjemskjermen, er de borte. Bruk
 **Lagre kopi til fil** innimellom (se «Data i GeoPandas»).
 
-**Koble til skyen** (under Konto) lagrer alt også i kontoen i skyen (Google Firebase, i
+**Koble til skyen** (Innstillinger → Konto) lagrer alt også i kontoen i skyen (Google Firebase, i
 EU). Da tas det sikkerhetskopi (se under), og du får teinene og fangsten på alle telefonene
 du logger inn på. Å opprette eller bli med i et lag kobler også kontoen til skyen. Appen
 spør før den kobler til, og sier at sikkerhetskopien ligger hos den som driver appen.
 
-**Koble fra skyen** (under Konto, bare når du ikke er med i et lag) gjør det motsatte. Appen
+**Koble fra skyen** (nederst under Konto, bare når du ikke er med i et lag) gjør det motsatte. Appen
 advarer først: ingen lag, ingen sikkerhetskopi, ikke på andre telefoner. Alt i kontoen i
 skyen slettes, og telefonene beholder det de har. Eldre sikkerhetskopier blir liggende til
 den som driver appen sletter dem.
@@ -757,7 +781,7 @@ den som driver appen sletter dem.
   telefonen får nett igjen, og med en gang hver endring er lagret (etter et halvt sekund, så
   det som hører til samme handling, for eksempel fangsten og teinen som er tatt opp, sendes
   samlet). **Synkroniseringsknappen** på kartet (to piler i ring, over zoomknappene) og
-  **Synkroniser nå** i innstillingene gjør det med en gang og henter det de andre har
+  **Synkroniser nå** under Konto i innstillingene gjør det med en gang og henter det de andre har
   endret. Knappen vises bare når kontoen er koblet til skyen. Den snurrer mens
   synkroniseringen pågår, og et merke viser hvor mange endringer som ikke er sendt ennå
   (uten nett), rødt (eller «!») hvis det gikk galt. Trykker du på den, får du en melding om
@@ -789,7 +813,7 @@ telefonene, for eksempel at noen i laget sletter teiner, og mot at Firebase fors
 Skriptet, workflowen, oppsettet og hvordan du gjenoppretter står i README-en der.
 Klonen ligger i `data/private/hummerkart-data/` (aldri i dette repoet). Fangstanalysen
 leser kopien derfra, og **Gjenopprett fra fil** i innstillingene leser inn en fil fra den.
-Innstillingene viser hvor mye som er lagret, og om det deles i et lag. Kontoer som ikke er
+Innstillinger → Sikkerhetskopi viser hvor mye som er lagret, og om det deles i et lag. Kontoer som ikke er
 koblet til skyen, har ingenting i kopien. Der er **Lagre kopi til fil** sikkerhetskopien.
 
 Kopien tas med en tjenestekonto som bare kan lese. Nøkkelen ligger som en hemmelighet
@@ -820,7 +844,7 @@ Et lag er en **felles logg**: alle medlemmene ser og kan endre alle teiner og al
 som om dere har én felles app. Den ene kan ta opp teinen den andre satte. Hver teine har
 likevel en eier, med egne numre og egen statistikk (se under).
 
-1. **Opprett lag** (Innstillinger → Konto → Lag) og gi det et navn. Det du har, flyttes
+1. **Opprett lag** (Innstillinger → Lag) og gi det et navn. Det du har, flyttes
    inn i laget, og kontoen kobles til skyen hvis den ikke var det. Du får en kode på 8
    tegn, for eksempel `ABCD-EFGH`.
 2. **Del koden** sender en invitasjon med koden (melding, e-post osv.).
@@ -842,8 +866,8 @@ likevel en eier, med egne numre og egen statistikk (se under).
   «Laget» i fangstoversikten for alle, og tallene per person.
 - Teiner fra før dere hadde konto har ingen eier og står som «Ukjent». Gi dem en eier i
   teinearket.
-- Under Lag står medlemmene. **Fjern** tar noen ut av laget. **Forlat laget** tar deg
-  ut. Den som går ut eller blir fjernet, får en kopi av lagets teiner og fangst i sin
+- Under Lag står medlemmene. Trykk på en av de andre for **Fjern fra laget**. **Forlat
+  laget** (nederst) tar deg ut. Den som går ut eller blir fjernet, får en kopi av lagets teiner og fangst i sin
   egen konto, som fortsatt er koblet til skyen (**Koble fra skyen** hvis du vil ha dem bare
   på telefonen). Går det siste medlemmet, slettes laget og alt i det.
 - Koden er nøkkelen til laget: den som kjenner den, kan bli med. Del den bare med dem
