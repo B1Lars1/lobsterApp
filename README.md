@@ -277,7 +277,8 @@ fangstanalysen bruker fortsatt lagets fil.
 prøve å sette teiner og registrere fangst, men alt det slettes om natten, og demodata som
 er endret, flyttet eller slettet, settes tilbake. Ingen kan altså bruke demokontoen til sin
 egen fangst. Samtidig følger demodataene med i sesongen, så du slipper å lese dem inn på
-nytt. Går demokontoen inn i et lag, går den ut av det igjen om natten.
+nytt. Går demokontoen inn i et lag, går den ut av det igjen om natten, og trykker noen
+«Koble fra skyen» på den, kobles den til skyen igjen.
 
 Skriptet lager de samme markeringene (samme id-er) hver gang, og det er det nullstillingen
 bygger på. Kjør det på nytt senere i sesongen og les inn filen igjen, så fylles sesongen
