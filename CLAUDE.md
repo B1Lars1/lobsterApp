@@ -30,9 +30,10 @@ detalj. Denne filen er det en agent trenger i tillegg.
 
 Ingen byggesteg, ingen pakkehåndtering for JavaScript og ingen linter. Appen i `app/` er
 statiske filer. Testene i `tests/` sjekker at fangstoversikten og analysen regner som
-fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`), og
-regnestykket i `potensialjustering.js`. README viser kommandoene for Windows/PowerShell
-(`.\.venv\Scripts\python.exe`). På macOS/Linux er det `.venv/bin/python`.
+fasiten i `tests/fangst_fasit.json` (oppdiktede markeringer i `fangst_testdata.geojson`),
+sesongvalget i oversikten og regnestykket i `potensialjustering.js`. README viser
+kommandoene for Windows/PowerShell (`.\.venv\Scripts\python.exe`). På macOS/Linux er det
+`.venv/bin/python`.
 
 ```bash
 python scripts/testserver.py [port]     # appen på http://localhost:8000 (eller porten), uten mellomlagring
@@ -152,7 +153,10 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   per person og tidslinjen gruppert per person. Analysen viser det samme per person når
   flere har teiner i filen, og `--person` gir bare én persons teiner, som «Mine». Oversikten viser bare
   hummersesongen (1. oktober–30. november, `hummersesong()` i `oversikt.js`, som også
-  brukes til sesongtallet i teinelisten). Kartet viser fangst og opptatte teiner bare fra
+  brukes til sesongtallet i teinelisten). Under «Sesong» kan en tidligere sesong velges
+  (`sesongerMedData`, `sesongI`, `lagPeriode`): valget vises bare når hele laget har teiner
+  eller fangst fra en tidligere sesong, og `vis()` setter det tilbake til årets. 7 og 30
+  dager gjelder alltid sesongen som pågår. Kartet viser fangst og opptatte teiner bare fra
   `hummersesong().fra` (`_synlig` i `kartmarkeringer.js`), og teinelisten lager radene for
   tidligere sesonger først når de åpnes (`_eldreFangst`, `_apneSesonger` i
   `markeringsark.js`). Symbolene er HTML-elementer, så alt fra flere år ville gjort kartet

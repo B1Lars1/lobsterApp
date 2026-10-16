@@ -201,6 +201,11 @@
       <label><input type="radio" name="periode" value="30">30 dager</label>
       <label><input type="radio" name="periode" value="sesong">Sesong</label>
     </fieldset>
+    <!-- Under «Sesong»: årets eller en tidligere, når det finnes data fra tidligere sesonger -->
+    <label class="felt sesongvalg" data-sesongvalg hidden>
+      <span class="skjult">Sesong</span>
+      <select name="sesong"></select>
+    </label>
     <dl class="fakta nokkeltall">
       <div><dt>Hummer</dt><dd><b data-tekst="hummer"></b><small data-tekst="beholdt"></small></dd></div>
       <div><dt>Fangstrate</dt><dd><b data-tekst="rate"></b><small>hummer per teinedøgn</small></dd></div>

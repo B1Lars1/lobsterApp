@@ -4,6 +4,8 @@
  *
  * Bare hummersesongen vises: 1. oktober til og med 30. november. Perioden er alltid
  * innenfor sesongen som pågår, eller den siste som var (før 1. oktober: fjorårets).
+ * Med «Sesong» kan du også velge en tidligere sesong, hvis det finnes teiner eller fangst
+ * fra den. Årets er valgt hver gang oversikten åpnes.
  *
  * Samme regnemåte som scripts/analyser_fangst.py, men enklere (testet mot samme fasit i
  * tests/, se tests/regnemaate.test.mjs og tests/test_regnemaate.py):
@@ -115,7 +117,11 @@ const SESONG_SLUTT_MAANED = 11; // 1. desember, første dag etter sesongen
  */
 export function hummersesong(naa = Date.now()) {
   const d = new Date(naa);
-  const aar = d.getMonth() >= SESONG_START_MAANED ? d.getFullYear() : d.getFullYear() - 1;
+  return sesongI(d.getMonth() >= SESONG_START_MAANED ? d.getFullYear() : d.getFullYear() - 1);
+}
+
+/** Hummersesongen i et bestemt år: { aar, fra, til } som hummersesong(). */
+export function sesongI(aar) {
   return {
     aar,
     fra: new Date(aar, SESONG_START_MAANED, 1).getTime(),
@@ -124,11 +130,32 @@ export function hummersesong(naa = Date.now()) {
 }
 
 /**
+ * Sesongene som kan velges, nyeste først: den som pågår (eller den siste), og de tidligere
+ * med minst én teinesetting eller fangst innenfor 1. oktober–30. november.
+ */
+export function sesongerMedData(settinger, fangst, naa) {
+  const siste = hummersesong(naa).aar;
+  let forste = siste;
+  for (const ms of [...settinger.map((t) => t.fra), ...fangst.map((f) => f.ms)]) {
+    if (Number.isFinite(ms)) forste = Math.min(forste, new Date(ms).getFullYear());
+  }
+  const aarListe = [siste];
+  for (let aar = siste - 1; aar >= forste; aar--) {
+    const { fra, til } = sesongI(aar);
+    if (settinger.some((t) => t.til > fra && t.fra < til) || fangst.some((f) => f.ms >= fra && f.ms < til)) {
+      aarListe.push(aar);
+    }
+  }
+  return aarListe;
+}
+
+/**
  * Perioden som vises: hele dager innenfor sesongen, til og med i dag (eller 30. november
  * når sesongen er over). 7 og 30 dager er de siste dagene, men aldri før 1. oktober.
+ * «Sesong» er hele sesongen i året aar (årets hvis det ikke er oppgitt).
  */
-function lagPeriode(valg, naa) {
-  const sesong = hummersesong(naa);
+export function lagPeriode(valg, naa, aar = hummersesong(naa).aar) {
+  const sesong = valg === 'sesong' ? sesongI(aar) : hummersesong(naa);
   const til = Math.min(dagerFra(midnatt(naa), 1), sesong.til);
   const fra = valg === 'sesong' ? sesong.fra : Math.max(dagerFra(til, -Number(valg)), sesong.fra);
   return { fra, til, aar: sesong.aar, over: naa >= sesong.til, sesong: valg === 'sesong' };
@@ -139,6 +166,7 @@ export class Fangstoversikt {
     this.markeringer = markeringer;
     this.ark = document.getElementById('ark-oversikt');
     this.tidslinje = this.ark.querySelector('[data-tidslinje]');
+    this.sesongvalg = this.ark.querySelector('select[name="sesong"]');
 
     this.ark.addEventListener('click', (e) => {
       if (e.target === this.ark || e.target.closest('[data-handling="lukk"]')) this.ark.close();
@@ -156,6 +184,7 @@ export class Fangstoversikt {
   }
 
   vis() {
+    this.sesongvalg.value = String(hummersesong().aar); // årets sesong hver gang oversikten åpnes
     this.ark.showModal();
     this._tegn(); // etter showModal, så bredden på tidslinjen er kjent
   }
@@ -169,7 +198,7 @@ export class Fangstoversikt {
     const medtas = (x) => laget || x.gruppe === personer.meg;
 
     const { settinger, fangst, utenTeine } = lagSettinger(this.markeringer.alle(), naa, (m) => this.markeringer.eierAv(m));
-    const periode = lagPeriode(valg, naa);
+    const periode = lagPeriode(valg, naa, this._tegnSesongvalg(valg, settinger, fangst, naa));
     const iPerioden = settinger.filter((s) => medtas(s) && s.til > periode.fra && s.fra < periode.til);
     const fangstIPerioden = fangst.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
 
@@ -185,6 +214,20 @@ export class Fangstoversikt {
     }
     const utenIPerioden = utenTeine.filter((f) => medtas(f) && f.ms >= periode.fra && f.ms < periode.til);
     this.tidslinje.innerHTML = this._svg(periode, naa, iPerioden, utenIPerioden, laget);
+  }
+
+  // Valget av sesong under «Sesong», bare når det finnes data fra tidligere sesonger (hele
+  // laget, så listen ikke endres med Mine/Laget). Gir året som er valgt.
+  _tegnSesongvalg(valg, settinger, fangst, naa) {
+    const aarListe = sesongerMedData(settinger, fangst, naa);
+    const valgt = Number(this.sesongvalg.value) || aarListe[0];
+    if (this.sesongvalg.dataset.aar !== aarListe.join()) {
+      this.sesongvalg.dataset.aar = aarListe.join();
+      this.sesongvalg.replaceChildren(...aarListe.map((aar) => new Option(`Sesongen ${aar}`, aar)));
+      this.sesongvalg.value = String(aarListe.includes(valgt) ? valgt : aarListe[0]);
+    }
+    this.ark.querySelector('[data-sesongvalg]').hidden = valg !== 'sesong' || aarListe.length < 2;
+    return valg === 'sesong' ? Number(this.sesongvalg.value) : aarListe[0];
   }
 
   _tegnTall(periode, tall) {

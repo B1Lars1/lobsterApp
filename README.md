@@ -568,6 +568,10 @@ Sjekk alltid gjeldende forskrift.
   hele sesongen. Datoer utenfor sesongen vises aldri: 30 dager tidlig i oktober
   begynner 1. oktober, og etter 30. november (og før 1. oktober) vises den siste
   sesongen. Tallet på knappen («Sesongen 2026: …») gjelder også bare sesongen.
+  Under **Sesong** kan du også velge en tidligere sesong i listen under valget
+  («Sesongen 2025» osv.). Listen vises når det finnes teiner eller fangst fra en tidligere
+  sesong (også de andres i laget), og årets sesong er valgt hver gang oversikten åpnes.
+  7 og 30 dager gjelder alltid sesongen som pågår.
   Oversikten og tallet på knappen viser bare dine teiner og fangsten fra dem (også fangst
   en annen i laget registrerte fra teinen din). I et lag kan du velge **Mine** eller
   **Laget** øverst. «Laget» viser tallene for alle, en tabell med de samme tallene per
@@ -960,7 +964,8 @@ Publisering kan også startes for hånd: **Actions → Publiser appen → Run wo
 
 Fangstoversikten i appen og analysen (`scripts/analyser_fangst.py`) skal regne likt.
 `tests/` har noen oppdiktede markeringer (`fangst_testdata.geojson`) og fasiten for dem
-(`fangst_fasit.json`), og begge testes mot den. `potensialjustering.test.mjs` sjekker at
+(`fangst_fasit.json`), og begge testes mot den. `regnemaate.test.mjs` sjekker også hvilke
+sesonger som kan velges i fangstoversikten. `potensialjustering.test.mjs` sjekker at
 justeringen av hummerpotensialet regner som beskrevet over:
 
 ```powershell

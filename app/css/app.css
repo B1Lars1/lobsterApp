@@ -887,6 +887,23 @@ h3.ark-tittel { margin: 0; font-size: 22px; }
 .oversikt-pil { width: 20px; height: 20px; flex: none; color: var(--dempet); }
 
 #ark-oversikt .segment { margin-bottom: 12px; }
+/* Valget av sesong under «Sesong»: uten nettleserens utseende (Safari på iPhone tegner det
+   ellers på sin egen måte), med en pil i tekstfargen så den følger temaet */
+#ark-oversikt .sesongvalg { position: relative; margin: -4px 0 12px; }
+.sesongvalg select { -webkit-appearance: none; appearance: none; padding-right: 48px; }
+.sesongvalg::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 22px;
+  width: 9px;
+  height: 9px;
+  border: solid var(--flate-tekst);
+  border-width: 0 3px 3px 0;
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
+}
+.sesongvalg[hidden] { display: none; }
 .nokkeltall dd b {
   display: block;
   font-size: 26px;
