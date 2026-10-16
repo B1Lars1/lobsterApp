@@ -624,7 +624,7 @@ Sjekk alltid gjeldende forskrift.
   tusenvis av symboler og blitt tregt. Eldre fangst finnes i listen, i analysen og i
   laget «Fangst fra tidligere sesonger» (under). Teiner i sjøen og mistede teiner vises
   alltid.
-- **Fangst fra tidligere sesonger** (kan skrus av og på i innstillingene, på som standard):
+- **Fangst fra tidligere sesonger** (kan skrus av og på i innstillingene, av som standard):
   hver teinesetting fra før sesongen som pågår, der teinen stod. En rød prikk med hvit kant
   betyr at teinen ga hummer (større prikk jo flere, opptil 4), og en hul grå ring at den
   ikke ga noe. Fangst uten teine er en rød prikk. Mistede teiner er ikke med. Teinene til

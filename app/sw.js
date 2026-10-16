@@ -17,7 +17,7 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '7a47be743a9e';
+const VERSJON = 'd9558b3d67fc';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
   './': 'a779b5db917f',
@@ -50,7 +50,7 @@ const FILER = {
   'js/fredning.js': 'a01071ad418e',
   'js/gps.js': '4a09b6aae3f5',
   'js/hjemskjerm.js': '0b74cec06010',
-  'js/innstillinger.js': '3a25fee88b50',
+  'js/innstillinger.js': 'c460a4dc9d44',
   'js/kartmarkeringer.js': '5f250f881e5b',
   'js/konto.js': 'd4d1a483fc94',
   'js/lager.js': 'aff648d08146',

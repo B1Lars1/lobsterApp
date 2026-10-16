@@ -395,9 +395,9 @@ bakgrunn, med nummeret som HTML oppå.
 - `app.js` holder innstillingene (`innstillinger.js`) i minnet og lagrer hele objektet
   ved hver endring. Derfor gjelder en ny standardverdi bare nye brukere. Skal den også
   gjelde dem som har brukt appen før, øk `VERSJON` i `innstillinger.js` og flytt verdien i
-  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2). Andre moduler som
-  husker noe i `localStorage`, bruker egen nøkkel (som `hummerkart.sky`), ellers blir
-  verdien overskrevet når innstillingene lagres.
+  `hentInnstillinger()` (slik bunnhint ble slått av i versjon 2, og fangst fra tidligere
+  sesonger i versjon 3). Andre moduler som husker noe i `localStorage`, bruker egen nøkkel
+  (som `hummerkart.sky`), ellers blir verdien overskrevet når innstillingene lagres.
 - Veiledningen for hjemskjermen (`hjemskjerm.js`) vises hver gang siden åpnes i
   nettleseren på telefon (brukeren vil det slik, ikke «vis igjen om en uke»). På PC
   skjules den. Mobilvisning i nettleseren gir Android-versjonen. For å teste
