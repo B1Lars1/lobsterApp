@@ -12,6 +12,7 @@
  *   rød prikk        ga hummer (større jo flere, opptil 4)
  *   hvit, rød kant   bare satt ut
  *   liten grå ring   ingen hummer
+ * Mistede teiner har da ikke rødt «?», siden det lignet en fangstprikk.
  *
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
  * markeringer. Derfor vises fangst og opptatte teiner bare fra hummersesongen som pågår
@@ -49,7 +50,7 @@ export class Kartmarkeringer {
     };
     this.flytter = null; // id til markeringen som flyttes nå
     this.iFredning = () => false; // settes når fredningsområdene er lastet
-    this.liten = kart.getZoom() < FANGST_FULL_ZOOM; // fangsten vises som prikker
+    this.liten = kart.getZoom() < FANGST_FULL_ZOOM; // zoomet ut: fangsten vises som prikker
     // Tegn på nytt bare når zoomen går forbi FANGST_FULL_ZOOM
     kart.on('zoomend', () => {
       if ((kart.getZoom() < FANGST_FULL_ZOOM) !== this.liten) this.tegn();
@@ -144,12 +145,12 @@ function ikon(html, klasse, [bredde, hoyde]) {
 }
 
 // annen: fargen til eieren hvis teinen er en annens i laget (en konstant fra personer.js), ellers null
-// liten: fangst som prikk (zoomet ut). Teinene er like store uansett.
+// liten: zoomet ut, fangst som prikk og mistet teine uten «?». Teinene er like store uansett.
 function symbol(m, iFredning, annen = null, liten = false) {
   if (m.kategori === 'teine') {
     const iSjoen = m.status === 'i_sjoen';
     let varsel = iSjoen && iFredning ? '<b class="varsel" title="I fredningsområde">!</b>' : '';
-    if (m.mistet) varsel = '<b class="varsel" title="Mistet">?</b>';
+    if (m.mistet) varsel = liten ? '' : '<b class="varsel" title="Mistet">?</b>';
     const nummer = annen ? `<span class="annen" style="--eier: ${annen}">` : '<span>';
     return {
       html: `${nummer}${m.nummer ?? '?'}</span>${varsel}`,

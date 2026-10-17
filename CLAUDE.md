@@ -465,7 +465,8 @@ en SVG-tegning (`app/ikoner/teine.svg` og `teine-opptatt.svg`, tegnet for hånd)
 bakgrunn, med nummeret som HTML oppå. Under `FANGST_FULL_ZOOM` (16) er fangsten små prikker
 (`liten` i `symbol()`, klassen `liten`: en `<i>` med størrelsen i `--d`, midt i en usynlig
 flate på 24 px så den er lett å treffe), mens teinene er like store uansett (brukerens ønske:
-fangsten gjorde kartet rotete når man zoomet ut). `tegn()` kjøres på `zoomend` bare når zoomen
+fangsten gjorde kartet rotete når man zoomet ut). Mistede teiner mister da rødt «?» (brukeren
+syntes det så ut som spørsmålstegn i fangstprikkene). `tegn()` kjøres på `zoomend` bare når zoomen
 går forbi grensen, og markeringen som flyttes, er alltid full størrelse.
 
 ## Fallgruver
