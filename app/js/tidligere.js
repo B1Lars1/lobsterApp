@@ -7,8 +7,8 @@
  *   rød prikk med hvit kant  ga hummer (større jo flere, opptil 4)
  *   hul grå ring             ingen hummer
  * Fangst uten teine er en rød prikk. Mistede teiner er ikke med, siden fangsten er ukjent.
- * Teinene til de andre i laget er også med: det er erfaring om stedet. Har du valgt «Mine» i
- * kartlagarket (bareMine), er bare dine med.
+ * Teinene til de andre i laget er også med: det er erfaring om stedet. Dine og de andres slås
+ * av og på hver for seg («Mine | Laget» i kartlagarket). Uten lag gjelder valget for dine.
  *
  * Trykk på et punkt viser hva teinene innen NAER_M har gitt, regnet som i fangstoversikten
  * (lagSettinger i oversikt.js): andelen settinger med hummer og hummer per teinedøgn.
@@ -38,7 +38,7 @@ export class TidligereFangst {
     this.kart = kart;
     this.markeringer = markeringer;
     this.synlig = false;
-    this.bareMine = false; // gjelder bare i et lag
+    this.valg = { mine: false, laget: false }; // vis dine, og de andres i laget
     this._punkter = []; // { lat, lon, hummer, dogn (null for fangst uten teine), aar }
     this._signatur = ''; // tegnes bare på nytt når punktene er endret
     this._timer = null;
@@ -51,15 +51,18 @@ export class TidligereFangst {
       clearTimeout(this._timer);
       this._timer = setTimeout(() => this.tegn(), 300);
     });
-    personer.naarEndret(() => this.tegn()); // inn i eller ut av et lag (bareMine)
+    personer.naarEndret(() => this._oppdater()); // inn i eller ut av et lag
   }
 
-  settBareMine(bareMine) {
-    this.bareMine = bareMine;
-    this.tegn();
+  /** valg: { mine, laget } (true = vis). */
+  settValg(valg) {
+    this.valg = valg;
+    this._oppdater();
   }
 
-  settSynlig(paa) {
+  // Laget er på kartet når noen av punktene skal vises
+  _oppdater() {
+    const paa = this.valg.mine || (personer.iLag && this.valg.laget);
     this.synlig = paa;
     if (paa) {
       this.tegn();
@@ -75,8 +78,8 @@ export class TidligereFangst {
     const { settinger, utenTeine } = lagSettinger(this.markeringer.alle(), Date.now(),
       (m) => this.markeringer.eierAv(m));
     const aar = (ms) => hummersesong(ms).aar;
-    // «gruppe» er din bruker-id for alt som er ditt (lagSettinger)
-    const med = (p) => !this.bareMine || !personer.iLag || p.gruppe === personer.meg;
+    // «gruppe» er din bruker-id for alt som er ditt (lagSettinger). Uten lag gjelder dine valg.
+    const med = (p) => (!personer.iLag || p.gruppe === personer.meg ? this.valg.mine : this.valg.laget);
     return [
       ...settinger.filter((s) => s.fra < start && !s.iSjoen && !s.mistet && med(s))
         .map((s) => ({ lat: s.lat, lon: s.lon, hummer: s.hummer, dogn: (s.til - s.fra) / DAG, aar: aar(s.fra) })),

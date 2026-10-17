@@ -176,7 +176,6 @@ const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer, frednin
 // Fangst fra tidligere sesonger (kartet ellers viser bare sesongen som pågår)
 const tidligere = new TidligereFangst(kart, markeringer);
 visTeinerOgFangst();
-tidligere.settSynlig(innstillinger.visTidligere);
 
 // Teiner og fangst lagres bare når du er logget inn. Ellers åpnes innloggingen i stedet.
 // Rett etter at appen er åpnet er innloggingen ikke lest ennå (innloggingKjent).
@@ -407,17 +406,27 @@ skjema.addEventListener('change', (e) => {
 // ---------- Kartlag ----------
 
 // Arket med hva som vises på kartet, åpnes med knappen under tannhjulet. Navnene er feltene
-// i innstillingene (innstillinger.js) og i skjemaet. I et lag velger «Mine | Laget» (hvem,
-// lagret som bareMine) om de andres teiner og fangst vises.
+// i innstillingene (innstillinger.js) og i skjemaet. Teiner og fangst har egne brytere for
+// dine og for de andre i laget (lagetFangst osv.), og «Mine | Laget» viser det ene settet.
 const kartlagark = $('ark-kartlag');
 const lagskjema = kartlagark.querySelector('form');
-const KARTLAG = ['dybdetall', 'visFangst', 'visOpptatte', 'visTidligere', 'visPotensial',
+const KARTLAG = ['dybdetall', 'visTeiner', 'visFangst', 'visOpptatte', 'visTidligere',
+  'lagetTeiner', 'lagetFangst', 'lagetOpptatte', 'lagetTidligere', 'visPotensial',
   'justerPotensial', 'visBunnhint', 'visFredning'];
 
 function visTeinerOgFangst() {
-  const { visOpptatte, visFangst, bareMine } = innstillinger;
-  kartmarkeringer.settValg({ visOpptatte, visFangst, bareMine });
-  tidligere.settBareMine(bareMine);
+  const i = innstillinger;
+  kartmarkeringer.settValg({
+    mine: { teiner: i.visTeiner, fangst: i.visFangst, opptatte: i.visOpptatte },
+    laget: { teiner: i.lagetTeiner, fangst: i.lagetFangst, opptatte: i.lagetOpptatte },
+  });
+  tidligere.settValg({ mine: i.visTidligere, laget: i.lagetTidligere });
+}
+
+// Viser bryterne for dine eller for de andre i laget, etter «Mine | Laget»
+function visHvem() {
+  const hvem = lagskjema.elements.hvem.value;
+  for (const del of kartlagark.querySelectorAll('[data-hvem-del]')) del.hidden = del.dataset.hvemDel !== hvem;
 }
 
 // Justeringen etter fangsten tegnes bare sammen med hummerpotensialet (se dybdelag.js)
@@ -427,8 +436,10 @@ function visJusterValg() {
 
 $('knapp-kartlag').addEventListener('click', () => {
   for (const navn of KARTLAG) lagskjema.elements[navn].checked = innstillinger[navn];
-  lagskjema.elements.hvem.value = innstillinger.bareMine ? 'mine' : 'laget';
-  kartlagark.querySelector('[data-hvem]').hidden = !personer.iLag; // uten lag er alt ditt
+  // Arket åpnes med dine. Uten lag er alt ditt, og valget vises ikke.
+  lagskjema.elements.hvem.value = 'mine';
+  kartlagark.querySelector('[data-hvem]').hidden = !personer.iLag;
+  visHvem();
   visJusterValg();
   // Forklaringene er lukket hver gang arket åpnes
   for (const info of kartlagark.querySelectorAll('.info')) visForklaring(info, false);
@@ -450,15 +461,17 @@ function visForklaring(info, vis) {
   for (const id of info.getAttribute('aria-controls').split(' ')) $(id).hidden = !vis;
 }
 
-lagskjema.addEventListener('change', () => {
+lagskjema.addEventListener('change', (e) => {
+  if (e.target.name === 'hvem') {
+    visHvem();
+    return;
+  }
   const justerFor = innstillinger.justerPotensial;
   for (const navn of KARTLAG) innstillinger[navn] = lagskjema.elements[navn].checked;
-  innstillinger.bareMine = lagskjema.elements.hvem.value === 'mine';
   visJusterValg();
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
   visTeinerOgFangst();
-  tidligere.settSynlig(innstillinger.visTidligere);
   if (innstillinger.justerPotensial !== justerFor) oppdaterJustering();
   oppdaterKartlag();
 });

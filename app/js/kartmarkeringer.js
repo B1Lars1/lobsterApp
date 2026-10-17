@@ -2,7 +2,7 @@
  * Viser markeringene på kartet med egne symboler (utseendet ligger i app.css):
  *   teine i sjøen   svart bøyleteine sett fra siden, med nummer
  *   teine tatt opp  grå, stiplet teine (bare når «Teiner tatt opp» er slått på)
- *   mistet teine    grå, stiplet teine med rødt «?», alltid, så du kan lete etter den
+ *   mistet teine    grå, stiplet teine med rødt «?», med teinene i sjøen, så du kan lete etter den
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
  *   ingen hummer    hvit sirkel med grått kryss: fangst med 0 hummer (teinen var tom)
  *   rødt «!»        teinen ligger i et fredningsområde
@@ -11,11 +11,11 @@
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
  * markeringer. Derfor vises fangst og opptatte teiner bare fra hummersesongen som pågår
  * (eller den siste, fra 1. oktober): over flere år ville det blitt tusenvis av symboler.
- * Teiner i sjøen og mistede teiner vises alltid. Kartet oppdateres automatisk når
+ * Teiner i sjøen og mistede teiner vises fra alle sesonger. Kartet oppdateres automatisk når
  * markeringene endres.
  *
- * I et lag kan du velge «Mine» i kartlagarket (bareMine): da vises bare dine teiner og
- * fangsten fra dem (Markeringer.erMin), ikke de andres.
+ * Bryterne i kartlagarket gjelder dine teiner og fangsten fra dem (Markeringer.erMin). I et
+ * lag har de andres egne brytere («Laget»). Uten lag gjelder dine for alt.
  */
 
 import { hummersesong } from './oversikt.js';
@@ -33,29 +33,30 @@ export class Kartmarkeringer {
     this.hendelser = hendelser;
     this.lag = L.layerGroup().addTo(kart);
     this._markorer = new Map(); // id -> { markor, noekkel }
-    this.visOpptatte = false;
-    this.visFangst = true;
-    this.bareMine = false; // gjelder bare i et lag
+    // Hva som vises av dine og av de andres i laget (settValg)
+    this.valg = {
+      mine: { teiner: true, fangst: true, opptatte: false },
+      laget: { teiner: true, fangst: true, opptatte: false },
+    };
     this.flytter = null; // id til markeringen som flyttes nå
     this.iFredning = () => false; // settes når fredningsområdene er lastet
     markeringer.naarEndret(() => this.tegn());
     personer.naarEndret(() => this.tegn()); // laget eller initialene er endret
   }
 
-  settValg({ visOpptatte, visFangst, bareMine }) {
-    this.visOpptatte = visOpptatte;
-    this.visFangst = visFangst;
-    this.bareMine = bareMine;
+  /** valg: { mine, laget }, hver med { teiner, fangst, opptatte } (true = vis). */
+  settValg(valg) {
+    this.valg = valg;
     this.tegn();
   }
 
   _synlig(m, sesongStart) {
     if (m.id === this.flytter) return true;
-    if (this.bareMine && personer.iLag && !this.markeringer.erMin(m)) return false;
-    if (m.kategori === 'teine' && (m.status === 'i_sjoen' || m.mistet)) return true;
+    const valg = !personer.iLag || this.markeringer.erMin(m) ? this.valg.mine : this.valg.laget;
+    if (m.kategori === 'teine' && (m.status === 'i_sjoen' || m.mistet)) return valg.teiner;
     // Fangst og opptatte teiner: bare fra sesongen (tidligere år finnes i listene og analysen)
     const fraSesongen = Date.parse(m.kategori === 'hummer' ? m.tid : m.tatt_opp ?? m.tid) >= sesongStart;
-    return fraSesongen && (m.kategori === 'hummer' ? this.visFangst : this.visOpptatte);
+    return fraSesongen && (m.kategori === 'hummer' ? valg.fangst : valg.opptatte);
   }
 
   // Lager eller oppdaterer symbolene, og fjerner de som ikke skal vises lenger.

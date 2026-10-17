@@ -136,7 +136,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
 - Mistet teine: `merkMistet()` setter `status: 'tatt_opp'`, `tatt_opp` (når den ble meldt
   mistet) og `mistet: true`, ikke en ny status (eldre versjoner av appen gjør ukjente
   statuser om til `i_sjoen`). `funnetIgjen()` setter den i sjøen igjen. Mistede teiner
-  vises alltid på kartet (rødt «?»), og `oversikt.js` og `analyser_fangst.py` holder dem
+  vises på kartet (rødt «?») sammen med teinene i sjøen, uansett sesong, og `oversikt.js` og `analyser_fangst.py` holder dem
   utenfor fangstraten og andelen med hummer.
 - **Eier i lag.** Teiner er personlige: `registrert_av` på en teine er eieren (kan endres
   i teinearket), og fangst hører til eieren av teinen den kom fra (`Markeringer.eierAv`,
@@ -147,12 +147,16 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
   personens farge (`personer.farge`, klassen `annen` med `--eier`) og initialene i navnet.
   Statistikken (oversikten, sesongtallet i teinelisten) viser bare dine (`erMin`), og
-  «Ta opp alle mine» tar bare opp dine. Kartlagarket har «Mine | Laget» (innstillingen
-  `bareMine`, standard «Laget»): «Mine» skjuler de andres teiner, fangst og mistede teiner på
-  kartet (`_synlig` i `kartmarkeringer.js`, `gruppe` i `_hentPunkter` i `tidligere.js`), men
-  ikke i teinelisten, oversikten eller `potensialjustering.js`. Valget vises og gjelder bare i
-  et lag (`personer.iLag`), så ingenting er skjult uten at valget synes. Begge modulene tegner
-  på nytt ved `personer.naarEndret`.
+  «Ta opp alle mine» tar bare opp dine. På kartet har dine og de andres teiner og fangst
+  hver sine brytere (brukeren vil ikke at de skal henge sammen): `visTeiner`, `visFangst`,
+  `visOpptatte`, `visTidligere` for dine og `lagetTeiner` osv. for de andre. «Mine | Laget» i
+  kartlagarket viser det ene settet. `_synlig` i `kartmarkeringer.js` og `_hentPunkter` i
+  `tidligere.js` (`gruppe` fra `lagSettinger`) velger settet etter `erMin`. Uten lag
+  (`personer.iLag`) gjelder dine for alt, også markeringer med en annen eier, og lagets er
+  skjult. Mistede teiner følger «Teiner i sjøen». Mangler lagets brytere i innstillingene,
+  får de verdien til dine (`hentInnstillinger`). Teinelisten, oversikten og
+  `potensialjustering.js` bryr seg ikke om bryterne. Begge kartmodulene tegner på nytt ved
+  `personer.naarEndret`.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
   (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder, og fasiten i
@@ -172,7 +176,7 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   sesonger» (`tidligere.js`, innstillingen `visTidligere`): teinesettinger fra før
   `hummersesong().fra` som `L.circleMarker` på canvas (`L.canvas`, egen pane med z-indeks
   460, mellom fredningsområdene og symbolene), regnet med `lagSettinger` fra `oversikt.js`
-  (settingene har derfor `lat` og `lon`). Hele laget er med, ikke bare `erMin`, og mistede
+  (settingene har derfor `lat` og `lon`). Hele laget er med (med egne brytere for dine og de andres), og mistede
   teiner er utenfor. Tegnes på nytt bare når punktene er endret (`_signatur`). Analysen
   bruker alle data. Tidslinjen er SVG
   laget som tekst. Den inneholder bare tall appen har regnet ut, aldri tekst fra brukeren
@@ -363,8 +367,10 @@ feltet i `innstillinger.js`, og `KARTLAG` i `app.js` leser og lagrer dem. Tegnfo
 viser avsnittene i `aria-controls` (kan være flere id-er, se `visForklaring`).
 `justerPotensial` er sperret når `visPotensial` er av (`visJusterValg`), siden `dybdelag.js`
 bare tegner justeringen sammen med potensialet. Nytt kartlag: en ny `.lag` i arket og navnet
-i `KARTLAG`. «Mine | Laget» (`name="hvem"`, lagret som `bareMine`) er et `.segment`, ikke en
-bryter, så det står ikke i `KARTLAG` og leses for seg (`visTeinerOgFangst` i `app.js`). `#ark-innstillinger` har hovedsiden og undersidene Konto, Lag, Sikkerhetskopi og
+i `KARTLAG`. Teiner og fangst er to `.radkort` med `data-hvem-del="mine"`/`"laget"`, og
+«Mine | Laget» (`name="hvem"`, et `.segment`) viser det ene (`visHvem` i `app.js`). Valget
+lagres ikke: arket åpnes alltid med dine. Ny bryter for teiner og fangst: én i hvert kort og
+begge navnene i `KARTLAG`, og `visTeinerOgFangst` sender dem videre. `#ark-innstillinger` har hovedsiden og undersidene Konto, Lag, Sikkerhetskopi og
 Om appen som `<section data-side>` i samme ark (`visSide` i `app.js`, knapper med `data-gaa`,
 alltid hovedsiden når arket åpnes). Kontokortet (`#knapp-konto`) åpner Konto, eller
 innloggingen uten konto, og fylles av `konto.js` (`_visKontokort`, fra siste status fra
