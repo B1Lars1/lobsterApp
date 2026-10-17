@@ -8,6 +8,11 @@
  *   rødt «!»        teinen ligger i et fredningsområde
  *   farget nummer   teinen er en annens i laget (fargen er personens, se personer.js)
  *
+ * Zoomet ut (under FANGST_FULL_ZOOM) er fangsten små prikker, mens teinene er like store:
+ *   rød prikk        ga hummer (større jo flere, opptil 4)
+ *   hvit, rød kant   bare satt ut
+ *   liten grå ring   ingen hummer
+ *
  * Symbolene er vanlige HTML-elementer (L.divIcon). Det går fint for noen hundre
  * markeringer. Derfor vises fangst og opptatte teiner bare fra hummersesongen som pågår
  * (eller den siste, fra 1. oktober): over flere år ville det blitt tusenvis av symboler.
@@ -20,6 +25,10 @@
 
 import { hummersesong } from './oversikt.js';
 import { personer } from './personer.js';
+
+// Lenger ut enn dette er fangsten prikker. Fangst fra en teine ligger der teinen stod, så
+// over en sesong blir det mange symboler, og fulle symboler ville skjult teinene.
+const FANGST_FULL_ZOOM = 16;
 
 export class Kartmarkeringer {
   /**
@@ -40,6 +49,11 @@ export class Kartmarkeringer {
     };
     this.flytter = null; // id til markeringen som flyttes nå
     this.iFredning = () => false; // settes når fredningsområdene er lastet
+    this.liten = kart.getZoom() < FANGST_FULL_ZOOM; // fangsten vises som prikker
+    // Tegn på nytt bare når zoomen går forbi FANGST_FULL_ZOOM
+    kart.on('zoomend', () => {
+      if ((kart.getZoom() < FANGST_FULL_ZOOM) !== this.liten) this.tegn();
+    });
     markeringer.naarEndret(() => this.tegn());
     personer.naarEndret(() => this.tegn()); // laget eller initialene er endret
   }
@@ -62,12 +76,15 @@ export class Kartmarkeringer {
   // Lager eller oppdaterer symbolene, og fjerner de som ikke skal vises lenger.
   tegn() {
     const sesongStart = hummersesong().fra;
+    this.liten = this.kart.getZoom() < FANGST_FULL_ZOOM;
     const synlige = new Set();
     for (const m of this.markeringer.alle()) {
       if (!this._synlig(m, sesongStart)) continue;
       synlige.add(m.id);
       const annen = m.kategori === 'teine' && !this.markeringer.erMin(m) ? personer.farge(m.registrert_av) : null;
-      const { html, klasse, storrelse, z } = symbol(m, this.iFredning(m), annen);
+      // Markeringen som flyttes, er alltid full størrelse
+      const liten = this.liten && m.id !== this.flytter;
+      const { html, klasse, storrelse, z } = symbol(m, this.iFredning(m), annen, liten);
       const noekkel = html + klasse;
       const finnes = this._markorer.get(m.id);
       if (finnes) {
@@ -127,7 +144,8 @@ function ikon(html, klasse, [bredde, hoyde]) {
 }
 
 // annen: fargen til eieren hvis teinen er en annens i laget (en konstant fra personer.js), ellers null
-function symbol(m, iFredning, annen = null) {
+// liten: fangst som prikk (zoomet ut). Teinene er like store uansett.
+function symbol(m, iFredning, annen = null, liten = false) {
   if (m.kategori === 'teine') {
     const iSjoen = m.status === 'i_sjoen';
     let varsel = iSjoen && iFredning ? '<b class="varsel" title="I fredningsområde">!</b>' : '';
@@ -141,6 +159,12 @@ function symbol(m, iFredning, annen = null) {
     };
   }
   const antall = m.beholdt + m.satt_ut;
+  if (liten) {
+    // Prikken (--d) står midt i en større, usynlig flate, så den er lett å treffe
+    const d = antall === 0 ? 10 : 12 + 2 * Math.min(antall, 4);
+    const type = antall === 0 ? ' sjekk' : m.beholdt > 0 ? '' : ' bare-satt-ut';
+    return { html: `<i style="--d: ${d}px"></i>`, klasse: `hummer liten${type}`, storrelse: [24, 24], z: 0 };
+  }
   if (antall === 0) {
     // Ingen hummer (fangst med 0 beholdt og 0 satt ut): grått kryss
     return { html: '<span class="emoji">✕</span>', klasse: 'hummer sjekk', storrelse: [36, 36], z: 0 };

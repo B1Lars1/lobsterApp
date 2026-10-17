@@ -695,6 +695,11 @@ Sjekk alltid gjeldende forskrift.
   50 m): 2 av 3 teinesettinger ga hummer, 3 hummer, 0,67 per teinedøgn». Prikkene tegnes på
   canvas, så tusenvis av settinger fra mange år går fint.
 - **Ingen hummer:** hvit sirkel med grått kryss, der en teine ble tatt opp tom.
+- **Fangst når du zoomer ut:** når målestokken nede til venstre viser 200 m eller mer, blir
+  fangsten små prikker, så teinene synes best: rød prikk med hvit kant betyr hummer (større
+  prikk jo flere, opptil 4), hvit prikk med rød kant at alle ble satt ut igjen, og en liten
+  grå ring ingen hummer. Teinene er like store uansett. Zoom inn for å se hummeren og
+  antallet. Prikkene kan trykkes på som før.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
