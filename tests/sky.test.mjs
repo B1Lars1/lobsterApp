@@ -344,6 +344,32 @@ await f.loggInn(kari);
 assert.equal(await f.kjor(() => f.sky.innlogget), true);
 assert.deepEqual(f.numre(), [], 'fjernet når brukeren sier ja');
 
+// ---------- En annen konto på en telefon der alt ligger i skyen ----------
+
+const f2 = nyTelefon(new FalskTjeneste());
+await f2.loggInn(ola);
+await f2.kjor(() => f2.sky.kobleTil());
+await f2.teine(5);
+await f2.synk();
+await f2.kjor(() => f2.sky.loggUt());
+f2.svar = false;
+await f2.loggInn(kari);
+assert.equal(f2.spurt.length, 0, 'spør ikke når alt ligger i den andre kontoen i skyen');
+assert.equal(await f2.kjor(() => f2.sky.innlogget), true);
+assert.deepEqual(f2.numre(), [], 'fjernet fra telefonen');
+// Noe ikke sendt: da spør den, siden det går tapt
+await f2.kjor(() => f2.sky.kobleTil());
+await f2.teine(6);
+await f2.synk();
+navigator.onLine = false;
+await f2.teine(7);
+await f2.kjor(() => f2.sky.loggUt());
+navigator.onLine = true;
+await f2.loggInn(ola);
+assert.match(f2.spurt.at(-1), /1 endring som ikke er sendt/, 'spør når noe ikke er sendt');
+assert.equal(await f2.kjor(() => f2.sky.innlogget), false, 'Avbryt logger ut igjen');
+assert.deepEqual(f2.numre(), [6, 7], 'og beholder dem');
+
 // ---------- Endringer synkroniseres med en gang, men bare når det er noe å sende ----------
 
 const g = nyTelefon(new FalskTjeneste());
