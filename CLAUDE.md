@@ -466,6 +466,10 @@ bakgrunn, med nummeret som HTML oppå.
 - Arkene er `<dialog>` åpnet med `showModal()`. Alt utenfor, også meldingene fra
   `melding.js`, er da utilgjengelig. En knapp i en melding kan ikke trykkes mens et
   ark er åpent.
+- Noe som skjules med `opacity: 0`, tar fortsatt imot trykk. Meldingen fra `melding.js`
+  skjules slik og ligger oppå kartlagknappen (lange meldinger går over hele bredden), så
+  `pointer-events: auto` gjelder bare `.melding.vis.med-knapp`. Før det traff et trykk på
+  kartlagknappen den usynlige «Angre» og angret fangsten.
 - Spør aldri med `window.confirm()`: bruk `bekreft()` i `bekreft.js` (et ark oppå det som er
   åpent, gir et Promise, knappen sier hva som skjer). `Sky` tar `bekreft` som parameter, og
   svaret kan være et Promise (`app.js`) eller et vanlig svar (testene, standarden

@@ -648,7 +648,10 @@ input.bryter:disabled { opacity: 0.4; cursor: default; }
   align-items: center;
   gap: 14px;
 }
-.melding.med-knapp { pointer-events: auto; padding-right: 8px; }
+.melding.med-knapp { padding-right: 8px; }
+/* Bare mens meldingen vises. Skjult er den bare gjennomsiktig og ligger fortsatt oppå
+   kartlagknappen, så et trykk på kartlagknappen traff den usynlige «Angre» og angret fangsten. */
+.melding.vis.med-knapp { pointer-events: auto; }
 .melding button {
   min-height: 44px;
   padding: 0 16px;
