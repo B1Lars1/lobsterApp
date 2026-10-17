@@ -13,10 +13,16 @@ const STANDARD = {
   versjon: VERSJON,
   tema: 'auto',       // 'auto' | 'lys' | 'mork'
   dybdetall: true,
+  visTeiner: true,      // vis dine teiner i sjøen (og mistede) på kartet
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
   visTidligere: false,  // vis fangst fra tidligere sesonger (tidligere.js)
-  bareMine: false,      // i et lag: vis bare dine teiner og fangst på kartet («Mine | Laget»)
+  // Det samme for de andre i laget («Laget» i kartlagarket). Uten lag gjelder bare dine.
+  // Mangler de, får de samme verdi som dine (se hentInnstillinger).
+  lagetTeiner: true,
+  lagetFangst: true,
+  lagetOpptatte: false,
+  lagetTidligere: false,
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
@@ -28,9 +34,11 @@ export function hentInnstillinger() {
   try {
     const raa = JSON.parse(localStorage.getItem(NOKKEL) || '{}');
     const lagret = { ...STANDARD, ...raa };
-    // Fjernet: Kartverkets topokart (bakgrunn) og GeoJSON-eksporten (sistEksportert)
+    // Fjernet: Kartverkets topokart (bakgrunn), GeoJSON-eksporten (sistEksportert) og
+    // «bare mine» (bareMine, erstattet av egne brytere for laget)
     delete lagret.bakgrunn;
     delete lagret.sistEksportert;
+    delete lagret.bareMine;
     const versjon = raa.versjon ?? 1;
     if (Object.keys(raa).length && versjon < VERSJON) {
       // Versjon 2: bunnhint er av som standard, også for dem som har brukt appen før
@@ -39,6 +47,11 @@ export function hentInnstillinger() {
       if (versjon < 3) lagret.visTidligere = false;
       lagret.versjon = VERSJON;
       lagreInnstillinger(lagret);
+    }
+    // Lagets brytere starter likt med dine, så kartet viser det samme som før de kom
+    for (const [laget, mine] of [['lagetFangst', 'visFangst'], ['lagetOpptatte', 'visOpptatte'],
+      ['lagetTidligere', 'visTidligere']]) {
+      if (!(laget in raa)) lagret[laget] = lagret[mine];
     }
     return lagret;
   } catch {

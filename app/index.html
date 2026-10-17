@@ -338,13 +338,23 @@
       </div>
 
       <h2>Teiner og fangst</h2>
-      <!-- Bare i et lag: «Mine» skjuler de andres teiner og fangst på kartet (app.js) -->
+      <!-- Bare i et lag: «Mine» og «Laget» (de andre) har hver sine brytere, og valget viser det
+           ene kortet (data-hvem-del, se app.js). Uten lag vises bare dine, og de gjelder alt. -->
       <fieldset class="segment" data-hvem hidden>
         <legend class="skjult">Hvem</legend>
-        <label><input type="radio" name="hvem" value="mine">Mine</label>
+        <label><input type="radio" name="hvem" value="mine" checked>Mine</label>
         <label><input type="radio" name="hvem" value="laget">Laget</label>
       </fieldset>
-      <div class="radkort">
+      <div class="radkort" data-hvem-del="mine">
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-teiner">
+              <span class="lag-ikon" aria-hidden="true"><span class="symbol teine"></span></span>
+              <span class="lagnavn"><b>Teiner i sjøen</b></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-teiner" name="visTeiner">
+          </div>
+        </div>
         <div class="lag">
           <div class="lagrad">
             <label class="lagvalg" for="lag-fangst">
@@ -376,9 +386,53 @@
             <button type="button" class="info" aria-controls="hjelp-tidligere" aria-expanded="false" aria-label="Om tidligere sesonger"></button>
             <input type="checkbox" class="bryter" role="switch" id="lag-tidligere" name="visTidligere">
           </div>
-          <p class="lag-hjelp" id="hjelp-tidligere" hidden>Teinene fra tidligere sesonger, også de andres i
-            laget (med «Laget» valgt). Større prikk betyr flere hummer. Trykk på en prikk for å se hva
-            teinene der har gitt.</p>
+          <p class="lag-hjelp" id="hjelp-tidligere" hidden>Teinene fra tidligere sesonger. Større prikk betyr flere hummer. Trykk på en prikk
+            for å se hva teinene der har gitt.</p>
+        </div>
+      </div>
+      <div class="radkort" data-hvem-del="laget" hidden>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-laget-teiner">
+              <span class="lag-ikon" aria-hidden="true"><span class="symbol teine"></span></span>
+              <span class="lagnavn"><b>Teiner i sjøen</b></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-laget-teiner" name="lagetTeiner">
+          </div>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-laget-fangst">
+              <span class="lag-ikon" aria-hidden="true"><span class="symbol hummer"><span class="emoji">🦞</span></span></span>
+              <span class="lagnavn"><b>Fangst i sesongen</b></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-laget-fangst" name="lagetFangst">
+          </div>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-laget-opptatte">
+              <span class="lag-ikon" aria-hidden="true"><span class="symbol teine opptatt"></span></span>
+              <span class="lagnavn"><b>Teiner tatt opp</b></span>
+            </label>
+            <input type="checkbox" class="bryter" role="switch" id="lag-laget-opptatte" name="lagetOpptatte">
+          </div>
+        </div>
+        <div class="lag">
+          <div class="lagrad">
+            <label class="lagvalg" for="lag-laget-tidligere">
+              <span class="lag-ikon" aria-hidden="true"><i class="tegn tidligere-med"></i></span>
+              <span class="lagnavn"><b>Tidligere sesonger</b>
+                <span class="lag-forkl">
+                  <span><i class="tegn tidligere-med"></i>Ga hummer</span>
+                  <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
+                </span></span>
+            </label>
+            <button type="button" class="info" aria-controls="hjelp-laget-tidligere" aria-expanded="false" aria-label="Om tidligere sesonger"></button>
+            <input type="checkbox" class="bryter" role="switch" id="lag-laget-tidligere" name="lagetTidligere">
+          </div>
+          <p class="lag-hjelp" id="hjelp-laget-tidligere" hidden>Teinene til de andre i laget fra tidligere sesonger. Større prikk betyr flere hummer.
+            Trykk på en prikk for å se hva teinene der har gitt.</p>
         </div>
       </div>
 
