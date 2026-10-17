@@ -253,7 +253,8 @@ button {
 
 .melding {
   position: fixed;
-  top: calc(var(--topp) + 62px);
+  /* Under tannhjulet og kartlagknappen (56 + 10 + 56 px), så «Angre» aldri dekker dem */
+  top: calc(var(--topp) + 132px);
   left: 16px;
   right: 16px;
   z-index: 1100;
