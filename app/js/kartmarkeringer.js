@@ -13,6 +13,9 @@
  * (eller den siste, fra 1. oktober): over flere år ville det blitt tusenvis av symboler.
  * Teiner i sjøen og mistede teiner vises alltid. Kartet oppdateres automatisk når
  * markeringene endres.
+ *
+ * I et lag kan du velge «Mine» i kartlagarket (bareMine): da vises bare dine teiner og
+ * fangsten fra dem (Markeringer.erMin), ikke de andres.
  */
 
 import { hummersesong } from './oversikt.js';
@@ -32,20 +35,23 @@ export class Kartmarkeringer {
     this._markorer = new Map(); // id -> { markor, noekkel }
     this.visOpptatte = false;
     this.visFangst = true;
+    this.bareMine = false; // gjelder bare i et lag
     this.flytter = null; // id til markeringen som flyttes nå
     this.iFredning = () => false; // settes når fredningsområdene er lastet
     markeringer.naarEndret(() => this.tegn());
     personer.naarEndret(() => this.tegn()); // laget eller initialene er endret
   }
 
-  settValg({ visOpptatte, visFangst }) {
+  settValg({ visOpptatte, visFangst, bareMine }) {
     this.visOpptatte = visOpptatte;
     this.visFangst = visFangst;
+    this.bareMine = bareMine;
     this.tegn();
   }
 
   _synlig(m, sesongStart) {
     if (m.id === this.flytter) return true;
+    if (this.bareMine && personer.iLag && !this.markeringer.erMin(m)) return false;
     if (m.kategori === 'teine' && (m.status === 'i_sjoen' || m.mistet)) return true;
     // Fangst og opptatte teiner: bare fra sesongen (tidligere år finnes i listene og analysen)
     const fraSesongen = Date.parse(m.kategori === 'hummer' ? m.tid : m.tatt_opp ?? m.tid) >= sesongStart;

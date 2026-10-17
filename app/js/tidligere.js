@@ -7,7 +7,8 @@
  *   rød prikk med hvit kant  ga hummer (større jo flere, opptil 4)
  *   hul grå ring             ingen hummer
  * Fangst uten teine er en rød prikk. Mistede teiner er ikke med, siden fangsten er ukjent.
- * Teinene til de andre i laget er også med: det er erfaring om stedet.
+ * Teinene til de andre i laget er også med: det er erfaring om stedet. Har du valgt «Mine» i
+ * kartlagarket (bareMine), er bare dine med.
  *
  * Trykk på et punkt viser hva teinene innen NAER_M har gitt, regnet som i fangstoversikten
  * (lagSettinger i oversikt.js): andelen settinger med hummer og hummer per teinedøgn.
@@ -18,6 +19,7 @@
 
 import { visMelding } from './melding.js';
 import { hummersesong, lagSettinger } from './oversikt.js';
+import { personer } from './personer.js';
 
 const NAER_M = 50; // settinger så nær hverandre regnes som samme sted når du trykker
 const DAG = 24 * 60 * 60 * 1000;
@@ -36,6 +38,7 @@ export class TidligereFangst {
     this.kart = kart;
     this.markeringer = markeringer;
     this.synlig = false;
+    this.bareMine = false; // gjelder bare i et lag
     this._punkter = []; // { lat, lon, hummer, dogn (null for fangst uten teine), aar }
     this._signatur = ''; // tegnes bare på nytt når punktene er endret
     this._timer = null;
@@ -48,6 +51,12 @@ export class TidligereFangst {
       clearTimeout(this._timer);
       this._timer = setTimeout(() => this.tegn(), 300);
     });
+    personer.naarEndret(() => this.tegn()); // inn i eller ut av et lag (bareMine)
+  }
+
+  settBareMine(bareMine) {
+    this.bareMine = bareMine;
+    this.tegn();
   }
 
   settSynlig(paa) {
@@ -66,10 +75,12 @@ export class TidligereFangst {
     const { settinger, utenTeine } = lagSettinger(this.markeringer.alle(), Date.now(),
       (m) => this.markeringer.eierAv(m));
     const aar = (ms) => hummersesong(ms).aar;
+    // «gruppe» er din bruker-id for alt som er ditt (lagSettinger)
+    const med = (p) => !this.bareMine || !personer.iLag || p.gruppe === personer.meg;
     return [
-      ...settinger.filter((s) => s.fra < start && !s.iSjoen && !s.mistet)
+      ...settinger.filter((s) => s.fra < start && !s.iSjoen && !s.mistet && med(s))
         .map((s) => ({ lat: s.lat, lon: s.lon, hummer: s.hummer, dogn: (s.til - s.fra) / DAG, aar: aar(s.fra) })),
-      ...utenTeine.filter((f) => f.ms < start)
+      ...utenTeine.filter((f) => f.ms < start && med(f))
         .map((f) => ({ lat: f.lat, lon: f.lon, hummer: f.hummer, dogn: null, aar: aar(f.ms) })),
     ];
   }

@@ -147,7 +147,12 @@ oppdaterer den fra `sky`, og kartet, teinelisten og oversikten lytter med `naarE
   Hver eier har egne numre (`nummerBrukt(nummer, eier)`). De andres teiner har nummeret i
   personens farge (`personer.farge`, klassen `annen` med `--eier`) og initialene i navnet.
   Statistikken (oversikten, sesongtallet i teinelisten) viser bare dine (`erMin`), og
-  «Ta opp alle mine» tar bare opp dine.
+  «Ta opp alle mine» tar bare opp dine. Kartlagarket har «Mine | Laget» (innstillingen
+  `bareMine`, standard «Laget»): «Mine» skjuler de andres teiner, fangst og mistede teiner på
+  kartet (`_synlig` i `kartmarkeringer.js`, `gruppe` i `_hentPunkter` i `tidligere.js`), men
+  ikke i teinelisten, oversikten eller `potensialjustering.js`. Valget vises og gjelder bare i
+  et lag (`personer.iLag`), så ingenting er skjult uten at valget synes. Begge modulene tegner
+  på nytt ved `personer.naarEndret`.
 - Fangstoversikten (`oversikt.js`, åpnes fra teinelisten) regner teinesettinger,
   teinedøgn og hummer per teinedøgn på samme måte som `scripts/analyser_fangst.py`
   (`regnUt`). Endres regnemåten ett sted, skal den endres begge steder, og fasiten i
@@ -358,7 +363,8 @@ feltet i `innstillinger.js`, og `KARTLAG` i `app.js` leser og lagrer dem. Tegnfo
 viser avsnittene i `aria-controls` (kan være flere id-er, se `visForklaring`).
 `justerPotensial` er sperret når `visPotensial` er av (`visJusterValg`), siden `dybdelag.js`
 bare tegner justeringen sammen med potensialet. Nytt kartlag: en ny `.lag` i arket og navnet
-i `KARTLAG`. `#ark-innstillinger` har hovedsiden og undersidene Konto, Lag, Sikkerhetskopi og
+i `KARTLAG`. «Mine | Laget» (`name="hvem"`, lagret som `bareMine`) er et `.segment`, ikke en
+bryter, så det står ikke i `KARTLAG` og leses for seg (`visTeinerOgFangst` i `app.js`). `#ark-innstillinger` har hovedsiden og undersidene Konto, Lag, Sikkerhetskopi og
 Om appen som `<section data-side>` i samme ark (`visSide` i `app.js`, knapper med `data-gaa`,
 alltid hovedsiden når arket åpnes). Kontokortet (`#knapp-konto`) åpner Konto, eller
 innloggingen uten konto, og fylles av `konto.js` (`_visKontokort`, fra siste status fra

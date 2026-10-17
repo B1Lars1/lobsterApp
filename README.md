@@ -344,6 +344,9 @@ bryter per lag: dybdetall, fangst i sesongen, teiner tatt opp, tidligere sesonge
 hummerpotensial (med **Juster etter fangsten** som underpunkt, siden justeringen bare vises
 sammen med potensialet), bunnhint og fredningsområder. Øverst står fargene for dybden.
 Tegnforklaringen for et lag står under navnet når laget er på, og **i** viser en forklaring.
+I et lag står **Mine | Laget** øverst under «Teiner og fangst»: **Laget** (standard) viser
+alles teiner og fangst, og **Mine** bare dine teiner og fangsten fra dem (se «Lag»). Valget
+huskes til du endrer det.
 
 **Innstillinger** (tannhjulet øverst til høyre) har det du sjelden trenger:
 
@@ -666,7 +669,7 @@ Sjekk alltid gjeldende forskrift.
 - **Teine i sjøen:** svart bøyleteine sett fra siden, med nummeret midt på og hvit
   kant rundt. Tegningen er `app/ikoner/teine.svg`.
 - **En annens teine i laget:** samme teine, men nummeret er farget (blått, grønt osv., én
-  farge per person). Dine egne ser ut som før.
+  farge per person). Dine egne ser ut som før. Skjules med **Mine** under Kartlag.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
   når «Teiner tatt opp» er slått på under Kartlag.
 - **Mistet teine:** samme grå teine med et rødt «?». Vises alltid, til den er funnet.
@@ -681,7 +684,8 @@ Sjekk alltid gjeldende forskrift.
   hver teinesetting fra før sesongen som pågår, der teinen stod. En rød prikk med hvit kant
   betyr at teinen ga hummer (større prikk jo flere, opptil 4), og en hul grå ring at den
   ikke ga noe. Fangst uten teine er en rød prikk. Mistede teiner er ikke med. Teinene til
-  de andre i laget er med, siden det er erfaring om stedet. Trykk på en prikk for å se hva
+  de andre i laget er med (når **Laget** er valgt under Kartlag), siden det er erfaring om
+  stedet. Trykk på en prikk for å se hva
   teinene innen 50 m har gitt, for eksempel «Tidligere her (sesongene 2024–2025, innen
   50 m): 2 av 3 teinesettinger ga hummer, 3 hummer, 0,67 per teinedøgn». Prikkene tegnes på
   canvas, så tusenvis av settinger fra mange år går fint.
@@ -864,6 +868,12 @@ likevel en eier, med egne numre og egen statistikk (se under).
   e-posten. Fangstarket og listen over fangst viser «av …» på fangst en annen har registrert.
 - **Statistikken** (fangstoversikten og sesongtallet i listen) viser dine teiner. Velg
   «Laget» i fangstoversikten for alle, og tallene per person.
+- **Bare dine på kartet:** velg **Mine** under Kartlag (øverst under «Teiner og fangst»).
+  Da vises bare dine teiner og fangsten fra dem, også fangst en annen registrerte fra
+  teinen din, og bare dine prikker fra tidligere sesonger. De andres teiner, fangst og
+  mistede teiner skjules. **Laget** (standard) viser alt igjen. Valget gjelder bare kartet:
+  teinelisten viser fortsatt alle (dine først), og hummerpotensialet justeres fortsatt etter
+  hele lagets fangst. Utenfor et lag vises ikke valget, og alt vises.
 - Teiner fra før dere hadde konto har ingen eier og står som «Ukjent». Gi dem en eier i
   teinearket.
 - Under Lag står medlemmene. Trykk på en av de andre for **Fjern fra laget**. **Forlat

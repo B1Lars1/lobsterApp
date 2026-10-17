@@ -17,10 +17,10 @@
  */
 
 // <generert av scripts/lag_service_worker.py>
-const VERSJON = '7650c6f9337b';
+const VERSJON = '2c7e42003133';
 // Fil → sjekksum. Filer med samme sjekksum som i forrige versjon kopieres fra telefonen.
 const FILER = {
-  './': '44851c66444c',
+  './': '15e90e64bf06',
   'css/app.css': '528b17a25bf6',
   'data/bunnhint.geojson': '7dff6ecb1079',
   'data/dybdeareal.geojson': 'dfaa36d0802f',
@@ -40,8 +40,8 @@ const FILER = {
   'ikoner/ikon-maskable-512.png': '1d78cbc5ffe9',
   'ikoner/teine-opptatt.svg': '9eee59c46144',
   'ikoner/teine.svg': 'cee886a00886',
-  'index.html': '44851c66444c',
-  'js/app.js': 'd03e94f38d66',
+  'index.html': '15e90e64bf06',
+  'js/app.js': 'b296b4a9d068',
   'js/bekreft.js': 'c3709b7d0383',
   'js/dobbelttrykk.js': '0a34a6673128',
   'js/dra-ned.js': '9edf313a1b6d',
@@ -51,8 +51,8 @@ const FILER = {
   'js/fredning.js': 'a01071ad418e',
   'js/gps.js': '4a09b6aae3f5',
   'js/hjemskjerm.js': '0b74cec06010',
-  'js/innstillinger.js': '5f5b884d60e0',
-  'js/kartmarkeringer.js': '3a3c7dcf553c',
+  'js/innstillinger.js': '343847b31383',
+  'js/kartmarkeringer.js': '6853ddb216bd',
   'js/konto.js': 'a5d15a9a63b5',
   'js/lager.js': '3b2e079cf110',
   'js/markeringer.js': '746432af0be0',
@@ -63,7 +63,7 @@ const FILER = {
   'js/potensialjustering.js': 'db0ab063bdc1',
   'js/sky.js': '1741fa76b875',
   'js/tema.js': '665d59d8188a',
-  'js/tidligere.js': '96419425e51f',
+  'js/tidligere.js': '9139877f3ca3',
   'manifest.webmanifest': '19e7beb80bc1',
   'personvern.html': '7c331efa850a',
   'vendor/firebase-12.19.0/firebase-app.js': '39a50952b5de',

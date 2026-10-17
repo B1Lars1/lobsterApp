@@ -172,10 +172,10 @@ const kartmarkeringer = new Kartmarkeringer(kart, markeringer, {
   },
 });
 const ark = new Markeringsark({ kart, gps, markeringer, kartmarkeringer, fredning });
-kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
 
 // Fangst fra tidligere sesonger (kartet ellers viser bare sesongen som pågår)
 const tidligere = new TidligereFangst(kart, markeringer);
+visTeinerOgFangst();
 tidligere.settSynlig(innstillinger.visTidligere);
 
 // Teiner og fangst lagres bare når du er logget inn. Ellers åpnes innloggingen i stedet.
@@ -407,11 +407,18 @@ skjema.addEventListener('change', (e) => {
 // ---------- Kartlag ----------
 
 // Arket med hva som vises på kartet, åpnes med knappen under tannhjulet. Navnene er feltene
-// i innstillingene (innstillinger.js) og i skjemaet.
+// i innstillingene (innstillinger.js) og i skjemaet. I et lag velger «Mine | Laget» (hvem,
+// lagret som bareMine) om de andres teiner og fangst vises.
 const kartlagark = $('ark-kartlag');
 const lagskjema = kartlagark.querySelector('form');
 const KARTLAG = ['dybdetall', 'visFangst', 'visOpptatte', 'visTidligere', 'visPotensial',
   'justerPotensial', 'visBunnhint', 'visFredning'];
+
+function visTeinerOgFangst() {
+  const { visOpptatte, visFangst, bareMine } = innstillinger;
+  kartmarkeringer.settValg({ visOpptatte, visFangst, bareMine });
+  tidligere.settBareMine(bareMine);
+}
 
 // Justeringen etter fangsten tegnes bare sammen med hummerpotensialet (se dybdelag.js)
 function visJusterValg() {
@@ -420,6 +427,8 @@ function visJusterValg() {
 
 $('knapp-kartlag').addEventListener('click', () => {
   for (const navn of KARTLAG) lagskjema.elements[navn].checked = innstillinger[navn];
+  lagskjema.elements.hvem.value = innstillinger.bareMine ? 'mine' : 'laget';
+  kartlagark.querySelector('[data-hvem]').hidden = !personer.iLag; // uten lag er alt ditt
   visJusterValg();
   // Forklaringene er lukket hver gang arket åpnes
   for (const info of kartlagark.querySelectorAll('.info')) visForklaring(info, false);
@@ -444,10 +453,11 @@ function visForklaring(info, vis) {
 lagskjema.addEventListener('change', () => {
   const justerFor = innstillinger.justerPotensial;
   for (const navn of KARTLAG) innstillinger[navn] = lagskjema.elements[navn].checked;
+  innstillinger.bareMine = lagskjema.elements.hvem.value === 'mine';
   visJusterValg();
   lagreInnstillinger(innstillinger);
   fredning.settSynlig(innstillinger.visFredning);
-  kartmarkeringer.settValg({ visOpptatte: innstillinger.visOpptatte, visFangst: innstillinger.visFangst });
+  visTeinerOgFangst();
   tidligere.settSynlig(innstillinger.visTidligere);
   if (innstillinger.justerPotensial !== justerFor) oppdaterJustering();
   oppdaterKartlag();

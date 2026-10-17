@@ -338,6 +338,12 @@
       </div>
 
       <h2>Teiner og fangst</h2>
+      <!-- Bare i et lag: «Mine» skjuler de andres teiner og fangst på kartet (app.js) -->
+      <fieldset class="segment" data-hvem hidden>
+        <legend class="skjult">Hvem</legend>
+        <label><input type="radio" name="hvem" value="mine">Mine</label>
+        <label><input type="radio" name="hvem" value="laget">Laget</label>
+      </fieldset>
       <div class="radkort">
         <div class="lag">
           <div class="lagrad">
@@ -371,7 +377,8 @@
             <input type="checkbox" class="bryter" role="switch" id="lag-tidligere" name="visTidligere">
           </div>
           <p class="lag-hjelp" id="hjelp-tidligere" hidden>Teinene fra tidligere sesonger, også de andres i
-            laget. Større prikk betyr flere hummer. Trykk på en prikk for å se hva teinene der har gitt.</p>
+            laget (med «Laget» valgt). Større prikk betyr flere hummer. Trykk på en prikk for å se hva
+            teinene der har gitt.</p>
         </div>
       </div>
 
