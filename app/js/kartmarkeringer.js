@@ -4,7 +4,7 @@
  *   teine tatt opp  grå, stiplet teine (bare når «Teiner tatt opp» er slått på)
  *   mistet teine    grå, stiplet teine med rødt «?», alltid, så du kan lete etter den
  *   hummer          hvit sirkel med hummer og rød kant, antall som merke
- *   ingen hummer    hvit sirkel med grå hake: fangst med 0 hummer (teinen var tom)
+ *   ingen hummer    hvit sirkel med grått kryss: fangst med 0 hummer (teinen var tom)
  *   rødt «!»        teinen ligger i et fredningsområde
  *   farget nummer   teinen er en annens i laget (fargen er personens, se personer.js)
  *
@@ -135,8 +135,8 @@ function symbol(m, iFredning, annen = null) {
   }
   const antall = m.beholdt + m.satt_ut;
   if (antall === 0) {
-    // Ingen hummer (fangst med 0 beholdt og 0 satt ut): grå hake
-    return { html: '<span class="emoji">✓</span>', klasse: 'hummer sjekk', storrelse: [36, 36], z: 0 };
+    // Ingen hummer (fangst med 0 beholdt og 0 satt ut): grått kryss
+    return { html: '<span class="emoji">✕</span>', klasse: 'hummer sjekk', storrelse: [36, 36], z: 0 };
   }
   return {
     html: `<span class="emoji">🦞</span>${antall > 1 ? `<b class="antall">${antall}</b>` : ''}`,

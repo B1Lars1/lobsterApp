@@ -604,7 +604,7 @@ input.bryter:disabled { opacity: 0.4; cursor: default; }
 }
 .symbol.hummer .emoji { font-size: 19px; line-height: 1; }
 .symbol.hummer.bare-satt-ut { border-style: dashed; opacity: 0.8; }
-/* Fangst uten hummer: grå kant og hake */
+/* Fangst uten hummer: grå kant og kryss */
 .symbol.hummer.sjekk { border-color: #6b7580; }
 .symbol.hummer.sjekk .emoji { color: #4b5560; font-weight: 900; }
 .symbol .antall {

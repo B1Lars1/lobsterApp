@@ -641,7 +641,7 @@ Sjekk alltid gjeldende forskrift.
   først. Trykk på en fangst for å endre antall beholdt og satt ut, tidspunkt, teine
   eller notat, flytte den eller slette den. Fangsten fra tidligere sesonger ligger
   sammenslått nederst i den delen («Sesongen 2025 (…)»). Trykk for å åpne en sesong.
-- **0 hummer** vises med en grå hake og «Ingen hummer» i teinearket og under
+- **0 hummer** vises med et grått kryss og «Ingen hummer» i teinearket og under
   Fangstregistreringer, og som en hul ring i tidslinjen i analysen.
 - **Tatt opp** i teinearket og **Ta opp** i listen åpner arket for fangsten fra teinen,
   med 0 hummer som utgangspunkt. Juster antallet og trykk Ferdig: fangsten registreres
@@ -685,7 +685,7 @@ Sjekk alltid gjeldende forskrift.
   teinene innen 50 m har gitt, for eksempel «Tidligere her (sesongene 2024–2025, innen
   50 m): 2 av 3 teinesettinger ga hummer, 3 hummer, 0,67 per teinedøgn». Prikkene tegnes på
   canvas, så tusenvis av settinger fra mange år går fint.
-- **Ingen hummer:** hvit sirkel med grå hake, der en teine ble tatt opp tom.
+- **Ingen hummer:** hvit sirkel med grått kryss, der en teine ble tatt opp tom.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
