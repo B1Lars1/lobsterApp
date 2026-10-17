@@ -676,8 +676,8 @@ Sjekk alltid gjeldende forskrift.
   i Kartlag.
 - **Teine tatt opp:** samme teine i grått og stiplet (`teine-opptatt.svg`). Vises bare
   når «Teiner tatt opp» er slått på under Kartlag.
-- **Mistet teine:** samme grå teine med et rødt «?». Vises sammen med teinene i sjøen
-  (bryteren «Teiner i sjøen»), til den er funnet.
+- **Mistet teine:** samme grå teine med et rødt «?» (bare når du har zoomet inn, se under).
+  Vises sammen med teinene i sjøen (bryteren «Teiner i sjøen»), til den er funnet.
 - **Fangst:** hvit sirkel med hummer og rød kant, med antall hvis det er mer enn én.
   Stiplet kant betyr at alle ble satt ut igjen.
 - **Bare sesongen:** fangst og opptatte teiner vises bare fra hummersesongen som pågår
@@ -695,6 +695,12 @@ Sjekk alltid gjeldende forskrift.
   50 m): 2 av 3 teinesettinger ga hummer, 3 hummer, 0,67 per teinedøgn». Prikkene tegnes på
   canvas, så tusenvis av settinger fra mange år går fint.
 - **Ingen hummer:** hvit sirkel med grått kryss, der en teine ble tatt opp tom.
+- **Fangst når du zoomer ut:** når målestokken nede til venstre viser 200 m eller mer, blir
+  fangsten små prikker, så teinene synes best: rød prikk med hvit kant betyr hummer (større
+  prikk jo flere, opptil 4), hvit prikk med rød kant at alle ble satt ut igjen, og en liten
+  grå ring ingen hummer. Teinene er like store uansett, men mistede teiner har ikke rødt «?»
+  da, siden det ligner en fangstprikk. Zoom inn for å se hummeren, antallet og «?». Prikkene
+  kan trykkes på som før.
 - **Rødt «!»:** teinen står i et fredningsområde.
 - **Blå prikk:** der du er, med en gjennomsiktig sirkel som viser GPS-nøyaktigheten.
 
