@@ -451,7 +451,7 @@ export class Markeringsark {
     const li = fraMal(`
       <li>
         <button type="button" class="rad">
-          <span class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></span>
+          <span class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✕' : '🦞'}</span></span>
           <span class="radtekst"><b data-tekst="tittel"></b><small data-tekst="info"></small></span>
           <span class="endre">Endre</span>
         </button>
@@ -472,7 +472,7 @@ export class Markeringsark {
     const tittel = ny ? this._utkastTittel : sjekk ? 'Ingen hummer' : 'Hummerfangst';
     const el = fraMal(`
       <div class="ark-topp">
-        <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✓' : '🦞'}</span></div>
+        <div class="symbol hummer${sjekk ? ' sjekk' : ''}"><span class="emoji">${sjekk ? '✕' : '🦞'}</span></div>
         <div class="ark-tittel"><h3 data-tekst="tittel"></h3><p data-tekst="undertekst"></p></div>
       </div>
       <div class="teller">
