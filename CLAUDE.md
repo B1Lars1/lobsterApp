@@ -362,9 +362,13 @@ på `brukere/{uid}` eller reglene for det, må nullstillingen følge med.
 
 **Kartlag og innstillinger** er to ark. `#ark-kartlag` (knappen `#knapp-kartlag` under
 tannhjulet) er det som brukes på sjøen: én `.lag` per kartlag med en bryter, der `name` er
-feltet i `innstillinger.js`, og `KARTLAG` i `app.js` leser og lagrer dem. Tegnforklaringen
-(`.lag-forkl`) vises bare når bryteren er på (`.lag:has(.bryter:checked)`), og «i» (`.info`)
-viser avsnittene i `aria-controls` (kan være flere id-er, se `visForklaring`).
+feltet i `innstillinger.js`, og `KARTLAG` i `app.js` leser og lagrer dem. «i» (`.info`) viser
+`.lag-hjelp` under raden, med id-ene i `aria-controls` (kan være flere, se `visForklaring`).
+Tegnforklaringen (`.lag-forkl`) står øverst i `.lag-hjelp`, ikke under navnet: med flere
+symboler ble den klemt inn mellom ikonet og bryteren (brukeren syntes det så rart ut). Raden
+selv har bare ikon, navn (eventuelt en kort `small`), «i» og bryter. «Juster etter fangsten»
+har ikke egen «i» (navnet får da ikke plass på én linje på 375 px), så forklaringen og
+tegnforklaringen for den ligger under «i» ved hummerpotensialet (`hjelp-juster`).
 `justerPotensial` er sperret når `visPotensial` er av (`visJusterValg`), siden `dybdelag.js`
 bare tegner justeringen sammen med potensialet. Nytt kartlag: en ny `.lag` i arket og navnet
 i `KARTLAG`. Teiner og fangst er to `.radkort` med `data-hvem-del="mine"`/`"laget"`, og

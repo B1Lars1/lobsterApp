@@ -314,8 +314,7 @@
   <input type="file" id="velg-fil" accept=".geojson,.json,application/geo+json,application/json" hidden>
 
   <!-- Kartlag: hva som vises på kartet, med tegnforklaring (se app.js). Hvert lag er en rad
-       med bryter. Tegnforklaringen under navnet vises bare når laget er på, og «i» viser
-       forklaringen. -->
+       med bryter, og «i» viser tegnforklaringen og forklaringen under raden. -->
   <dialog id="ark-kartlag" class="ark">
     <form method="dialog">
       <div class="handtak" tabindex="-1" autofocus aria-hidden="true"></div>
@@ -377,17 +376,19 @@
           <div class="lagrad">
             <label class="lagvalg" for="lag-tidligere">
               <span class="lag-ikon" aria-hidden="true"><i class="tegn tidligere-med"></i></span>
-              <span class="lagnavn"><b>Tidligere sesonger</b>
-                <span class="lag-forkl">
-                  <span><i class="tegn tidligere-med"></i>Ga hummer</span>
-                  <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
-                </span></span>
+              <span class="lagnavn"><b>Tidligere sesonger</b></span>
             </label>
             <button type="button" class="info" aria-controls="hjelp-tidligere" aria-expanded="false" aria-label="Om tidligere sesonger"></button>
             <input type="checkbox" class="bryter" role="switch" id="lag-tidligere" name="visTidligere">
           </div>
-          <p class="lag-hjelp" id="hjelp-tidligere" hidden>Teinene fra tidligere sesonger. Større prikk betyr flere hummer. Trykk på en prikk
-            for å se hva teinene der har gitt.</p>
+          <div class="lag-hjelp" id="hjelp-tidligere" hidden>
+            <div class="lag-forkl">
+              <span><i class="tegn tidligere-med"></i>Ga hummer</span>
+              <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
+            </div>
+            <p>Teinene fra tidligere sesonger. Større prikk betyr flere hummer. Trykk på en prikk
+              for å se hva teinene der har gitt.</p>
+          </div>
         </div>
       </div>
       <div class="radkort" data-hvem-del="laget" hidden>
@@ -422,17 +423,19 @@
           <div class="lagrad">
             <label class="lagvalg" for="lag-laget-tidligere">
               <span class="lag-ikon" aria-hidden="true"><i class="tegn tidligere-med"></i></span>
-              <span class="lagnavn"><b>Tidligere sesonger</b>
-                <span class="lag-forkl">
-                  <span><i class="tegn tidligere-med"></i>Ga hummer</span>
-                  <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
-                </span></span>
+              <span class="lagnavn"><b>Tidligere sesonger</b></span>
             </label>
             <button type="button" class="info" aria-controls="hjelp-laget-tidligere" aria-expanded="false" aria-label="Om tidligere sesonger"></button>
             <input type="checkbox" class="bryter" role="switch" id="lag-laget-tidligere" name="lagetTidligere">
           </div>
-          <p class="lag-hjelp" id="hjelp-laget-tidligere" hidden>Teinene til de andre i laget fra tidligere sesonger. Større prikk betyr flere hummer.
-            Trykk på en prikk for å se hva teinene der har gitt.</p>
+          <div class="lag-hjelp" id="hjelp-laget-tidligere" hidden>
+            <div class="lag-forkl">
+              <span><i class="tegn tidligere-med"></i>Ga hummer</span>
+              <span><i class="tegn tidligere-uten"></i>Ingen hummer</span>
+            </div>
+            <p>Teinene til de andre i laget fra tidligere sesonger. Større prikk betyr flere hummer.
+              Trykk på en prikk for å se hva teinene der har gitt.</p>
+          </div>
         </div>
       </div>
 
@@ -442,31 +445,36 @@
           <div class="lagrad">
             <label class="lagvalg" for="lag-potensial">
               <span class="lag-ikon" aria-hidden="true"><i class="tegn pot-hoy"></i></span>
-              <span class="lagnavn"><b>Hummerpotensial</b>
-                <span class="lag-forkl">
-                  <span><i class="tegn pot-hoy"></i>Høyt</span>
-                  <span><i class="tegn pot-middels"></i>Middels</span>
-                  <span><i class="tegn tarekant"></i>Tarekant</span>
-                </span></span>
+              <span class="lagnavn"><b>Hummerpotensial</b></span>
             </label>
             <button type="button" class="info" aria-controls="hjelp-potensial hjelp-juster" aria-expanded="false" aria-label="Om hummerpotensialet"></button>
             <input type="checkbox" class="bryter" role="switch" id="lag-potensial" name="visPotensial">
           </div>
-          <p class="lag-hjelp" id="hjelp-potensial" hidden>Et anslag ut fra forskning på hummer: mest på
-            10–30 m, gjerne i bratt terreng, på steinbunn med tare og der fjell møter sand. Høyt er 10–30 m
-            og bratt, gjerne med tare eller tarekant (der tareskog møter sand eller ålegras). Bølger og
-            strøm er ikke med. Vises når du zoomer inn. Din egen fangst sier mer over tid.</p>
-          <p class="lag-hjelp" id="hjelp-juster" hidden><b>Juster etter fangsten:</b> der dere har fisket,
-            justeres anslaget etter teinene, også de andres i laget. En fangst øker det, en tom teine senker
-            det litt. Jo flere teinedøgn, jo mer teller fangsten. Trykk i kartet (zoomet langt inn) for å se
-            anslaget og hva det bygger på.</p>
+          <div class="lag-hjelp" id="hjelp-potensial" hidden>
+            <div class="lag-forkl">
+              <span><i class="tegn pot-hoy"></i>Høyt</span>
+              <span><i class="tegn pot-middels"></i>Middels</span>
+              <span><i class="tegn tarekant"></i>Tarekant</span>
+            </div>
+            <p>Et anslag ut fra forskning på hummer: mest på 10–30 m, gjerne i bratt terreng, på
+              steinbunn med tare og der fjell møter sand. Høyt er 10–30 m og bratt, gjerne med tare
+              eller tarekant (der tareskog møter sand eller ålegras). Bølger og strøm er ikke med.
+              Vises når du zoomer inn. Din egen fangst sier mer over tid.</p>
+          </div>
+          <div class="lag-hjelp" id="hjelp-juster" hidden>
+            <div class="lag-forkl">
+              <span><i class="tegn pot-svaert"></i>Svært høyt der fangsten var god</span>
+            </div>
+            <p><b>Juster etter fangsten:</b> der dere har fisket, justeres anslaget etter teinene, også
+              de andres i laget. En fangst øker det, en tom teine senker det litt. Jo flere teinedøgn, jo
+              mer teller fangsten. Trykk i kartet (zoomet langt inn) for å se anslaget og hva det bygger på.</p>
+          </div>
         </div>
         <!-- Justeringen tegnes bare når hummerpotensialet vises, så den er et underpunkt -->
         <div class="lag under">
           <div class="lagrad">
             <label class="lagvalg" for="lag-juster">
-              <span class="lagnavn"><b>Juster etter fangsten</b><small class="nar-av">Slå på hummerpotensialet først</small>
-                <span class="lag-forkl"><span><i class="tegn pot-svaert"></i>Svært høyt der fangsten var god</span></span></span>
+              <span class="lagnavn"><b>Juster etter fangsten</b><small class="nar-av">Slå på hummerpotensialet først</small></span>
             </label>
             <input type="checkbox" class="bryter" role="switch" id="lag-juster" name="justerPotensial">
           </div>
@@ -475,18 +483,19 @@
           <div class="lagrad">
             <label class="lagvalg" for="lag-bunnhint">
               <span class="lag-ikon" aria-hidden="true"><i class="tegn hard"></i></span>
-              <span class="lagnavn"><b>Bunnhint</b><small>Tare, ålegras, skjellsand</small>
-                <span class="lag-forkl lang">
-                  <span><i class="tegn hard"></i>Tareskog – trolig fjell og stein</span>
-                  <span><i class="tegn blot"></i>Ålegras, skjellsand – trolig sand eller mudder</span>
-                </span></span>
+              <span class="lagnavn"><b>Bunnhint</b><small>Tare, ålegras, skjellsand</small></span>
             </label>
             <button type="button" class="info" aria-controls="hjelp-bunnhint" aria-expanded="false" aria-label="Om bunnhintene"></button>
             <input type="checkbox" class="bryter" role="switch" id="lag-bunnhint" name="visBunnhint">
           </div>
-          <p class="lag-hjelp" id="hjelp-bunnhint" hidden>Vises når du zoomer langt inn. Trykk i kartet for å
-            se hva som er der. Der det ikke står noe, er bunnen ukjent. Tareskog og skjellsand er modellert,
-            ikke kartlagt.</p>
+          <div class="lag-hjelp" id="hjelp-bunnhint" hidden>
+            <div class="lag-forkl lang">
+              <span><i class="tegn hard"></i>Tareskog – trolig fjell og stein</span>
+              <span><i class="tegn blot"></i>Ålegras, skjellsand – trolig sand eller mudder</span>
+            </div>
+            <p>Vises når du zoomer langt inn. Trykk i kartet for å se hva som er der. Der det ikke står
+              noe, er bunnen ukjent. Tareskog og skjellsand er modellert, ikke kartlagt.</p>
+          </div>
         </div>
         <div class="lag">
           <div class="lagrad">

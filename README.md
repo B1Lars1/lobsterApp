@@ -343,7 +343,9 @@ så et langt trykk ikke merker for eksempel målestokken på iPhone.
 bryter per lag: dybdetall, teiner i sjøen, fangst i sesongen, teiner tatt opp, tidligere
 sesonger, hummerpotensial (med **Juster etter fangsten** som underpunkt, siden justeringen bare vises
 sammen med potensialet), bunnhint og fredningsområder. Øverst står fargene for dybden.
-Tegnforklaringen for et lag står under navnet når laget er på, og **i** viser en forklaring.
+Trykk **i** på et lag for tegnforklaringen (hva fargene og symbolene betyr) og en forklaring
+under raden, så radene er like korte uansett hvor mange symboler laget har. **i** ved
+hummerpotensialet forklarer også **Juster etter fangsten**.
 I et lag står **Mine | Laget** øverst under «Teiner og fangst». Dine og de andres teiner og
 fangst har hver sine brytere: **Mine** viser bryterne for dine, og **Laget** bryterne for de
 andre i laget (se «Lag»). Arket åpnes med dine. Bryterne huskes til du endrer dem.

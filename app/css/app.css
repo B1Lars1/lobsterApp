@@ -1326,21 +1326,6 @@ body.flyttemodus .handlinger { visibility: hidden; }
 .lagnavn { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .lagnavn b { font-size: 17px; font-weight: 600; }
 .lagnavn small { color: var(--dempet); font-size: 14px; line-height: 1.3; }
-/* Tegnforklaringen vises bare når laget er på */
-.lag-forkl {
-  display: none;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 4px;
-  color: var(--dempet);
-  font-size: 13.5px;
-  line-height: 1.3;
-}
-.lag:has(.bryter:checked) .lag-forkl { display: flex; }
-.lag:has(.bryter:disabled) .lag-forkl { display: none; }
-.lag-forkl.lang { flex-direction: column; }
-.lag-forkl span { display: flex; align-items: flex-start; gap: 6px; }
-.lag-forkl .tegn { width: 22px; height: 14px; margin-top: 2px; border-radius: 3px; }
 /* «Juster etter fangsten» er et underpunkt til hummerpotensialet */
 .lag.under .lagvalg { padding-left: 44px; }
 .nar-av { display: none; }
@@ -1371,6 +1356,19 @@ body.flyttemodus .handlinger { visibility: hidden; }
 }
 .info[aria-expanded="true"] { color: var(--aksent); }
 .lag-hjelp { margin: -2px 8px 12px 44px; color: var(--dempet); font-size: 14px; line-height: 1.45; }
+.lag-hjelp p { margin: 0; }
+/* Tegnforklaringen står øverst i forklaringen, i full bredde under raden */
+.lag-forkl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 2px 0 8px;
+  color: var(--flate-tekst);
+  line-height: 1.3;
+}
+.lag-forkl.lang { flex-direction: column; }
+.lag-forkl span { display: flex; align-items: flex-start; gap: 8px; }
+.lag-forkl .tegn { width: 22px; height: 14px; margin-top: 2px; border-radius: 3px; }
 
 /* =====================================================================
  * Innstillinger (ark-innstillinger): hovedsiden og undersidene
