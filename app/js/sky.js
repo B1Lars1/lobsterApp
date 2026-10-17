@@ -44,7 +44,8 @@
  *     sistHentet: [sekunder, nanosekunder], kjent: { id: endret }, sist, feil }
  * Logger du ut, blir markeringene og tilstanden liggende på telefonen, og logger du inn
  * igjen med samme konto, fortsetter det der det slapp. Logger en annen konto inn på
- * telefonen, spør appen før markeringene fra den forrige kontoen fjernes.
+ * telefonen, fjernes markeringene fra den forrige kontoen. Appen spør først hvis noe av det
+ * ikke ligger i skyen (kontoen var ikke koblet til, eller noe er ikke sendt ennå).
  */
 
 import { FELT } from './markeringer.js';
@@ -209,7 +210,9 @@ export class Sky {
       const tilstand = hentTilstand();
       if (tilstand.uid && tilstand.uid !== bruker.uid && this.markeringer.alle().length) {
         // Markeringene på telefonen hører til en annen konto. Ikke bland dem inn i denne.
-        if (!(await this.bekreft(this._annenKontoTekst(tilstand, bruker.epost)))) {
+        // Ligger alt i den andre kontoen i skyen, fjernes de uten å spørre.
+        const sporsmal = this._annenKontoTekst(tilstand, bruker.epost);
+        if (sporsmal && !(await this.bekreft(sporsmal))) {
           await this.innlogging.loggUt();
           return;
         }
@@ -229,21 +232,20 @@ export class Sky {
     if (bruker) this.synkroniser();
   }
 
-  // Spørsmålet før markeringene fra en annen konto fjernes fra telefonen
+  // Spørsmålet før markeringene fra en annen konto fjernes fra telefonen, eller null når
+  // alt ligger i den andre kontoen i skyen (eller laget), så ingenting går tapt
   _annenKontoTekst(tilstand, epost) {
-    if (tilstand.sky !== true) {
+    if (tilstand.sky !== true || tilstand.frakobler) {
       return 'Telefonen har teiner og fangst fra en annen konto, og de ligger bare på denne '
         + `telefonen. Logger du inn som ${epost}, slettes de for godt. Vil du ta vare på dem, `
         + 'trykk Avbryt og lagre en kopi til fil først (Innstillinger → Sikkerhetskopi). '
         + 'Fortsette og slette dem?';
     }
     const usendte = this._usendte().length;
+    if (!usendte) return null;
     return `Telefonen har teiner og fangst fra en annen konto. De fjernes fra telefonen når du `
-      + `logger inn som ${epost}. `
-      + (usendte
-        ? `De ligger i den andre kontoen, unntatt ${endringer(usendte)} som ikke er sendt ennå og går tapt. `
-        : 'De ligger fortsatt i den andre kontoen. ')
-      + 'Fortsette?';
+      + `logger inn som ${epost}. De ligger i den andre kontoen i skyen, unntatt `
+      + `${endringer(usendte)} som ikke er sendt ennå og går tapt. Fortsette?`;
   }
 
   statusTekst() {

@@ -801,10 +801,11 @@ den som driver appen sletter dem.
 - **Logg ut:** teinene og fangsten blir liggende på telefonen. Er kontoen koblet til
   skyen, sendes det som er endret, først (uten nett sendes det når du logger inn igjen).
   Logger du inn igjen med samme konto, fortsetter alt der det slapp.
-- **Annen konto på samme telefon:** appen spør før teinene og fangsten fra den forrige
-  kontoen fjernes fra telefonen, så de ikke havner i feil konto. Lå de bare på telefonen,
-  advarer den om at de slettes for godt, og **Avbryt** logger ut igjen, så du kan lagre en
-  kopi til fil først.
+- **Annen konto på samme telefon:** teinene og fangsten fra den forrige kontoen fjernes
+  fra telefonen, så de ikke havner i feil konto. Var den forrige kontoen koblet til skyen og
+  alt sendt, skjer det uten spørsmål, siden alt fortsatt ligger i den kontoen (eller laget).
+  Lå de bare på telefonen, advarer appen om at de slettes for godt, og **Avbryt** logger ut
+  igjen, så du kan lagre en kopi til fil først. Er noe ikke sendt ennå, spør den også.
 - **Glemt passord:** skriv e-posten og trykk **Glemt passord?**. Det kommer en e-post
   med lenke for å lage nytt passord.
 - **Slett kontoen:** krever passordet. Kontoen og alt i den i skyen slettes, og du går ut

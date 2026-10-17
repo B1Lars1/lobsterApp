@@ -560,7 +560,7 @@ const sky = new Sky(markeringer, {
     personer.sett({ lag }); // kartet, listene og oversikten tegnes på nytt med eierne
     konto.visLag(lag);
   },
-  // Telefonen har teiner og fangst fra en annen konto (sky.js forklarer hva som skjer)
+  // Telefonen har teiner og fangst fra en annen konto som ikke er i skyen (sky.js forklarer hva som skjer)
   bekreft: (tekst) => bekreft({ tittel: 'Annen konto på telefonen', tekst: [tekst], knapp: 'Fortsett', fare: true }),
   innlogging: new FirebaseInnlogging(),
   tjeneste: new FirestoreTjeneste(),

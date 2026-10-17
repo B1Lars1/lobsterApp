@@ -221,8 +221,10 @@ En sletting er et dokument `{ id, endret, slettet: true }`.
   `endret === frakoblet` for markeringer som finnes på telefonen (`_utveksle`), og de
   sendes på nytt. Ellers ville de eldre markeringene tapt mot slettingene.
 - Logg ut beholder markeringene og tilstanden på telefonen (brukerens valg), så samme konto
-  fortsetter der den slapp. Logger en annen konto inn, spør `_brukerEndret` før `tomAlt()`.
-  Lå de bare på telefonen, advarer den om at de slettes for godt.
+  fortsetter der den slapp. Logger en annen konto inn, kaller `_brukerEndret` `tomAlt()`.
+  Den spør først bare når noe ikke ligger i skyen (`_annenKontoTekst` gir `null` når den
+  forrige kontoen var koblet til, ikke var midt i en frakobling og alt var sendt). Lå de
+  bare på telefonen, advarer den om at de slettes for godt.
 - Telefonen er hovedkopien. `Sky` henter dokumenter med `oppdatert` (serverens tid)
   nyere enn `sistHentet`, slår dem sammen med `Markeringer.importer()` (nyeste `endret`
   vinner, slettinger følger med) og sender så det som er endret lokalt: der `endret`
