@@ -368,7 +368,9 @@ Tegnforklaringen (`.lag-forkl`) står øverst i `.lag-hjelp`, ikke under navnet:
 symboler ble den klemt inn mellom ikonet og bryteren (brukeren syntes det så rart ut). Raden
 selv har bare ikon, navn (eventuelt en kort `small`), «i» og bryter. «Juster etter fangsten»
 har ikke egen «i» (navnet får da ikke plass på én linje på 375 px), så forklaringen og
-tegnforklaringen for den ligger under «i» ved hummerpotensialet (`hjelp-juster`).
+tegnforklaringen for den ligger under «i» ved hummerpotensialet (`hjelp-juster`). Ikonet er
+`tegn pot-svaert` med fangstsymbolet i hjørnet (`.hjornemerke`). Klassen `.merke` er tatt
+(tallet på listeknappen og synkroniseringsknappen), så den kan ikke brukes til slike merker.
 `justerPotensial` er sperret når `visPotensial` er av (`visJusterValg`), siden `dybdelag.js`
 bare tegner justeringen sammen med potensialet. Nytt kartlag: en ny `.lag` i arket og navnet
 i `KARTLAG`. Teiner og fangst er to `.radkort` med `data-hvem-del="mine"`/`"laget"`, og

@@ -470,10 +470,12 @@
               mer teller fangsten. Trykk i kartet (zoomet langt inn) for å se anslaget og hva det bygger på.</p>
           </div>
         </div>
-        <!-- Justeringen tegnes bare når hummerpotensialet vises, så den er et underpunkt -->
-        <div class="lag under">
+        <!-- Justeringen tegnes bare når hummerpotensialet vises, så den er et underpunkt.
+             Ikonet er fargen for svært høyt med fangstsymbolet i hjørnet. -->
+        <div class="lag">
           <div class="lagrad">
             <label class="lagvalg" for="lag-juster">
+              <span class="lag-ikon juster" aria-hidden="true"><i class="tegn pot-svaert"></i><span class="hjornemerke">🦞</span></span>
               <span class="lagnavn"><b>Juster etter fangsten</b><small class="nar-av">Slå på hummerpotensialet først</small></span>
             </label>
             <input type="checkbox" class="bryter" role="switch" id="lag-juster" name="justerPotensial">
