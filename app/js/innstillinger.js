@@ -16,6 +16,7 @@ const STANDARD = {
   visFangst: true,      // vis hummerfangst på kartet
   visOpptatte: false,   // vis teiner som er tatt opp
   visTidligere: false,  // vis fangst fra tidligere sesonger (tidligere.js)
+  bareMine: false,      // i et lag: vis bare dine teiner og fangst på kartet («Mine | Laget»)
   visFredning: true,    // vis fredningsområder for hummer
   visBunnhint: false,   // tareskog, ålegras og skjellsand
   visPotensial: true,   // hummerpotensial og tarekant (anslag)
